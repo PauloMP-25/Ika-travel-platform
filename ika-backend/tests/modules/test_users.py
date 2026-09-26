@@ -1,17 +1,32 @@
 """Pruebas unitarias aisladas del módulo `users`.
 
 No usan base de datos, red ni Celery: los repositorios y la sesión se
-sustituyen por dobles en memoria. La variable `DATABASE_URL` solo existe
-para que `src.core.config` (de Paulo) pueda importarse — nunca se conecta.
+sustituyen por dobles en memoria.
+
+Estas pruebas NO definen ninguna URL, usuario ni credencial: usan la
+configuración oficial de conexión (`DATABASE_URL` cargada desde `.env`,
+creado a partir de `.env.example` por cada desarrollador). Si esa
+configuración no existe, las pruebas se saltan en lugar de fallar.
+
+Ejecutar pytest desde `ika-backend/` (donde vive `.env.example`).
 """
 
 import os
+from pathlib import Path
 
-os.environ.setdefault(
-    "DATABASE_URL", "postgresql+asyncpg://sin_uso:sin_uso@localhost:5432/sin_uso"
-)
+import pytest
 
-import asyncio
+_ARCHIVOS_ENV = (Path(".env"), Path(__file__).resolve().parents[2] / ".env")
+if not os.getenv("DATABASE_URL") and not any(
+    ruta.exists() for ruta in _ARCHIVOS_ENV
+):
+    pytest.skip(
+        "Falta la configuración oficial de base de datos: crea `.env` a partir "
+        "de `.env.example` para ejecutar las pruebas del módulo users.",
+        allow_module_level=True,
+    )
+
+import asyncio  # noqa: E402
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
