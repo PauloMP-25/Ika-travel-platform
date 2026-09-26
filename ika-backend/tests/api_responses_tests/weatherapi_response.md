@@ -2,6 +2,30 @@
 
 **Fecha de ejecución:** 2026-09-26 00:44:03
 
+---
+
+### 📖 Guía de los campos del JSON (WeatherAPI)
+Para el motor de IA de Ika Travel, esta es una de las APIs con el JSON más amigable.
+
+- **`location`:** Contiene los metadatos (nombre del lugar, región, país, coordenadas, hora local).
+- **`current`:** El clima en el instante preciso de la consulta.
+  - `temp_c`: Temperatura en Celsius.
+  - `wind_kph`: Viento en km/h directo.
+  - `uv`: Índice de radiación UV actual.
+- **`forecast.forecastday`:** Un arreglo de los días pronosticados. En este caso pedimos 1 día (`days=1`).
+- **`hour`:** Dentro de `forecastday[0]`, hay un arreglo `hour` con **24 posiciones** (una para cada hora del día).
+  - Cada hora tiene campos muy directos: `temp_c`, `wind_kph`, `humidity`, `uv`, y además `chance_of_rain` (probabilidad de lluvia).
+
+#### 🟢 Ventajas / Pros
+- JSON **extremadamente estructurado y fácil de leer**. Todo está en las unidades correctas (`_c` para Celsius, `_kph` para kilómetros por hora).
+- Incluye el Índice UV (`uv`) tanto actual como por cada hora, indispensable para Ica.
+- Su capa gratuita es masiva (1,000,000 llamadas/mes).
+
+#### 🔴 Diferencias / Contras respecto a las demás
+- Es una empresa comercial, por lo que si el proyecto de Ika Travel se vuelve muy masivo, podrías llegar a un límite (aunque el millón mensual sobra por ahora).
+- Open-Meteo tiene más configuraciones científicas si un día se requiere mayor profundidad.
+
+---
 ### Atractivo: Huacachina
 - **Coordenadas:** -14.0875, -75.7626
 ```json
