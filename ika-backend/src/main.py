@@ -1,11 +1,11 @@
 from fastapi import FastAPI
 
-app = FastAPI(
-    title="Ika Travel API",
+aplicacion = FastAPI(
+    title="API de Ika Travel",
     description="Backend para la aplicación de turismo en Ica",
     version="1.0.0"
 )
 
-@app.get("/")
-async def root():
-    return {"message": "Bienvenido a la API de Ika Travel"}
+@aplicacion.get("/")
+async def raiz():
+    return {"mensaje": "Bienvenido a la API de Ika Travel"}
