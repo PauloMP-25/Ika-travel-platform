@@ -34,6 +34,12 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 horas
 
+    # Celery / Redis (notificaciones SOS, refresco de clima, etc.)
+    CELERY_BROKER_URL: str = "redis://localhost:6379/0"
+    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/1"
+    # True solo en tests: ejecuta las tareas en síncrono, sin broker
+    CELERY_TASK_ALWAYS_EAGER: bool = False
+
 
 @lru_cache
 def get_settings() -> Settings:
