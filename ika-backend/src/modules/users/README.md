@@ -60,12 +60,11 @@ No he creado migraciones (son infraestructura general). La tabla definida en
 `auth_provider (enum: email|google|facebook)`, `provider_id (nullable)`,
 `is_active (bool)`, `created_at`, `updated_at`.
 
-### 5. Bases de datos creadas por mí (constancia)
-Antes de conocer el reparto de responsabilidades creé con `postgres:admin`:
-`ika_travel` y `ika_travel_test`. **No he tocado PostgreSQL desde entonces.**
-La URL oficial del equipo es la de `.env.example`
-(`ika_user:ika_password@.../ika_travel_db`), así que queda a criterio de
-Paulo eliminarlas o reutilizarlas.
+### 5. Tests — requieren el `.env` oficial
+`tests/modules/test_users.py` **no define ninguna URL ni credencial**: lee
+exclusivamente la configuración oficial (`DATABASE_URL` desde `.env`,
+creado a partir de `.env.example`). Si no existe, las pruebas se **saltan**
+con un mensaje explicativo en lugar de fallar.
 
 ---
 
@@ -77,7 +76,8 @@ Paulo eliminarlas o reutilizarlas.
   `401` / `403`, traducidas por `register_users_exception_handlers`.
   El módulo **no** depende de `src/core/exceptions.py`.
 - **Tests:** `tests/modules/test_users.py` son unitarios aislados (sin BD,
-  sin red): usan un `FakeSession` y repositorios parcheados.
+  sin red): usan un `FakeSession` y repositorios parcheados. Se saltan si no
+  hay `.env` con la configuración oficial.
 - **Pendiente (fuera de este sprint):** login social OAuth
   (`service.authenticate_oauth`) y las relationships `reviews` / `favorites`
   / `sos_reports`, que se añadirán cuando existan esos modelos.
