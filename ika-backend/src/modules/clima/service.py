@@ -71,6 +71,10 @@ class AgregadorClima:
         rafagas_validas = [r.rafagas_viento for r in resultados if r.rafagas_viento is not None]
         promedio_rafagas = sum(rafagas_validas) / len(rafagas_validas) if rafagas_validas else None
 
+        # Para el UV, filtramos los 0 que vienen de OpenWeatherMap (porque no tiene el dato, no porque sea 0 real)
+        uvs_validos = [r.indice_uv for r in resultados if r.indice_uv > 0]
+        promedio_uv = sum(uvs_validos) / len(uvs_validos) if uvs_validos else 0.0
+
         clima_promedio = ClimaActual(
             temperatura_actual=round(prom([r.temperatura_actual for r in resultados]), 1),
             sensacion_termica=round(prom([r.sensacion_termica for r in resultados]), 1),
@@ -78,7 +82,7 @@ class AgregadorClima:
             humedad=round(prom([r.humedad for r in resultados]), 1),
             velocidad_viento=round(prom([r.velocidad_viento for r in resultados]), 1),
             rafagas_viento=round(promedio_rafagas, 1) if promedio_rafagas else None,
-            indice_uv=round(prom([r.indice_uv for r in resultados]), 1),
+            indice_uv=round(promedio_uv, 1),
             descripcion_clima=resultados[0].descripcion_clima,  # Usamos la primera descripcion
             visibilidad=round(prom([r.visibilidad for r in resultados]), 1),
             hora_amanecer=resultados[0].hora_amanecer,

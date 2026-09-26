@@ -2,7 +2,7 @@ import httpx
 from typing import Optional
 from datetime import datetime
 from src.modules.clima.adaptadores.base import AdaptadorClimaBase
-from src.modules.clima.schemas import ClimaActualResponse
+from src.modules.clima.schemas import ClimaActual
 from src.modules.clima.exceptions import ErrorMapeoClimaException, ProveedorClimaNoDisponibleException
 
 class AdaptadorOpenMeteo(AdaptadorClimaBase):
@@ -10,10 +10,12 @@ class AdaptadorOpenMeteo(AdaptadorClimaBase):
     Adaptador para Open-Meteo.
     100% Gratuito. No requiere API Key.
     """
+    nombre_proveedor = "Open-Meteo (Gratuita)"
+
     def __init__(self):
         self.url_base = "https://api.open-meteo.com/v1/forecast"
         
-    async def obtener_clima_actual(self, lat: float, lon: float) -> ClimaActualResponse:
+    async def obtener_clima_actual(self, lat: float, lon: float) -> ClimaActual:
         parametros = {
             "latitude": lat,
             "longitude": lon,
@@ -32,7 +34,7 @@ class AdaptadorOpenMeteo(AdaptadorClimaBase):
                 actual = datos_crudos.get("current", {})
                 diario = datos_crudos.get("daily", {})
                 
-                return ClimaActualResponse(
+                return ClimaActual(
                     temperatura_actual=actual.get("temperature_2m", 0.0),
                     sensacion_termica=actual.get("apparent_temperature", 0.0),
                     probabilidad_precipitacion=actual.get("precipitation_probability", 0),
