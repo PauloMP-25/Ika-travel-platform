@@ -1,0 +1,45 @@
+import json
+import requests
+import datetime
+import os
+
+locations = {
+    "Huacachina": {"lat": -14.0875, "lon": -75.7626},
+    "Cañón de los Perdidos": {"lat": -14.7552, "lon": -75.5139},
+    "Cachiche": {"lat": -14.0950, "lon": -75.7360},
+    "Bahía de Paracas": {"lat": -13.8266, "lon": -76.2727},
+    "Centro de Ica": {"lat": -14.0666, "lon": -75.7333}
+}
+
+BASE_URL = "https://api.openweathermap.org/data/2.5/forecast"
+API_KEY = os.getenv("OPENWEATHERMAP_API_KEY", "")
+
+with open("tests/api_responses_tests/openweathermap_response.md", "w", encoding="utf-8") as f:
+    f.write("# Pruebas de API: OpenWeatherMap\n\n")
+    f.write(f"**Fecha de ejecución:** {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+    
+    if not API_KEY:
+        f.write("> **Error:** No se encontró la variable de entorno OPENWEATHERMAP_API_KEY. Configúrala antes de ejecutar el script.\n")
+    else:
+        for name, coords in locations.items():
+            params = {
+                "lat": coords["lat"],
+                "lon": coords["lon"],
+                "appid": API_KEY,
+                "units": "metric",
+                "lang": "es"
+            }
+            
+            try:
+                resp = requests.get(BASE_URL, params=params, timeout=10)
+                resp.raise_for_status()
+                data = resp.json()
+                
+                f.write(f"### Atractivo: {name}\n")
+                f.write(f"- **Coordenadas:** {coords['lat']}, {coords['lon']}\n")
+                f.write("```json\n")
+                f.write(json.dumps(data, indent=4, ensure_ascii=False))
+                f.write("\n```\n\n")
+            except Exception as e:
+                f.write(f"### Atractivo: {name}\n")
+                f.write(f"**Error obteniendo datos:** {str(e)}\n\n")
