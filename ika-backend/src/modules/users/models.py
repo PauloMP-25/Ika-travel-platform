@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import Boolean, DateTime, Enum, String, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
-from src.database import Base
+from src.core.database import Base
 
 
 class AuthProvider(str, enum.Enum):
