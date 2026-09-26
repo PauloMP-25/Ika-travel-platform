@@ -1,13 +1,19 @@
 """Primitivas de seguridad: hasheo de contraseñas y tokens JWT."""
 
+import os
 from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
 import jwt
 from passlib.context import CryptContext
 
-from src.config import settings
 from src.modules.users.exceptions import InvalidCredentialsException
+
+# TODO(Paulo): migrar estas tres variables a `src.core.config.Settings` en
+# cuanto se amplíe. Hoy se leen del entorno para no tocar `config.py`.
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-cambiar-antes-de-produccion")
+ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -31,7 +37,7 @@ def create_access_token(
     """Firma un JWT con el `sub` igual al id del usuario."""
     now = datetime.now(timezone.utc)
     expire = now + timedelta(
-        minutes=expires_minutes or settings.ACCESS_TOKEN_EXPIRE_MINUTES
+        minutes=expires_minutes or ACCESS_TOKEN_EXPIRE_MINUTES
     )
     payload: dict[str, object] = {
         "sub": str(user_id),
@@ -39,7 +45,7 @@ def create_access_token(
         "exp": int(expire.timestamp()),
         "jti": str(uuid4()),
     }
-    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
 def decode_access_token(token: str) -> UUID:
@@ -51,8 +57,8 @@ def decode_access_token(token: str) -> UUID:
     try:
         payload = jwt.decode(
             token,
-            settings.SECRET_KEY,
-            algorithms=[settings.ALGORITHM],
+            SECRET_KEY,
+            algorithms=[ALGORITHM],
         )
         return UUID(payload["sub"])
     except (jwt.PyJWTError, KeyError, ValueError):
