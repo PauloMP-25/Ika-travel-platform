@@ -2,6 +2,9 @@ import json
 import requests
 import datetime
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 locations = {
     "Huacachina": {"lat": -14.0875, "lon": -75.7626},
