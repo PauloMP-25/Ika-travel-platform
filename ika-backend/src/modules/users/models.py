@@ -5,7 +5,7 @@ from datetime import datetime
 from uuid import UUID, uuid4
 
 from sqlalchemy import Boolean, DateTime, Enum, String, Uuid, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database import Base
 
@@ -57,7 +57,9 @@ class User(Base):
         nullable=False,
     )
 
-    # TODO(Dev 1): añadir las relationships `reviews`, `favorites` y
-    # `sos_reports` cuando existan los modelos de `reviews` y `emergency`.
-    # Definirlas ahora rompería el mapper de SQLAlchemy porque las clases
-    # `Review`/`Favorite`/`SOSReport` todavía no están registradas.
+    # TODO(Dev 1): añadir las relationships `reviews` y `favorites` cuando
+    # exista el modelo `reviews`. Definirlas ahora rompería el mapper de
+    # SQLAlchemy porque `Review`/`Favorite` todavía no están registradas.
+    sos_reports: Mapped[list["SOSReport"]] = relationship(
+        "SOSReport", back_populates="user"
+    )
