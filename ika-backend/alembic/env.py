@@ -14,6 +14,9 @@ from alembic import context
 from src.core.config import configuracion
 from src.core.database import Base
 
+import src.modules.catalog.models  # noqa: F401
+import src.modules.weather.models  # noqa: F401
+
 # Este es el objeto de configuración de Alembic, que provee
 # acceso a los valores dentro del archivo .ini en uso.
 config = context.config
