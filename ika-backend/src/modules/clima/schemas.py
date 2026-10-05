@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -21,7 +21,7 @@ class ClimaActual(BaseModel):
     probabilidad_precipitacion: float = Field(..., ge=0, le=100, description="% (0-100)")
     humedad: float = Field(..., ge=0, le=100, description="% (0-100)")
     velocidad_viento: float = Field(..., ge=0, description="km/h")
-    rafagas_viento: Optional[float] = Field(None, description="km/h")
+    rafagas_viento: float | None = Field(None, description="km/h")
     indice_uv: float = Field(..., ge=0)
     descripcion_clima: str
     visibilidad: float = Field(..., ge=0, description="km")

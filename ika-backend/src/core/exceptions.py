@@ -1,13 +1,18 @@
 """Excepciones de negocio y su mapeo global a respuestas HTTP.
 
-Cada módulo define sus excepciones heredando de ``ErrorDeNegocio`` e indicando
-``codigo_http`` y ``codigo``. Un único manejador global las convierte en JSON,
-así los routers nunca repiten ``HTTPException``.
+Cada módulo define sus excepciones propias. Aquí se registra un manejador
+global que las convierte en JSON para no repetir HTTPException en cada router.
 """
+
 import logging
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+
+from src.modules.weather.exceptions import (
+    DestinoNoEncontradoException,
+    TodosLosProveedoresFallaronException,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -48,5 +53,26 @@ async def _manejar_error_de_negocio(request: Request, exc: ErrorDeNegocio) -> JS
 
 
 def registrar_manejadores_excepciones(aplicacion: FastAPI) -> None:
-    """Registra el manejador global. Se invoca una sola vez desde main.py."""
+    """Registra todos los manejadores globales. Se invoca una sola vez desde main.py."""
+
+    # Manejador general de errores de negocio
     aplicacion.add_exception_handler(ErrorDeNegocio, _manejar_error_de_negocio)
+
+    # Manejadores del módulo weather
+    @aplicacion.exception_handler(DestinoNoEncontradoException)
+    async def manejar_destino_no_encontrado(
+        request: Request, exc: DestinoNoEncontradoException
+    ) -> JSONResponse:
+        return JSONResponse(status_code=404, content={"detalle": str(exc)})
+
+    @aplicacion.exception_handler(TodosLosProveedoresFallaronException)
+    async def manejar_todos_proveedores_fallaron(
+        request: Request, exc: TodosLosProveedoresFallaronException
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=503,
+            content={
+                "detalle": "Ningún proveedor de clima respondió. Intente más tarde.",
+                "proveedores_intentados": [error.proveedor for error in exc.errores],
+            },
+        )

@@ -12,6 +12,7 @@ from src.modules.users.router import users_router
 from src.modules.users.exceptions import register_users_exception_handlers
 from src.redis_client import cerrar_redis
 
+
 @asynccontextmanager
 async def ciclo_de_vida(_: FastAPI):
     yield
@@ -41,6 +42,7 @@ aplicacion.include_router(catalog_router, prefix=PREFIJO_API)
 aplicacion.include_router(catalog_admin_router, prefix=PREFIJO_API)
 aplicacion.include_router(weather_router, prefix=PREFIJO_API)
 aplicacion.include_router(geo_router, prefix=PREFIJO_API)
+
 
 @aplicacion.get("/")
 async def raiz():
