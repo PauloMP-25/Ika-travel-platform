@@ -11,7 +11,7 @@ from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.database import get_db
+from src.core.database import obtener_bd
 from src.core.security import decode_access_token
 from src.modules.users.exceptions import InvalidCredentialsException
 from src.modules.users.models import User
@@ -21,7 +21,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
 async def get_current_user(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(obtener_bd)],
     token: Annotated[str, Depends(oauth2_scheme)],
 ) -> User:
     """Resuelve el usuario a partir del JWT de la cabecera `Authorization`.
@@ -37,4 +37,4 @@ async def get_current_user(
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
-DbSession = Annotated[AsyncSession, Depends(get_db)]
+DbSession = Annotated[AsyncSession, Depends(obtener_bd)]
