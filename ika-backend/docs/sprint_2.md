@@ -1,69 +1,111 @@
-# Guía de Desarrollo y Asignación de Tareas — Backend
+# Plan de Ejecución del Sprint 2 - Ika Travel Backend
 
-Este documento establece las responsabilidades, estándares de calidad y flujo de trabajo para el equipo de desarrollo backend del proyecto **Ika Travel & Experience**.
-
-## 1. Organización del Equipo (Backend)
-
-Para esta fase del proyecto (MVP), el trabajo de programación se dividirá entre los dos Desarrolladores Backend. Paulo asumirá el rol de Líder Técnico / QA, encargándose de las revisiones de código, pruebas de integración (Testing), control de calidad e infraestructura.
-
-### 🧑‍💻 Desarrollador 1 (Enfoque en Identidad y Transacciones)
-**Responsabilidades principales:**
-1. **Módulo `users` (Auth):** Modelos, DTOs y Servicios para registro, login y dependencias de seguridad (JWT). *(Prioridad 1 - Bloqueante para el resto)*.
-2. **Módulo `emergency` (SOS):** Reportes geolocalizados y sistema de notificaciones.
-3. **Módulo `reviews` (Reseñas y Favoritos):** Calificación de atractivos y gestión de itinerarios.
-
-### 🧑‍💻 Desarrollador 2 (Enfoque en Catálogo e Inteligencia)
-**Responsabilidades principales:**
-1. **Módulo `catalog` (Catálogo):** Modelos, DTOs y Servicios para Atractivos, Categorías, Agencias y Tours. *(Prioridad 1)*.
-2. **Módulo `weather` (Clima e IA):** Integración de APIs meteorológicas, caché de datos climáticos y algoritmo de recomendación de IA.
-3. **Módulo `geo`:** Trazado de rutas y validaciones de proximidad.
-
-### 🕵️‍♂️ QA y Testing (Paulo)
-- Revisión estricta de Pull Requests (PRs).
-- Creación de pruebas unitarias y de integración (`pytest`).
-- Pruebas de estrés y seguridad en los endpoints.
-- Gestión de la base de datos y migraciones complejas de Alembic.
+Este documento es la **guía oficial de tareas** para el Sprint 2. Reemplaza cualquier documento de tareas del Sprint 1. 
+La infraestructura base (Redis, Celery y Docker) ya está configurada en la rama `develop`.
 
 ---
 
-## 2. Flujo de Trabajo y Buenas Prácticas (Git)
-
-Trabajaremos utilizando la estrategia **Git Flow simplificada**. Está estrictamente prohibido hacer commits directos a las ramas `main` o `develop`.
-
-1. **Ramas de Funcionalidad (Feature Branches):**
-   Cada nueva tarea o módulo debe realizarse en una rama propia creada a partir de `develop`.
-   - *Formato:* `feature/nombre-del-modulo` (Ej. `feature/auth-jwt`, `feature/catalog-models`).
-
-2. **Commits Convencionales (En español):**
-   Cada commit debe describir exactamente qué cambió usando un prefijo válido:
-   - `feat:` (nueva característica o modelo).
-   - `fix:` (corrección de un error o bug).
-   - `refactor:` (mejoras de código sin cambiar funcionalidad).
-   - `chore:` (mantenimiento, configuración).
-   - *Ejemplo:* `git commit -m "feat: crear modelo de base de datos para usuarios y roles"`
-
-3. **Pull Requests (PR):**
-   - Una vez finalizada la tarea, se debe abrir un PR hacia la rama `develop`.
-   - **Obligatorio:** Solicitar revisión a Paulo (QA).
-   - Paulo probará el código localmente, verificará las buenas prácticas y, si todo está correcto, aprobará y hará el "Merge".
+## Reglas Generales para el Equipo
+1. **Ramas:** Creen sus ramas a partir de `develop` con el formato `feature/<nombre-tarea>`.
+2. **Dependencias:** Asegúrense de hacer `git pull origin develop` y luego `pip install -r requirements.txt` para obtener las nuevas librerías (Celery, Redis).
+3. **Contenedores:** Para probar localmente de forma idéntica a producción, usen `docker compose up -d redis db`.
+4. **Test Driven:** Ningún PR será aceptado si no incluye los tests unitarios descritos en sus respectivas secciones.
 
 ---
 
-## 3. Estándares de Calidad del Código (Python + FastAPI)
+## 🧑‍💻 Sección Francis: Módulo de Reseñas y Favoritos (`reviews`)
 
-Para mantener el código limpio y escalable a microservicios, el código debe respetar la siguiente arquitectura de capas:
+### Contexto del Módulo
+El objetivo es permitir a los turistas autenticados calificar los atractivos turísticos (de 1 a 5 estrellas), dejar comentarios con fotos y guardar atractivos como favoritos. Esto impactará directamente al Catálogo, ya que las tarjetas de los atractivos ahora mostrarán un rating real.
 
-1. **Tipado Estricto (Type Hints):** 
-   Todo el código Python debe llevar tipado (`def get_user(db: Session, user_id: UUID) -> User:`).
-   
-2. **Separación de Responsabilidades:**
-   - **`router.py`:** SOLO recibe la petición, llama al servicio y devuelve la respuesta. **Prohibido** poner lógica de negocio o consultas SQL aquí.
-   - **`service.py`:** Contiene toda la lógica (Ej. validar si el email existe, hashear contraseñas).
-   - **`models.py`:** Solo declaraciones de SQLAlchemy.
-   - **`schemas.py`:** Solo validaciones de Pydantic. Las contraseñas NUNCA deben ir en los esquemas de respuesta (Response).
+### Tareas Paso a Paso
 
-3. **Manejo de Errores:**
-   No utilicen `try/except` que oculten errores silenciosamente. Si una regla de negocio se rompe, lancen una excepción personalizada desde la capa de servicio y atrápenla con un manejador global en FastAPI (Ej. lanzando `HTTPException` con estado 400 o 404 de forma clara).
+#### 1. Modelos de Base de Datos (`src/modules/reviews/models.py`)
+- Crear `Review`:
+  - Relación FK hacia el usuario y FK hacia el atractivo.
+  - Columna `rating` (Integer). Asegúrate de añadir un `CheckConstraint` para limitar el valor entre 1 y 5.
+  - Columna `comment` (String, nullable).
+  - Un `UniqueConstraint` por usuario y atractivo (un usuario solo puede dejar 1 reseña por lugar).
+- Crear `ReviewImage`:
+  - FK a `Review` con `ondelete="CASCADE"`.
+  - Columna `url` (String).
+- Crear `Favorite`:
+  - FK hacia usuario y atractivo, con `UniqueConstraint` para que no se dupliquen favoritos.
+
+#### 2. Subida de Archivos (`src/shared/storage.py`)
+- Crear un módulo utilitario que reciba un archivo (`UploadFile` de FastAPI).
+- Validar que sea una imagen (MIME type `image/jpeg`, `image/png`) y que pese menos de 5MB (usando `config.MAX_UPLOAD_MB`).
+- Guardar el archivo en disco (usando `config.UPLOADS_DIR`) y devolver la URL pública.
+
+#### 3. Esquemas de Datos (`src/modules/reviews/schemas.py`)
+- Crear `ReviewCreate`: Valida que `rating` esté entre 1 y 5 usando Pydantic `Field(ge=1, le=5)`.
+- Crear los esquemas de respuesta para reseñas y favoritos, cuidando de NO exponer información sensible del usuario (ej. email o hash de contraseña).
+
+#### 4. Lógica de Negocio (`src/modules/reviews/service.py`)
+- Función `create_review`: Insertar la reseña y sus fotos.
+- Función `delete_review`: Verificar que el usuario que intenta borrar la reseña sea realmente el dueño (`User.id == Review.user_id`).
+- Función `toggle_favorite`: Si el registro en `Favorite` ya existe, eliminarlo. Si no existe, crearlo.
+- **Integración:** Crear `calculate_average_rating(db, attraction_id) -> float`. 
+
+#### 5. Integración con el Catálogo (`src/modules/catalog/service.py`)
+- Importar tu nueva función `calculate_average_rating` y reemplazar el valor fijo (`None`) que actualmente tiene `get_attraction_detail` en el módulo de catálogo.
+
+#### 6. Router (`src/modules/reviews/router.py`)
+- Exponer los endpoints POST y DELETE protegidos por JWT (`Depends(get_current_user)`).
+
+### Criterios de Aceptación (Tests Obligatorios en `test_reviews.py`)
+- [ ] Intentar crear una reseña con calificación `0` o `6` debe fallar (HTTP 422).
+- [ ] Intentar publicar una segunda reseña en el mismo lugar debe fallar (HTTP 409).
+- [ ] Borrar una reseña usando un usuario distinto al autor original debe fallar (HTTP 403).
+- [ ] Llamar a `toggle_favorite` dos veces seguidas sobre el mismo lugar debe crear el registro en el primer intento y borrarlo en el segundo.
+- [ ] Intentar subir un PDF o una foto mayor a 5MB debe devolver un error 422.
 
 ---
-*Cualquier duda arquitectónica o bloqueo técnico deberá ser revisado en conjunto con el Líder de QA antes de avanzar.*
+
+## 🧑‍💻 Sección Gabriel: Módulo de Emergencias SOS (`emergency`)
+
+### Contexto del Módulo
+El objetivo es implementar un "Botón de Pánico". Es altamente crítico que este módulo sea resiliente (**Offline-First**). El turista que se pierde en el desierto enviará múltiples SOS cuando recupere la señal a medias. Para evitar saturar a la policía con duplicados, el celular enviará un ID único (`client_reference_id`). 
+
+### Tareas Paso a Paso
+
+#### 1. Modelos de Base de Datos (`src/modules/emergency/models.py`)
+- Crear `SOSReport`:
+  - `client_reference_id` (UUID, unique=True). Este es el pilar de la idempotencia.
+  - `latitude` y `longitude` (Float).
+  - `status` (Enum: pending, dispatched, resolved).
+- Crear `EmergencyNotification`:
+  - Para auditar si el correo o alerta ya fue enviado a las autoridades (relacionada al reporte SOS).
+
+#### 2. Esquemas de Datos (`src/modules/emergency/schemas.py`)
+- Crear `SOSCreate`: Usar Pydantic para validar estrictamente que la `latitude` esté entre -90 y 90, y la `longitude` entre -180 y 180.
+
+#### 3. Lógica Transaccional (`src/modules/emergency/service.py`)
+- Función `create_sos_report`:
+  - Buscar en la tabla por `client_reference_id`. Si ya existe, **NO devolver error**. Devolver HTTP 200 y el reporte existente.
+  - Si es nuevo, hacer `db.add()` y obligatoriamente un `db.commit()`.
+  - **Crítico:** Solo después del commit, enviar la notificación asíncrona llamando a `enviar_notificaciones_sos.delay(report.id)`.
+
+#### 4. Tareas en Segundo Plano (`src/modules/emergency/tasks.py`)
+- En el archivo `tasks.py` (que ya está creado), implementar la lógica real de `enviar_notificaciones_sos()`.
+- Puedes imprimir un log detallado o configurar un envío de email falso/simulado si el SMTP no está listo. 
+- Implementar los reintentos (`autoretry_for`) nativos de Celery por si el envío falla.
+
+#### 5. Router (`src/modules/emergency/router.py`)
+- Crear `POST /api/v1/emergency/sos` protegido con JWT.
+- Crear `GET /api/v1/emergency/sos/history` protegido con JWT (valida que devuelva solo el historial de ese usuario).
+
+### Criterios de Aceptación (Tests Obligatorios en `test_emergency.py`)
+- [ ] Enviar un payload de SOS sin latitud o longitud debe fallar (HTTP 422).
+- [ ] Enviar **dos peticiones POST seguidas exactamente con el mismo `client_reference_id`**. Debe insertar solo 1 fila en la BD, y el segundo POST debe devolver HTTP 200 (idempotencia comprobada).
+- [ ] Intentar acceder al historial de emergencias de *otro* usuario diferente al autenticado debe fallar (HTTP 403).
+- [ ] Simular el endpoint SOS con `mock` y verificar que la tarea `enviar_notificaciones_sos.delay()` fue llamada correctamente 1 vez tras el commit.
+
+---
+
+## 🧑‍💻 Sección Arquitecto: Módulo Clima Completo y Handlers Globales
+(Para ti y el líder técnico).
+- Integración de los modelos y persistencia en DB para el clima (`WeatherSnapshot`, `WeatherAlert`).
+- Aplicación de Regla RN-03 usando Redis (Caché por 6 horas).
+- Integración del recomendador basado en Gemini AI (`ai_recommender.py`).
+- Implementación de Handlers Globales en `core/exceptions.py` para mapeo automático de HTTP Status Codes.
