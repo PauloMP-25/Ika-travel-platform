@@ -13,7 +13,7 @@ La infraestructura base (Redis, Celery y Docker) ya está configurada en la rama
 
 ---
 
-## 🧑‍💻 Sección Francis: Módulo de Reseñas y Favoritos (`reviews`)
+## Sección Francis: Módulo de Reseñas y Favoritos (`reviews`)
 
 ### Contexto del Módulo
 El objetivo es permitir a los turistas autenticados calificar los atractivos turísticos (de 1 a 5 estrellas), dejar comentarios con fotos y guardar atractivos como favoritos. Esto impactará directamente al Catálogo, ya que las tarjetas de los atractivos ahora mostrarán un rating real.
@@ -62,7 +62,7 @@ El objetivo es permitir a los turistas autenticados calificar los atractivos tur
 
 ---
 
-## 🧑‍💻 Sección Gabriel: Módulo de Emergencias SOS (`emergency`)
+## Sección Gabriel: Módulo de Emergencias SOS (`emergency`)
 
 ### Contexto del Módulo
 El objetivo es implementar un "Botón de Pánico". Es altamente crítico que este módulo sea resiliente (**Offline-First**). El turista que se pierde en el desierto enviará múltiples SOS cuando recupere la señal a medias. Para evitar saturar a la policía con duplicados, el celular enviará un ID único (`client_reference_id`). 
@@ -103,8 +103,7 @@ El objetivo es implementar un "Botón de Pánico". Es altamente crítico que est
 
 ---
 
-## 🧑‍💻 Sección Arquitecto: Módulo Clima Completo y Handlers Globales
-(Para ti y el líder técnico).
+## Sección Paulo: Módulo Clima Completo y Handlers Globales
 - Integración de los modelos y persistencia en DB para el clima (`WeatherSnapshot`, `WeatherAlert`).
 - Aplicación de Regla RN-03 usando Redis (Caché por 6 horas).
 - Integración del recomendador basado en Gemini AI (`ai_recommender.py`).
