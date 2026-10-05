@@ -6,7 +6,16 @@ class Configuracion(BaseSettings):
 
     # --- Redis y CORS ---
     URL_REDIS: str = "redis://localhost:6379/0"
+    CELERY_BROKER_URL: str = "redis://localhost:6379/1"
+    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/2"
     ORIGENES_CORS: str = "*"
+
+    # --- Archivos (Reviews) ---
+    UPLOADS_DIR: str = "./uploads"
+    MAX_UPLOAD_MB: int = 5
+
+    # --- Emergencias (SOS) ---
+    SOS_NOTIFY_EMAILS: str = ""
 
     # --- Admin ---
     CLAVE_ADMIN: str = ""

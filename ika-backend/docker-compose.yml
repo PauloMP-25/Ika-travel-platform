@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: ika_db
+    environment:
+      POSTGRES_USER: ika_usuario
+      POSTGRES_PASSWORD: ika_contrasena
+      POSTGRES_DB: ika_travel_bd
+    ports:
+      - "5433:5432"  # Expone al puerto 5433 en el host para no chocar
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: ika_redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  api:
+    build: .
+    container_name: ika_api
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    command: uvicorn src.main:aplicacion --host 0.0.0.0 --port 8000 --reload
+
+  worker:
+    build: .
+    container_name: ika_celery_worker
+    depends_on:
+      - redis
+      - db
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    command: celery -A celery_worker.celery_app worker -l info
+
+  beat:
+    build: .
+    container_name: ika_celery_beat
+    depends_on:
+      - redis
+      - db
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    command: celery -A celery_worker.celery_app beat -l info
+
+volumes:
+  postgres_data:

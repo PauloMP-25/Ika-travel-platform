@@ -1,6 +1,6 @@
 # Pruebas de API: OpenWeatherMap
 
-**Fecha de ejecución:** 2026-10-05 13:18:20
+**Fecha de ejecución:** 2026-10-05 13:40:57
 
 ### Atractivo: Huacachina
 - **Coordenadas:** -14.0875, -75.7626
@@ -15,13 +15,13 @@
             "main": {
                 "temp": 30.91,
                 "feels_like": 29.64,
-                "temp_min": 28.85,
+                "temp_min": 28.86,
                 "temp_max": 30.91,
                 "pressure": 1010,
                 "sea_level": 1010,
                 "grnd_level": 953,
                 "humidity": 30,
-                "temp_kf": 2.06,
+                "temp_kf": 2.05,
                 "dew_point": 11.33
             },
             "weather": [

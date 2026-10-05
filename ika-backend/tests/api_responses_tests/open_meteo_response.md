@@ -1,6 +1,6 @@
 # Pruebas de API: Open-Meteo
 
-**Fecha de ejecución:** 2026-10-05 13:18:15
+**Fecha de ejecución:** 2026-10-05 13:40:53
 
 ## 1. Open-Meteo (Sin API Key, totalmente gratuita)
 
@@ -10,7 +10,7 @@
 {
     "latitude": -14.094903,
     "longitude": -75.80258,
-    "generationtime_ms": 2.988457679748535,
+    "generationtime_ms": 1.1022090911865234,
     "utc_offset_seconds": -18000,
     "timezone": "America/Lima",
     "timezone_abbreviation": "GMT-5",
@@ -24,12 +24,12 @@
         "uv_index": ""
     },
     "current": {
-        "time": "2026-10-05T13:15",
+        "time": "2026-10-05T13:30",
         "interval": 900,
-        "temperature_2m": 31.5,
-        "relative_humidity_2m": 34,
-        "wind_speed_10m": 14.8,
-        "uv_index": 9.1
+        "temperature_2m": 31.6,
+        "relative_humidity_2m": 33,
+        "wind_speed_10m": 15.7,
+        "uv_index": 8.8
     },
     "hourly_units": {
         "time": "iso8601",
@@ -179,7 +179,7 @@
 {
     "latitude": -14.797891,
     "longitude": -75.50278,
-    "generationtime_ms": 2.7397871017456055,
+    "generationtime_ms": 1.6776323318481445,
     "utc_offset_seconds": -18000,
     "timezone": "America/Lima",
     "timezone_abbreviation": "GMT-5",
@@ -193,12 +193,12 @@
         "uv_index": ""
     },
     "current": {
-        "time": "2026-10-05T13:15",
+        "time": "2026-10-05T13:30",
         "interval": 900,
-        "temperature_2m": 23.8,
+        "temperature_2m": 23.7,
         "relative_humidity_2m": 65,
-        "wind_speed_10m": 17.7,
-        "uv_index": 9.05
+        "wind_speed_10m": 17.6,
+        "uv_index": 8.7
     },
     "hourly_units": {
         "time": "iso8601",
@@ -348,7 +348,7 @@
 {
     "latitude": -14.094903,
     "longitude": -75.719574,
-    "generationtime_ms": 0.29087066650390625,
+    "generationtime_ms": 0.2903938293457031,
     "utc_offset_seconds": -18000,
     "timezone": "America/Lima",
     "timezone_abbreviation": "GMT-5",
@@ -362,12 +362,12 @@
         "uv_index": ""
     },
     "current": {
-        "time": "2026-10-05T13:15",
+        "time": "2026-10-05T13:30",
         "interval": 900,
         "temperature_2m": 31.8,
         "relative_humidity_2m": 32,
-        "wind_speed_10m": 13.6,
-        "uv_index": 9.05
+        "wind_speed_10m": 15.2,
+        "uv_index": 8.7
     },
     "hourly_units": {
         "time": "iso8601",
@@ -517,7 +517,7 @@
 {
     "latitude": -13.8840065,
     "longitude": -76.25577,
-    "generationtime_ms": 3.448605537414551,
+    "generationtime_ms": 3.292560577392578,
     "utc_offset_seconds": -18000,
     "timezone": "America/Lima",
     "timezone_abbreviation": "GMT-5",
@@ -531,12 +531,12 @@
         "uv_index": ""
     },
     "current": {
-        "time": "2026-10-05T13:15",
+        "time": "2026-10-05T13:30",
         "interval": 900,
-        "temperature_2m": 26.5,
-        "relative_humidity_2m": 56,
-        "wind_speed_10m": 30.0,
-        "uv_index": 8.95
+        "temperature_2m": 26.4,
+        "relative_humidity_2m": 57,
+        "wind_speed_10m": 30.2,
+        "uv_index": 8.65
     },
     "hourly_units": {
         "time": "iso8601",
@@ -686,7 +686,7 @@
 {
     "latitude": -14.094903,
     "longitude": -75.719574,
-    "generationtime_ms": 0.2804994583129883,
+    "generationtime_ms": 0.5534887313842773,
     "utc_offset_seconds": -18000,
     "timezone": "America/Lima",
     "timezone_abbreviation": "GMT-5",
@@ -700,12 +700,12 @@
         "uv_index": ""
     },
     "current": {
-        "time": "2026-10-05T13:15",
+        "time": "2026-10-05T13:30",
         "interval": 900,
         "temperature_2m": 31.8,
         "relative_humidity_2m": 32,
-        "wind_speed_10m": 13.6,
-        "uv_index": 9.05
+        "wind_speed_10m": 15.2,
+        "uv_index": 8.7
     },
     "hourly_units": {
         "time": "iso8601",
