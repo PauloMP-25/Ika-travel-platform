@@ -6,6 +6,7 @@ from src.core.database import motor
 from src.core.exceptions import registrar_manejadores_excepciones
 from src.modules.catalog.router import admin as catalog_admin_router
 from src.modules.catalog.router import router as catalog_router
+from src.modules.emergency.router import emergency_router
 from src.modules.geo.router import router as geo_router
 from src.modules.weather.router import router as weather_router
 from src.modules.users.router import users_router
@@ -42,6 +43,7 @@ aplicacion.include_router(catalog_router, prefix=PREFIJO_API)
 aplicacion.include_router(catalog_admin_router, prefix=PREFIJO_API)
 aplicacion.include_router(weather_router, prefix=PREFIJO_API)
 aplicacion.include_router(geo_router, prefix=PREFIJO_API)
+aplicacion.include_router(emergency_router, prefix=PREFIJO_API)
 
 
 @aplicacion.get("/")
