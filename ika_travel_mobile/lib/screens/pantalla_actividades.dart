@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../config/tema.dart';
+import 'pantalla_detalle.dart';
 
 class PantallaActividades extends StatelessWidget {
   final VoidCallback? onVolverInicio;
@@ -12,27 +13,52 @@ class PantallaActividades extends StatelessWidget {
     {
       'titulo': 'Sandboarding\nen Huacachina',
       'subtitulo': 'Ica',
-      'imagen': 'assets/images/act_sandboarding.jpg',
+      'imagen': 'assets/images/detalle_sandboarding_1.jpg',
+      'imagenes_detalle': [
+        'assets/images/detalle_sandboarding_1.jpg',
+        'assets/images/detalle_sandboarding_2.jpg',
+        'assets/images/detalle_sandboarding_3.jpg',
+      ],
     },
     {
       'titulo': 'Paseo en buggy\nen las dunas',
       'subtitulo': 'Huacachina',
-      'imagen': 'assets/images/act_buggy.jpg',
+      'imagen': 'assets/images/act_buggy1.jpg',
+      'imagenes_detalle': [
+        'assets/images/act_buggy1.jpg',
+        'assets/images/detalle_buggy_2.jpg',
+        'assets/images/detalle_buggy_3.jpg',
+      ],
     },
     {
       'titulo': 'Islas Ballestas',
       'subtitulo': 'Paracas',
-      'imagen': 'assets/images/act_ballestas.jpg',
+      'imagen': 'assets/images/act_ballestas1.jpg',
+      'imagenes_detalle': [
+        'assets/images/act_ballestas1.jpg',
+        'assets/images/detalle_ballestas_2.jpg',
+        'assets/images/detalle_ballestas_3.jpg',
+      ],
     },
     {
       'titulo': 'Reserva Nacional\nde Paracas',
       'subtitulo': 'Paracas',
-      'imagen': 'assets/images/act_reserva.jpg',
+      'imagen': 'assets/images/act_reserva1.jpg',
+      'imagenes_detalle': [
+        'assets/images/act_reserva1.jpg',
+        'assets/images/detalle_reserva_2.jpg',
+        'assets/images/detalle_reserva_3.jpg',
+      ],
     },
     {
       'titulo': 'Viñedos y bodegas',
       'subtitulo': 'Ica',
       'imagen': 'assets/images/act_vinos.jpg',
+      'imagenes_detalle': [
+        'assets/images/act_vinos.jpg',
+        'assets/images/detalle_vinos_2.jpg',
+        'assets/images/detalle_vinos_3.jpg',
+      ],
     },
   ];
 
@@ -125,55 +151,67 @@ class PantallaActividades extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.all(10),
-                      // Imagen a la izquierda
-                      leading: ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: Image.asset(
-                          actividad['imagen'],
-                          width: 70,
-                          height: 70,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              width: 70,
-                              height: 70,
-                              color: Colors.grey[300],
-                              child: const Icon(
-                                Icons.image_not_supported,
-                                color: Colors.grey,
-                              ),
-                            );
-                          },
+                    child: Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(15),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.all(10),
+                        leading: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.asset(
+                            actividad['imagen'],
+                            width: 70,
+                            height: 70,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                width: 70,
+                                height: 70,
+                                color: Colors.grey[300],
+                                child: const Icon(
+                                  Icons.image_not_supported,
+                                  color: Colors.grey,
+                                ),
+                              );
+                            },
+                          ),
                         ),
-                      ),
-                      // Título y subtítulo
-                      title: Text(
-                        actividad['titulo'],
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                          color: AppColores.marronOscuro,
-                          height: 1.2,
+                        title: Text(
+                          actividad['titulo'],
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: AppColores.marronOscuro,
+                            height: 1.2,
+                          ),
                         ),
-                      ),
-                      subtitle: Text(
-                        actividad['subtitulo'],
-                        style: const TextStyle(
+                        subtitle: Text(
+                          actividad['subtitulo'],
+                          style: const TextStyle(
+                            color: AppColores.grisTexto,
+                            fontSize: 13,
+                          ),
+                        ),
+                        trailing: const Icon(
+                          Icons.arrow_forward_ios,
+                          size: 16,
                           color: AppColores.grisTexto,
-                          fontSize: 13,
                         ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PantallaDetalle(
+                                titulo: actividad['titulo'],
+                                subtitulo: actividad['subtitulo'],
+                                imagenes: List<String>.from(
+                                  actividad['imagenes_detalle'],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                      // Flechita de la derecha
-                      trailing: const Icon(
-                        Icons.arrow_forward_ios,
-                        size: 16,
-                        color: AppColores.grisTexto,
-                      ),
-                      onTap: () {
-                        // Aquí luego navegaremos a la Pantalla 3 (Detalle)
-                      },
                     ),
                   );
                 },
