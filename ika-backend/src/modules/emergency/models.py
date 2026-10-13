@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import DateTime, Enum, Float, ForeignKey, String, Text, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.database import Base
+from src.core.database import Base
 
 
 class SOSStatus(str, enum.Enum):

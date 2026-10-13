@@ -1,35 +1,78 @@
-"""Excepciones de aplicación y registro de sus manejadores HTTP.
+"""Excepciones de negocio y su mapeo global a respuestas HTTP.
 
-Regla del equipo: la capa `service` lanza excepciones personalizadas y aquí se
-traducen una única vez a códigos HTTP. No se repite `HTTPException` en routers.
+Cada módulo define sus excepciones propias. Aquí se registra un manejador
+global que las convierte en JSON para no repetir HTTPException en cada router.
 """
+
+import logging
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from src.modules.weather.exceptions import (
+    DestinoNoEncontradoException,
+    TodosLosProveedoresFallaronException,
+)
 
-class AppException(Exception):
-    """Base de todas las excepciones de negocio del dominio."""
-
-    status_code: int = 500
-    default_detail: str = "Error interno"
-
-    def __init__(self, detail: str | None = None) -> None:
-        self.detail = detail if detail is not None else self.default_detail
-        super().__init__(self.detail)
+logger = logging.getLogger(__name__)
 
 
-def register_exception_handlers(app: FastAPI) -> None:
-    """Adjunta los manejadores globales a la app FastAPI.
+class ErrorDeNegocio(Exception):
+    """Base de todas las excepciones controladas de la aplicación."""
 
-    Debe llamarse desde `src/main.py` (o desde la app de tests).
-    """
+    codigo_http: int = 400
+    codigo: str = "error_de_negocio"
+    mensaje_por_defecto: str = "Se produjo un error de negocio."
 
-    @app.exception_handler(AppException)
-    async def handle_app_exception(
-        request: Request, exc: AppException
+    def __init__(self, mensaje: str | None = None) -> None:
+        self.mensaje = mensaje or self.mensaje_por_defecto
+        super().__init__(self.mensaje)
+
+
+class AccesoAdminDenegadoException(ErrorDeNegocio):
+    codigo_http = 403
+    codigo = "acceso_admin_denegado"
+    mensaje_por_defecto = "Clave de administración inválida o ausente."
+
+
+class AdminNoConfiguradoException(ErrorDeNegocio):
+    codigo_http = 503
+    codigo = "admin_no_configurado"
+    mensaje_por_defecto = (
+        "Los endpoints administrativos están deshabilitados: falta CLAVE_ADMIN en el entorno."
+    )
+
+
+async def _manejar_error_de_negocio(request: Request, exc: ErrorDeNegocio) -> JSONResponse:
+    if exc.codigo_http >= 500:
+        logger.error("%s: %s", exc.codigo, exc.mensaje, exc_info=exc.__cause__)
+    return JSONResponse(
+        status_code=exc.codigo_http,
+        content={"detail": exc.mensaje, "codigo": exc.codigo},
+    )
+
+
+def registrar_manejadores_excepciones(aplicacion: FastAPI) -> None:
+    """Registra todos los manejadores globales. Se invoca una sola vez desde main.py."""
+
+    # Manejador general de errores de negocio
+    aplicacion.add_exception_handler(ErrorDeNegocio, _manejar_error_de_negocio)
+
+    # Manejadores del módulo weather
+    @aplicacion.exception_handler(DestinoNoEncontradoException)
+    async def manejar_destino_no_encontrado(
+        request: Request, exc: DestinoNoEncontradoException
+    ) -> JSONResponse:
+        return JSONResponse(status_code=404, content={"detalle": str(exc)})
+
+    @aplicacion.exception_handler(TodosLosProveedoresFallaronException)
+    async def manejar_todos_proveedores_fallaron(
+        request: Request, exc: TodosLosProveedoresFallaronException
     ) -> JSONResponse:
         return JSONResponse(
-            status_code=exc.status_code,
-            content={"detail": exc.detail},
+            status_code=503,
+            content={
+                "detalle": "Ningún proveedor de clima respondió. Intente más tarde.",
+                "proveedores_intentados": [error.proveedor for error in exc.errores],
+            },
         )

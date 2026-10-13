@@ -3,7 +3,9 @@
 from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from src.modules.emergency import tasks
 from src.modules.emergency.models import (
@@ -11,6 +13,7 @@ from src.modules.emergency.models import (
     SOSReport,
     SOSStatus,
 )
+from tests.conftest import run
 
 API = "/api/v1"
 
@@ -45,6 +48,18 @@ def _create_sos(client: TestClient, headers: dict, **overrides) -> dict:
         **overrides,
     }
     return client.post(f"{API}/emergency/sos", json=payload, headers=headers)
+
+
+async def _get_report(
+    db: AsyncSession, report_id: UUID
+) -> SOSReport | None:
+    """Carga un reporte con sus notificaciones ya resueltas (sin lazy-load)."""
+    result = await db.execute(
+        select(SOSReport)
+        .where(SOSReport.id == report_id)
+        .options(selectinload(SOSReport.notifications))
+    )
+    return result.scalar_one_or_none()
 
 
 def test_create_sos_without_token_returns_401(client: TestClient) -> None:
@@ -95,14 +110,14 @@ def test_create_sos_returns_201_with_pending_status(
 
 
 def test_create_sos_queues_notifications(
-    client: TestClient, db_session: Session
+    client: TestClient, db_session: AsyncSession
 ) -> None:
     _sign_up(client, "cola@ika.pe")
     headers = _headers(client, "cola@ika.pe")
 
     report_id = _create_sos(client, headers).json()["id"]
 
-    report = db_session.get(SOSReport, UUID(report_id))
+    report = run(_get_report(db_session, UUID(report_id)))
     assert report is not None
     # push + email siempre; sms solo si el usuario tiene teléfono
     assert len(report.notifications) == 2
@@ -161,17 +176,17 @@ def test_status_of_missing_report_returns_404(client: TestClient) -> None:
 
 
 def test_task_marks_notifications_failed_without_provider(
-    client: TestClient, db_session: Session
+    client: TestClient, db_session: AsyncSession
 ) -> None:
     """Sin proveedor configurado el fallo queda registrado, no silencioso."""
     _sign_up(client, "falla@ika.pe")
     headers = _headers(client, "falla@ika.pe")
     report_id = UUID(_create_sos(client, headers).json()["id"])
 
-    sent = tasks.process_sos_notifications(report_id, db_session)
+    sent = run(tasks.process_sos_notifications(report_id, db_session))
 
     assert sent == 0
-    report = db_session.get(SOSReport, report_id)
+    report = run(_get_report(db_session, report_id))
     assert all(
         notification.status == NotificationStatus.FAILED
         for notification in report.notifications
@@ -180,7 +195,7 @@ def test_task_marks_notifications_failed_without_provider(
 
 def test_task_marks_notifications_sent_when_provider_succeeds(
     client: TestClient,
-    db_session: Session,
+    db_session: AsyncSession,
     monkeypatch,
 ) -> None:
     _sign_up(client, "exito@ika.pe")
@@ -188,10 +203,10 @@ def test_task_marks_notifications_sent_when_provider_succeeds(
     report_id = UUID(_create_sos(client, headers).json()["id"])
     monkeypatch.setattr(tasks, "send_notification", lambda *args, **kwargs: True)
 
-    sent = tasks.process_sos_notifications(report_id, db_session)
+    sent = run(tasks.process_sos_notifications(report_id, db_session))
 
     assert sent == 2
-    report = db_session.get(SOSReport, report_id)
+    report = run(_get_report(db_session, report_id))
     assert all(
         notification.status == NotificationStatus.SENT
         and notification.sent_at is not None

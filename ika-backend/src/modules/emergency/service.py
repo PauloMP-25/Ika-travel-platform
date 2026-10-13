@@ -4,7 +4,8 @@ import logging
 from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.modules.emergency import tasks
 from src.modules.emergency.exceptions import (
@@ -94,13 +95,13 @@ def _dispatch_notifications(report_id: UUID) -> None:
         )
 
 
-def create_sos_report(
-    db: Session, user_id: UUID, data: SOSCreate
+async def create_sos_report(
+    db: AsyncSession, user_id: UUID, data: SOSCreate
 ) -> SOSReport:
     """Registra un reporte SOS y crea sus notificaciones pendientes (RN-04)."""
     lat, lon = _validate_location(data)
 
-    user = db.get(User, user_id)
+    user = await db.get(User, user_id)
     if user is None:
         raise UnauthorizedIncidentAccessException()
 
@@ -112,33 +113,35 @@ def create_sos_report(
         status=SOSStatus.PENDING,
     )
     db.add(report)
-    db.flush()  # obtiene el id antes de crear las notificaciones
+    await db.flush()  # obtiene el id antes de crear las notificaciones
 
     for notification in _build_notifications(user, report):
         db.add(notification)
 
-    db.commit()
-    db.refresh(report)
+    await db.commit()
+    await db.refresh(report)
 
     _dispatch_notifications(report.id)
     return report
 
 
-def get_user_incidents(db: Session, user_id: UUID) -> list[SOSReport]:
+async def get_user_incidents(
+    db: AsyncSession, user_id: UUID
+) -> list[SOSReport]:
     """Historial de incidentes del usuario, del más reciente al más antiguo."""
-    return (
-        db.query(SOSReport)
-        .filter(SOSReport.user_id == user_id)
+    resultado = await db.execute(
+        select(SOSReport)
+        .where(SOSReport.user_id == user_id)
         .order_by(SOSReport.created_at.desc())
-        .all()
     )
+    return list(resultado.scalars().all())
 
 
-def get_report_for_user(
-    db: Session, report_id: UUID, user: User
+async def get_report_for_user(
+    db: AsyncSession, report_id: UUID, user: User
 ) -> SOSReport:
     """Devuelve un reporte solo si pertenece al usuario autenticado."""
-    report = db.get(SOSReport, report_id)
+    report = await db.get(SOSReport, report_id)
     if report is None:
         raise SOSReportNotFoundException()
     if report.user_id != user.id:
@@ -146,17 +149,19 @@ def get_report_for_user(
     return report
 
 
-def resolve_sos_report(db: Session, report_id: UUID) -> SOSReport:
+async def resolve_sos_report(
+    db: AsyncSession, report_id: UUID
+) -> SOSReport:
     """Marca un incidente como resuelto (uso interno/administrativo)."""
-    report = db.get(SOSReport, report_id)
+    report = await db.get(SOSReport, report_id)
     if report is None:
         raise SOSReportNotFoundException()
 
     report.status = SOSStatus.RESOLVED
     report.resolved_at = report.resolved_at or datetime.now(timezone.utc)
     db.add(report)
-    db.commit()
-    db.refresh(report)
+    await db.commit()
+    await db.refresh(report)
     return report
 
 

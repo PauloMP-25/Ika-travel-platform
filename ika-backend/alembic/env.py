@@ -1,44 +1,43 @@
-"""Entorno de Alembic: conecta con la BD y expone `target_metadata`.
-
-Importa dinámicamente el `models.py` de cada módulo para que cualquier
-desarrollador que agregue modelos nuevos no tenga que editar este archivo.
-"""
-
-import importlib
-import pkgutil
+import asyncio
+import os
+import sys
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config, pool
+# Inyectamos la ruta principal para poder importar src.*
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+
+from sqlalchemy import pool
+from sqlalchemy.engine import Connection
+from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
+from src.core.config import configuracion
+from src.core.database import Base
 
-from src.config import settings
-from src.database import Base
-import src.modules  # noqa: F401
+import src.modules.catalog.models  # noqa: F401
+import src.modules.weather.models  # noqa: F401
+import src.modules.users.models    # noqa: F401
+import src.modules.emergency.models  # noqa: F401
 
+# Este es el objeto de configuración de Alembic, que provee
+# acceso a los valores dentro del archivo .ini en uso.
 config = context.config
+config.set_main_option("sqlalchemy.url", configuracion.URL_BASE_DATOS)
 
-# URL de conexión tomada de los Settings de la app (nunca en claro en el .ini)
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
-
+# Interpretar el archivo de configuración para el registro (logging) de Python.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-for module in pkgutil.iter_modules(src.modules.__path__):
-    try:
-        importlib.import_module(f"src.modules.{module.name}.models")
-    except ModuleNotFoundError:  # pragma: no cover - módulo sin models.py
-        continue
-
-target_metadata = Base.metadata
-
+# Añade el objeto MetaData de tus modelos aquí
+# para soporte de 'autogenerate'
+objetivo_metadatos = Base.metadata
 
 def run_migrations_offline() -> None:
-    """Ejecuta las migraciones en modo offline (genera SQL sin conexión)."""
+    """Ejecutar migraciones en modo 'offline'."""
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
-        target_metadata=target_metadata,
+        target_metadata=objetivo_metadatos,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
     )
@@ -46,24 +45,31 @@ def run_migrations_offline() -> None:
     with context.begin_transaction():
         context.run_migrations()
 
+def do_run_migrations(connection: Connection) -> None:
+    """Ejecutar migraciones en modo 'online' (conexión sincrónica interna)."""
+    context.configure(connection=connection, target_metadata=objetivo_metadatos)
 
-def run_migrations_online() -> None:
-    """Ejecuta las migraciones contra la base de datos conectada."""
-    connectable = engine_from_config(
+    with context.begin_transaction():
+        context.run_migrations()
+
+async def run_async_migrations() -> None:
+    """En este escenario necesitamos crear un Motor y asociar
+    una conexión con el contexto.
+    """
+    connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
 
-    with connectable.connect() as connection:
-        context.configure(
-            connection=connection,
-            target_metadata=target_metadata,
-        )
+    async with connectable.connect() as connection:
+        await connection.run_sync(do_run_migrations)
 
-        with context.begin_transaction():
-            context.run_migrations()
+    await connectable.dispose()
 
+def run_migrations_online() -> None:
+    """Ejecutar migraciones en modo 'online'."""
+    asyncio.run(run_async_migrations())
 
 if context.is_offline_mode():
     run_migrations_offline()

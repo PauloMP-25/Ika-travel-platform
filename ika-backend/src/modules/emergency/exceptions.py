@@ -1,26 +1,34 @@
-"""Excepciones personalizadas del módulo `emergency`."""
+"""Excepciones personalizadas del módulo `emergency`.
 
-from src.core.exceptions import AppException
+Se apoyan en `ErrorDeNegocio` (de `src/core/exceptions.py`), que ya tiene
+registrado un manejador global en `main.py`: no hace falta repetir
+`HTTPException` en el router.
+"""
+
+from src.core.exceptions import ErrorDeNegocio
 
 
-class MissingLocationPermissionException(AppException):
+class MissingLocationPermissionException(ErrorDeNegocio):
     """Sin coordenadas GPS no se puede derivar el incidente (RN-04, HTTP 400)."""
 
-    status_code = 400
-    default_detail = (
+    codigo_http = 400
+    codigo = "ubicacion_requerida"
+    mensaje_por_defecto = (
         "Se requieren las coordenadas GPS para reportar una emergencia"
     )
 
 
-class SOSReportNotFoundException(AppException):
+class SOSReportNotFoundException(ErrorDeNegocio):
     """El reporte SOS pedido no existe (HTTP 404)."""
 
-    status_code = 404
-    default_detail = "Reporte de emergencia no encontrado"
+    codigo_http = 404
+    codigo = "reporte_sos_no_encontrado"
+    mensaje_por_defecto = "Reporte de emergencia no encontrado"
 
 
-class UnauthorizedIncidentAccessException(AppException):
+class UnauthorizedIncidentAccessException(ErrorDeNegocio):
     """Un usuario intenta ver un incidente que no es suyo (HTTP 403)."""
 
-    status_code = 403
-    default_detail = "No tienes permiso para ver este incidente"
+    codigo_http = 403
+    codigo = "incidente_no_autorizado"
+    mensaje_por_defecto = "No tienes permiso para ver este incidente"
