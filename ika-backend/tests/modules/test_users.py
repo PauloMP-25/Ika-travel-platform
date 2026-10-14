@@ -45,7 +45,7 @@ from src.modules.users.exceptions import (
     UsersException,
     register_users_exception_handlers,
 )
-from src.modules.users.models import AuthProvider, User
+from src.modules.users.models import AuthProvider, User, UserRole, CategoriaTuristicaIca
 from src.modules.users.router import users_router
 from src.modules.users.schemas import UserCreate, UserResponse, UserUpdate
 
@@ -86,6 +86,9 @@ def make_user(**overrides) -> User:
         password_hash=security.hash_password(PLAIN_PASSWORD),
         full_name="Francisco Ica",
         auth_provider=AuthProvider.EMAIL,
+        role=UserRole.TOURIST,
+        preferred_language="es",
+        preferences=[],
         is_active=True,
         created_at=now,
         updated_at=now,
@@ -303,3 +306,37 @@ def test_excepciones_de_users_no_necesitan_core() -> None:
     """El módulo no depende de `src/core/exceptions.py` (es de Paulo)."""
     assert issubclass(InvalidCredentialsException, UsersException)
     assert issubclass(UsersException, Exception)
+
+
+# ------------------------------------------------------------------ pruebas de perfil y preferencias Ica (RF-01)
+
+
+def test_user_response_incluye_preferencias_idioma_y_rol() -> None:
+    user = make_user(
+        role=UserRole.DIRCETUR_ADMIN,
+        preferred_language="en",
+        preferences=[CategoriaTuristicaIca.AVENTURA_DESIERTO.value, CategoriaTuristicaIca.ENOTURISMO_GASTRONOMIA.value],
+    )
+
+    body = UserResponse.model_validate(user).model_dump()
+
+    assert body["role"] == "dircetur_admin"
+    assert body["preferred_language"] == "en"
+    assert "aventura_desierto" in body["preferences"]
+    assert "enoturismo_gastronomia" in body["preferences"]
+
+
+def test_update_profile_actualiza_preferencias_e_idioma() -> None:
+    db = FakeSession()
+    user = make_user(preferred_language="es", preferences=[])
+    data = UserUpdate(
+        preferred_language="en",
+        preferences=[CategoriaTuristicaIca.CULTURA_MISTICA, CategoriaTuristicaIca.NATURALEZA_MARINA],
+    )
+
+    resultado = run(service.update_user_profile(db, user, data))
+
+    assert resultado.preferred_language == "en"
+    assert "cultura_mistica" in resultado.preferences
+    assert "naturaleza_marina" in resultado.preferences
+    assert db.commits == 1

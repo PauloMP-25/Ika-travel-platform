@@ -10,7 +10,7 @@ from src.modules.users.exceptions import (
     InvalidCredentialsException,
     UserAlreadyExistsException,
 )
-from src.modules.users.models import AuthProvider, User
+from src.modules.users.models import AuthProvider, User, UserRole
 from src.modules.users.schemas import TokenResponse, UserCreate, UserLogin, UserUpdate
 
 
@@ -24,14 +24,16 @@ async def register_user(db: AsyncSession, data: UserCreate) -> User:
         email=data.email,
         password_hash=security.hash_password(data.password),
         full_name=data.full_name,
+        phone=data.phone,
+        preferred_language=data.preferred_language,
+        preferences=[p.value if hasattr(p, "value") else str(p) for p in data.preferences],
+        role=UserRole.TOURIST,
         auth_provider=AuthProvider.EMAIL,
     )
     repository.add_user(db, user)
     try:
         await db.commit()
     except IntegrityError:
-        # Carrera entre dos registros simultáneos: el índice único de la
-        # columna `email` es la última línea de defensa.
         await db.rollback()
         raise UserAlreadyExistsException(data.email)
     await db.refresh(user)
@@ -41,11 +43,7 @@ async def register_user(db: AsyncSession, data: UserCreate) -> User:
 async def authenticate_user(
     db: AsyncSession, email: str, password: str
 ) -> User:
-    """Valida credenciales por email/contraseña y devuelve el usuario.
-
-    El mensaje de error es idéntico exista o no el email para no revelar
-    qué cuentas están registradas.
-    """
+    """Valida credenciales por email/contraseña y devuelve el usuario."""
     user = await repository.get_user_by_email(db, email)
     if user is None:
         raise InvalidCredentialsException()
@@ -76,13 +74,11 @@ async def update_user_profile(
     updates = data.model_dump(exclude_unset=True)
     for field, value in updates.items():
         if value is not None:
+            if field == "preferences" and isinstance(value, list):
+                value = [p.value if hasattr(p, "value") else str(p) for p in value]
             setattr(user, field, value)
 
     db.add(user)
     await db.commit()
     await db.refresh(user)
     return user
-
-
-# TODO(Dev 1 - fuera del sprint): `authenticate_oauth` para login social
-# con Google/Facebook (find-or-create por provider_id y email).

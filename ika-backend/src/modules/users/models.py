@@ -4,7 +4,7 @@ import enum
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import Boolean, DateTime, Enum, String, Uuid, func
+from sqlalchemy import Boolean, DateTime, Enum, JSON, String, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
@@ -18,6 +18,31 @@ class AuthProvider(str, enum.Enum):
     FACEBOOK = "facebook"
 
 
+class UserRole(str, enum.Enum):
+    """Rol de usuario en la plataforma."""
+
+    TOURIST = "tourist"
+    DIRCETUR_ADMIN = "dircetur_admin"
+
+
+class CategoriaTuristicaIca(str, enum.Enum):
+    """Categorías oficiales de actividades y preferencias turísticas en Ica.
+    
+    Alineadas al PERTUR Ica y PROMPERÚ ("Y tú qué planes"):
+    - AVENTURA_DESIERTO: Sandboarding, tubulares (buggies), expediciones en dunas y Cañón de los Perdidos.
+    - ENOTURISMO_GASTRONOMIA: Ruta del pisco y vino, catas en bodegas vitivinícolas y gastronomía tradicional.
+    - CULTURA_MISTICA: Pueblo místico de Cachiche, Santuario de Luren, Museo Regional y patrimonio histórico.
+    - NATURALEZA_MARINA: Excursiones a Islas Ballestas, fauna marina y Reserva Nacional de Paracas.
+    - ARQUEOLOGIA_ENIGMAS: Líneas de Nasca y Palpa, geoglifos, Cahuachi y acueductos milenarios.
+    """
+
+    AVENTURA_DESIERTO = "aventura_desierto"
+    ENOTURISMO_GASTRONOMIA = "enoturismo_gastronomia"
+    CULTURA_MISTICA = "cultura_mistica"
+    NATURALEZA_MARINA = "naturaleza_marina"
+    ARQUEOLOGIA_ENIGMAS = "arqueologia_enigmas"
+
+
 def _enum_values(enum_cls: enum.EnumMeta) -> list[str]:
     """Guarda en BD el valor (`'email'`) y no el nombre del miembro."""
     return [member.value for member in enum_cls]
@@ -27,9 +52,6 @@ class User(Base):
     """Cuenta de usuario de la plataforma."""
 
     __tablename__ = "users"
-
-    # `email` es único vía `unique=True` (genera el índice `ix_users_email`),
-    # que es además la última línea de defensa contra registros duplicados.
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
     email: Mapped[str] = mapped_column(
@@ -44,6 +66,18 @@ class User(Base):
         default=AuthProvider.EMAIL,
     )
     provider_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    role: Mapped[UserRole] = mapped_column(
+        Enum(UserRole, name="user_role", values_callable=_enum_values),
+        nullable=False,
+        default=UserRole.TOURIST,
+        server_default="tourist",
+    )
+    preferred_language: Mapped[str] = mapped_column(
+        String(5), nullable=False, default="es", server_default="es"
+    )
+    preferences: Mapped[list[str]] = mapped_column(
+        JSON, nullable=False, default=list, server_default="[]"
+    )
     is_active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default="true"
     )
@@ -57,9 +91,6 @@ class User(Base):
         nullable=False,
     )
 
-    # TODO(Dev 1): añadir las relationships `reviews` y `favorites` cuando
-    # exista el modelo `reviews`. Definirlas ahora rompería el mapper de
-    # SQLAlchemy porque `Review`/`Favorite` todavía no están registradas.
     sos_reports: Mapped[list["SOSReport"]] = relationship(
         "SOSReport", back_populates="user"
     )
