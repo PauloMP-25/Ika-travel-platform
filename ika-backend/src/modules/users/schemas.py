@@ -8,6 +8,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
+from src.modules.users.models import CategoriaTuristicaIca, UserRole
+
 
 class UserCreate(BaseModel):
     """Payload de registro (`POST /auth/register`)."""
@@ -15,6 +17,9 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
     full_name: str = Field(min_length=1, max_length=120)
+    phone: str | None = Field(default=None, max_length=32)
+    preferred_language: str = Field(default="es", max_length=5, pattern=r"^(es|en)$")
+    preferences: list[CategoriaTuristicaIca] = Field(default_factory=list)
 
 
 class UserLogin(BaseModel):
@@ -33,6 +38,9 @@ class UserResponse(BaseModel):
     email: EmailStr
     full_name: str
     phone: str | None = None
+    role: UserRole = UserRole.TOURIST
+    preferred_language: str = "es"
+    preferences: list[str] = Field(default_factory=list)
     created_at: datetime
 
 
@@ -41,6 +49,8 @@ class UserUpdate(BaseModel):
 
     full_name: str | None = Field(default=None, min_length=1, max_length=120)
     phone: str | None = Field(default=None, max_length=32)
+    preferred_language: str | None = Field(default=None, max_length=5, pattern=r"^(es|en)$")
+    preferences: list[CategoriaTuristicaIca] | None = None
 
 
 class TokenResponse(BaseModel):

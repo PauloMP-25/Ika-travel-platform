@@ -215,3 +215,33 @@ def test_excepciones_de_clima_se_mapean_a_http(excepcion, estado, codigo):
     respuesta = TestClient(app).get("/falla")
     assert respuesta.status_code == estado
     assert respuesta.json()["codigo"] == codigo
+
+
+# ------------------------------------------------------------------ pruebas de personalización (RF-01 / OE4 / HE4)
+
+
+def test_recomendacion_personalizada_aplica_bonificacion_por_afinidad() -> None:
+    from src.modules.weather.ai_recommender import generar_recomendacion
+
+    # Atractivo de aventura en desierto (Huacachina) con buen clima
+    rec_sin_preferencia = generar_recomendacion(
+        nombre_atractivo="Oasis de Huacachina",
+        slugs_categorias=["sandboarding", "aventura"],
+        temperatura=24.0,
+        uv=6.0,
+        viento=15.0,
+        preferencias_usuario=[],
+    )
+
+    rec_con_preferencia = generar_recomendacion(
+        nombre_atractivo="Oasis de Huacachina",
+        slugs_categorias=["sandboarding", "aventura"],
+        temperatura=24.0,
+        uv=6.0,
+        viento=15.0,
+        preferencias_usuario=["aventura_desierto"],
+    )
+
+    assert rec_con_preferencia.afinidad_preferencia == 0.15
+    assert rec_con_preferencia.score >= rec_sin_preferencia.score
+    assert "preferencias de viaje en Ica" in rec_con_preferencia.texto
