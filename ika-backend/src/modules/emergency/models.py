@@ -1,4 +1,4 @@
-"""Modelos SQLAlchemy del módulo `emergency` (SOS y notificaciones)."""
+"""Modelos SQLAlchemy del módulo `emergency` (SOS, reportes de informalidad/incidencias y notificaciones)."""
 
 import enum
 from datetime import datetime
@@ -16,6 +16,25 @@ class SOSStatus(str, enum.Enum):
     PENDING = "pending"
     DISPATCHED = "dispatched"
     RESOLVED = "resolved"
+
+
+class IncidentType(str, enum.Enum):
+    """Tipos de reporte e incidencias / informalidad turística (RF-05 / CUN06)."""
+
+    INFORMAL_SERVICE = "informal_service"       # Agencia pirata, jaladores sin carnet, transporte informal
+    INFORMATION_ERROR = "information_error"     # Horarios o datos turísticos erróneos
+    ROUTE_OBSTRUCTION = "route_obstruction"     # Bloqueo o peligro en vía turística (e.g., dunas, carretera)
+    SAFETY_HAZARD = "safety_hazard"             # Incidente de seguridad o estafa
+    OTHER = "other"                             # Otro tipo de incidencia
+
+
+class IncidentStatus(str, enum.Enum):
+    """Estado de atención de un reporte por la DIRCETUR Ica."""
+
+    RECEIVED = "received"
+    IN_REVIEW = "in_review"
+    RESOLVED = "resolved"
+    DISMISSED = "dismissed"
 
 
 class NotificationChannel(str, enum.Enum):
@@ -72,6 +91,46 @@ class SOSReport(Base):
         back_populates="report",
         cascade="all, delete-orphan",
     )
+
+
+class TouristIncidentReport(Base):
+    """Reporte de informalidad o incidencia enviado a DIRCETUR Ica (RF-05 / CUN06)."""
+
+    __tablename__ = "tourist_incident_reports"
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    user_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    incident_type: Mapped[IncidentType] = mapped_column(
+        Enum(IncidentType, name="incident_type", values_callable=_enum_values),
+        nullable=False,
+        default=IncidentType.INFORMAL_SERVICE,
+        index=True,
+    )
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    agency_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    status: Mapped[IncidentStatus] = mapped_column(
+        Enum(IncidentStatus, name="incident_status", values_callable=_enum_values),
+        nullable=False,
+        default=IncidentStatus.RECEIVED,
+        index=True,
+    )
+    admin_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), onupdate=func.now(), nullable=True
+    )
+
+    user = relationship("User")
 
 
 class EmergencyNotification(Base):

@@ -212,3 +212,128 @@ def test_task_marks_notifications_sent_when_provider_succeeds(
         and notification.sent_at is not None
         for notification in report.notifications
     )
+
+
+# ============================================================================
+# Tests para Contactos de Emergencia y Reportes DIRCETUR (RF-05 / CUN06)
+# ============================================================================
+
+def test_get_emergency_contacts_returns_200(client: TestClient) -> None:
+    response = client.get(f"{API}/emergency/contacts")
+    assert response.status_code == 200
+    contacts = response.json()
+    assert isinstance(contacts, list)
+    assert len(contacts) >= 4
+    # Verificar que contiene POLTUR Ica y DIRCETUR Ica
+    names = [c["name"] for c in contacts]
+    assert any("POLTUR" in name for name in names)
+    assert any("DIRCETUR" in name for name in names)
+
+
+def test_tourist_create_incident_report(client: TestClient) -> None:
+    _sign_up(client, "denuncia@ika.pe")
+    headers = _headers(client, "denuncia@ika.pe")
+
+    payload = {
+        "incident_type": "informal_service",
+        "title": "Cobro excesivo y falta de chalecos en tubulares",
+        "description": "Un jalador informal en Huacachina ofreció tour sin credencial oficial ni SOAT vigente.",
+        "latitude": -14.087,
+        "longitude": -75.763,
+        "agency_name": "Tours Fantasma Huacachina",
+    }
+    response = client.post(
+        f"{API}/emergency/reports",
+        json=payload,
+        headers=headers,
+    )
+    assert response.status_code == 201
+    data = response.json()
+    assert data["incident_type"] == "informal_service"
+    assert data["status"] == "received"
+    assert data["agency_name"] == "Tours Fantasma Huacachina"
+
+
+def test_list_my_tourist_reports(client: TestClient) -> None:
+    _sign_up(client, "mis_reportes@ika.pe")
+    headers = _headers(client, "mis_reportes@ika.pe")
+
+    client.post(
+        f"{API}/emergency/reports",
+        json={
+            "incident_type": "information_error",
+            "title": "Horario falso de museo regional",
+            "description": "El panel indicaba abierto pero estaba cerrado por inventario.",
+        },
+        headers=headers,
+    )
+
+    response = client.get(f"{API}/emergency/my-reports", headers=headers)
+    assert response.status_code == 200
+    reports = response.json()
+    assert len(reports) == 1
+    assert reports[0]["title"] == "Horario falso de museo regional"
+
+
+def test_admin_reports_forbidden_for_regular_tourist(client: TestClient) -> None:
+    _sign_up(client, "turista_comun@ika.pe")
+    headers = _headers(client, "turista_comun@ika.pe")
+
+    response = client.get(f"{API}/emergency/admin/reports", headers=headers)
+    assert response.status_code == 403
+
+
+def test_admin_reports_allowed_and_can_update_status(
+    client: TestClient, db_session: AsyncSession
+) -> None:
+    from src.modules.users.models import User, UserRole
+
+    # 1. Crear usuario turista y reporte
+    _sign_up(client, "reporta_esto@ika.pe")
+    headers_tourist = _headers(client, "reporta_esto@ika.pe")
+    rep_res = client.post(
+        f"{API}/emergency/reports",
+        json={
+            "incident_type": "safety_hazard",
+            "title": "Sendero mal señalizado hacia mirador",
+            "description": "Falta baranda y señalización adecuada cerca de la duna mayor.",
+        },
+        headers=headers_tourist,
+    )
+    report_id = rep_res.json()["id"]
+
+    # 2. Crear admin DIRCETUR
+    _sign_up(client, "admin_fiscalizador@ika.pe")
+    headers_admin = _headers(client, "admin_fiscalizador@ika.pe")
+
+    # Modificar rol a dircetur_admin directamente en BD para el test
+    async def _make_admin():
+        user = (
+            await db_session.execute(
+                select(User).where(User.email == "admin_fiscalizador@ika.pe")
+            )
+        ).scalar_one()
+        user.role = UserRole.DIRCETUR_ADMIN
+        db_session.add(user)
+        await db_session.commit()
+
+    run(_make_admin())
+
+    # 3. Consultar lista como admin
+    get_res = client.get(f"{API}/emergency/admin/reports", headers=headers_admin)
+    assert get_res.status_code == 200
+    all_reports = get_res.json()
+    assert any(r["id"] == report_id for r in all_reports)
+
+    # 4. Actualizar estado y notas
+    patch_res = client.patch(
+        f"{API}/emergency/admin/reports/{report_id}",
+        json={
+            "status": "in_review",
+            "admin_notes": "Notificado a fiscalización de DIRCETUR y Policía de Turismo.",
+        },
+        headers=headers_admin,
+    )
+    assert patch_res.status_code == 200
+    assert patch_res.json()["status"] == "in_review"
+    assert "fiscalización" in patch_res.json()["admin_notes"]
