@@ -329,7 +329,9 @@ async def _atractivos_activos(db: AsyncSession) -> list[Attraction]:
     return list(resultado.scalars().unique().all())
 
 
-def _recomendar(atractivo: Attraction, clima: ClimaActualResponse) -> ai_recommender.ResultadoRecomendacion:
+def _recomendar(
+    atractivo: Attraction, clima: ClimaActualResponse, preferencias: list[str] | None = None
+) -> ai_recommender.ResultadoRecomendacion:
     return ai_recommender.generar_recomendacion(
         nombre_atractivo=atractivo.name,
         slugs_categorias=[c.slug for c in atractivo.categories],
@@ -337,6 +339,7 @@ def _recomendar(atractivo: Attraction, clima: ClimaActualResponse) -> ai_recomme
         uv=clima.indice_uv,
         viento=clima.velocidad_viento,
         precipitacion=clima.probabilidad_precipitacion / 100.0 * 3.0,
+        preferencias_usuario=preferencias,
     )
 
 
@@ -354,24 +357,32 @@ def _a_recomendacion_response(
     )
 
 
-async def listar_recomendaciones(db: AsyncSession) -> list[RecomendacionResponse]:
-    """Atractivos activos ordenados por `score` descendente (texto por reglas)."""
+async def listar_recomendaciones(
+    db: AsyncSession, preferencias_usuario: list[str] | None = None
+) -> list[RecomendacionResponse]:
+    """Atractivos activos ordenados por `score` descendente (modulado por preferencias de Ica)."""
     recomendaciones: list[RecomendacionResponse] = []
     for atractivo in await _atractivos_activos(db):
         clima = await get_fresh_snapshot(db, ubicacion_de_atractivo(atractivo))
-        recomendaciones.append(_a_recomendacion_response(atractivo, _recomendar(atractivo, clima)))
+        recomendaciones.append(
+            _a_recomendacion_response(
+                atractivo, _recomendar(atractivo, clima, preferencias=preferencias_usuario)
+            )
+        )
     return sorted(recomendaciones, key=lambda r: r.score, reverse=True)
 
 
-async def recomendacion_del_dia(db: AsyncSession) -> RecomendacionResponse | None:
-    """Top 1; solo aquí se redacta el texto con Gemini (con fallback por reglas)."""
-    ranking = await listar_recomendaciones(db)
+async def recomendacion_del_dia(
+    db: AsyncSession, preferencias_usuario: list[str] | None = None, idioma: str = "es"
+) -> RecomendacionResponse | None:
+    """Top 1; redactado por Gemini con personalización y fallback determinista."""
+    ranking = await listar_recomendaciones(db, preferencias_usuario=preferencias_usuario)
     if not ranking:
         return None
     mejor = ranking[0]
     atractivo = next(a for a in await _atractivos_activos(db) if a.id == mejor.atractivo_id)
     clima = await get_fresh_snapshot(db, ubicacion_de_atractivo(atractivo))
-    resultado = _recomendar(atractivo, clima)
+    resultado = _recomendar(atractivo, clima, preferencias=preferencias_usuario)
     texto = await ai_recommender.redactar_con_gemini(
         nombre_atractivo=atractivo.name,
         resultado=resultado,
@@ -379,6 +390,8 @@ async def recomendacion_del_dia(db: AsyncSession) -> RecomendacionResponse | Non
         uv=clima.indice_uv,
         viento=clima.velocidad_viento,
         condicion=clima.descripcion_clima,
+        preferencias_usuario=preferencias_usuario,
+        idioma=idioma,
     )
     return _a_recomendacion_response(atractivo, resultado, texto)
 

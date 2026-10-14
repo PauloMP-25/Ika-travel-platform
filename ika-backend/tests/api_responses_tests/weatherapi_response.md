@@ -1,6 +1,6 @@
 # Pruebas de API: WeatherAPI
 
-**Fecha de ejecución:** 2026-10-14 00:41:58
+**Fecha de ejecución:** 2026-10-14 00:59:24
 
 ### Atractivo: Huacachina
 - **Coordenadas:** -14.0875, -75.7626
@@ -13,12 +13,12 @@
         "lat": -14.087,
         "lon": -75.765,
         "tz_id": "America/Lima",
-        "localtime_epoch": 1791956518,
-        "localtime": "2026-10-14 00:41"
+        "localtime_epoch": 1791957564,
+        "localtime": "2026-10-14 00:59"
     },
     "current": {
-        "last_updated_epoch": 1791955800,
-        "last_updated": "2026-10-14 00:30",
+        "last_updated_epoch": 1791956700,
+        "last_updated": "2026-10-14 00:45",
         "temp_c": 18.7,
         "temp_f": 65.6,
         "is_day": 0,
@@ -1129,12 +1129,12 @@
         "lat": -14.754,
         "lon": -75.521,
         "tz_id": "America/Lima",
-        "localtime_epoch": 1791956519,
-        "localtime": "2026-10-14 00:41"
+        "localtime_epoch": 1791957565,
+        "localtime": "2026-10-14 00:59"
     },
     "current": {
-        "last_updated_epoch": 1791955800,
-        "last_updated": "2026-10-14 00:30",
+        "last_updated_epoch": 1791956700,
+        "last_updated": "2026-10-14 00:45",
         "temp_c": 17.9,
         "temp_f": 64.2,
         "is_day": 0,
@@ -2245,12 +2245,12 @@
         "lat": -14.094,
         "lon": -75.737,
         "tz_id": "America/Lima",
-        "localtime_epoch": 1791956519,
-        "localtime": "2026-10-14 00:41"
+        "localtime_epoch": 1791957565,
+        "localtime": "2026-10-14 00:59"
     },
     "current": {
-        "last_updated_epoch": 1791955800,
-        "last_updated": "2026-10-14 00:30",
+        "last_updated_epoch": 1791956700,
+        "last_updated": "2026-10-14 00:45",
         "temp_c": 18.7,
         "temp_f": 65.6,
         "is_day": 0,
@@ -3361,12 +3361,12 @@
         "lat": -13.833,
         "lon": -76.25,
         "tz_id": "America/Lima",
-        "localtime_epoch": 1791956519,
-        "localtime": "2026-10-14 00:41"
+        "localtime_epoch": 1791957566,
+        "localtime": "2026-10-14 00:59"
     },
     "current": {
-        "last_updated_epoch": 1791955800,
-        "last_updated": "2026-10-14 00:30",
+        "last_updated_epoch": 1791956700,
+        "last_updated": "2026-10-14 00:45",
         "temp_c": 17.4,
         "temp_f": 63.3,
         "is_day": 0,
@@ -4477,12 +4477,12 @@
         "lat": -14.068,
         "lon": -75.726,
         "tz_id": "America/Lima",
-        "localtime_epoch": 1791956520,
-        "localtime": "2026-10-14 00:42"
+        "localtime_epoch": 1791957566,
+        "localtime": "2026-10-14 00:59"
     },
     "current": {
-        "last_updated_epoch": 1791955800,
-        "last_updated": "2026-10-14 00:30",
+        "last_updated_epoch": 1791956700,
+        "last_updated": "2026-10-14 00:45",
         "temp_c": 18.7,
         "temp_f": 65.6,
         "is_day": 0,

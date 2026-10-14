@@ -1,13 +1,14 @@
-"""Motor de recomendación basado en clima.
+"""Motor de recomendación basado en clima y preferencias del turista.
 
 Dos capas:
 
 1. **Scoring por reglas (puro, determinista, sin red ni BD):** cruza temperatura,
    viento, UV y precipitación con el *perfil* de la actividad (aventura en desierto,
-   cultural, gastronómica, etc.) y devuelve un puntaje 0–1 con su explicación.
+   cultural, gastronómica, naturaleza marina, arqueología) y las preferencias del
+   turista (RF-01 / OE4), devolviendo un puntaje 0–1 con su explicación.
 2. **Redacción con Gemini (opcional):** si ``GEMINI_API_KEY`` está configurada, la IA
-   generativa redacta el mensaje al turista a partir de los datos reales. El puntaje
-   NUNCA lo decide la IA generativa; si Gemini falla se usa el texto por plantilla.
+   generativa redacta el mensaje al turista a partir de los datos reales y sus intereses.
+   El puntaje NUNCA lo decide la IA generativa; si Gemini falla se usa el texto por plantilla.
 """
 import logging
 from dataclasses import dataclass, field
@@ -20,11 +21,12 @@ logger = logging.getLogger(__name__)
 
 
 # ======================================================================
-# Perfiles de actividad
+# Perfiles de actividad oficiales de la Región Ica (PERTUR / PROMPERÚ)
 # ======================================================================
 @dataclass(frozen=True)
 class PerfilActividad:
     nombre: str
+    codigo_categoria: str  # mapea con CategoriaTuristicaIca
     palabras_clave: tuple[str, ...]  # coinciden con slugs de categoría o nombre del atractivo
     sensibilidad: float  # 0–1: cuánto influye el clima en la experiencia
     temp_ideal: tuple[float, float]  # °C
@@ -35,16 +37,40 @@ class PerfilActividad:
 
 
 PERFILES: tuple[PerfilActividad, ...] = (
-    PerfilActividad("aventura en desierto", ("sandboarding", "aventura", "buggy", "tubular", "duna"),
-                    0.90, (18, 32), 20, 40, 7, True),
-    PerfilActividad("naturaleza al aire libre", ("naturaleza", "paracas", "reserva", "laguna", "oasis", "canon", "cañon"),
-                    0.80, (17, 30), 25, 45, 7, True),
-    PerfilActividad("visita cultural", ("cultural", "museo", "historia", "arqueolog", "nasca", "nazca"),
-                    0.40, (15, 34), 35, 60, 9, False),
-    PerfilActividad("experiencia gastronómica", ("gastronom", "vitivinic", "bodega", "pisco", "vino"),
-                    0.30, (15, 35), 40, 70, 10, False),
+    PerfilActividad(
+        "aventura en desierto",
+        "aventura_desierto",
+        ("sandboarding", "aventura", "buggy", "tubular", "duna", "huacachina", "canon", "cañon"),
+        0.90, (18, 32), 20, 40, 7, True
+    ),
+    PerfilActividad(
+        "naturaleza y biodiversidad marina",
+        "naturaleza_marina",
+        ("naturaleza", "paracas", "reserva", "ballestas", "islas", "laguna", "oasis", "marina"),
+        0.80, (17, 30), 25, 45, 7, True
+    ),
+    PerfilActividad(
+        "visita cultural y mística",
+        "cultura_mistica",
+        ("cultural", "museo", "historia", "cachiche", "brujas", "luren", "catedral", "santuario"),
+        0.40, (15, 34), 35, 60, 9, False
+    ),
+    PerfilActividad(
+        "enoturismo y gastronomía",
+        "enoturismo_gastronomia",
+        ("gastronom", "vitivinic", "bodega", "pisco", "vino", "tacama", "catador", "lagar"),
+        0.30, (15, 35), 40, 70, 10, False
+    ),
+    PerfilActividad(
+        "arqueología y enigmas",
+        "arqueologia_enigmas",
+        ("arqueolog", "nasca", "nazca", "palpa", "geoglifo", "cahuachi", "cantalloc", "sobrevuelo"),
+        0.75, (16, 32), 20, 40, 8, True
+    ),
 )
-PERFIL_GENERAL = PerfilActividad("actividad turística", (), 0.60, (17, 32), 25, 45, 7, True)
+PERFIL_GENERAL = PerfilActividad(
+    "actividad turística general", "general", (), 0.60, (17, 32), 25, 45, 7, True
+)
 
 
 def seleccionar_perfil(slugs_categorias: list[str], nombre_atractivo: str) -> PerfilActividad:
@@ -80,89 +106,100 @@ class ResultadoRecomendacion:
     factores: dict[str, float] = field(default_factory=dict)
     consejos: list[str] = field(default_factory=list)
     perfil: str = ""
+    afinidad_preferencia: float = 0.0
 
 
 def nivel_desde_puntaje(score: float) -> str:
-    if score >= 0.8:
+    if score >= 0.85:
         return "excelente"
-    if score >= 0.6:
+    if score >= 0.65:
         return "bueno"
-    if score >= 0.4:
+    if score >= 0.40:
         return "regular"
     return "no_recomendado"
 
 
-def evaluar_condiciones(
-    *,
-    temperatura: float,
-    uv: float,
-    viento: float,
-    precipitacion: float,
-    perfil: PerfilActividad,
-) -> tuple[float, dict[str, float], list[str]]:
-    """Devuelve (score 0–1, puntaje por factor, consejos)."""
-    factores = {
-        "temperatura": _puntaje_en_rango(temperatura, *perfil.temp_ideal),
-        "viento": _puntaje_descendente(viento, perfil.viento_ideal, perfil.viento_maximo),
-        # El UV alto se mitiga con protección: nunca hunde el puntaje por completo.
-        "uv": 0.35 + 0.65 * _puntaje_descendente(uv, perfil.uv_ideal, 12.0),
-        "lluvia": _puntaje_descendente(precipitacion, 0.1, 3.0),
-    }
+def _evaluar_factores(
+    *, temperatura: float, uv: float, viento: float, precipitacion: float, perfil: PerfilActividad,
+    preferencias_usuario: list[str] | None = None
+) -> tuple[float, dict[str, float], list[str], float]:
+    p_temp = _puntaje_en_rango(temperatura, perfil.temp_ideal[0], perfil.temp_ideal[1])
+    p_viento = _puntaje_descendente(viento, perfil.viento_ideal, perfil.viento_maximo)
+    p_uv = _puntaje_descendente(uv, perfil.uv_ideal, max(perfil.uv_ideal + 5.0, 12.0))
+    p_lluvia = max(0.0, 1.0 - precipitacion / 2.0) if perfil.sensible_lluvia else 1.0
+
+    factores = {"temperatura": round(p_temp, 2), "viento": round(p_viento, 2),
+                "uv": round(p_uv, 2), "lluvia": round(p_lluvia, 2)}
     pesos = {"temperatura": 0.30, "viento": 0.30, "uv": 0.20, "lluvia": 0.20 if perfil.sensible_lluvia else 0.05}
     total_pesos = sum(pesos.values())
     ponderado = sum(factores[k] * pesos[k] for k in factores) / total_pesos
-    # Un factor crítico muy malo (p. ej. viento por encima del máximo) no puede
-    # compensarse con los demás: el peor factor crítico limita el resultado.
     criticos = [factores["temperatura"], factores["viento"]]
     if perfil.sensible_lluvia:
         criticos.append(factores["lluvia"])
     combinado = min(ponderado, 0.5 * ponderado + 0.5 * min(criticos))
-    # Actividades poco sensibles al clima (museos, bodegas) se acercan a 1.0
     sensibilidad_efectiva = min(1.0, perfil.sensibilidad * 1.25)
-    score = 1.0 - sensibilidad_efectiva * (1.0 - combinado)
+    score_base = 1.0 - sensibilidad_efectiva * (1.0 - combinado)
+
+    # Modulador de Personalización (RF-01 / OE4 / HE4):
+    # Si el usuario tiene registradas preferencias de Ica y este atractivo coincide con alguna,
+    # recibe una bonificación de afinidad (+15% en el ranking, acotado a 1.0).
+    afinidad = 0.0
+    if preferencias_usuario:
+        coincide = (
+            perfil.codigo_categoria in preferencias_usuario
+            or any(pref in perfil.palabras_clave for pref in preferencias_usuario)
+        )
+        if coincide:
+            afinidad = 0.15
+            score_final = min(1.0, score_base + afinidad)
+        else:
+            score_final = score_base
+    else:
+        score_final = score_base
 
     consejos: list[str] = []
     if uv >= 8:
-        consejos.append("Usa protector solar, gorra y lentes.")
-    if viento > perfil.viento_ideal and perfil.sensibilidad >= 0.7:
-        consejos.append("El viento puede levantar arena: lleva lentes y cubre tu rostro.")
-    if temperatura > perfil.temp_ideal[1]:
-        consejos.append("Hidrátate bien y evita las horas de más calor.")
-    if temperatura < perfil.temp_ideal[0]:
-        consejos.append("Lleva una chaqueta: la temperatura es baja para esta actividad.")
-    if precipitacion >= 0.2:
-        consejos.append("Hay precipitación: considera reprogramar o llevar impermeable.")
-    return round(max(0.0, min(1.0, score)), 2), {k: round(v, 2) for k, v in factores.items()}, consejos
+        consejos.append("Usa protector solar y sombrero: radiación UV alta.")
+    if viento >= 30 and perfil.sensibilidad >= 0.7:
+        consejos.append("Viento fuerte: lleva lentes para protegerte de la arena.")
+    if temperatura >= 32:
+        consejos.append("Calor intenso: mantente bien hidratado.")
+    elif temperatura <= 15:
+        consejos.append("Temperatura baja: lleva abrigo ligero.")
+    if precipitacion >= 1.0 and perfil.sensible_lluvia:
+        consejos.append("Precipitación prevista: considera actividades bajo techo.")
+
+    return max(0.0, min(1.0, round(score_final, 2))), factores, consejos, afinidad
 
 
-def _describir_viento(viento: float) -> str:
-    if viento < 12:
+_ENCABEZADOS = {
+    "excelente": "Condiciones excelentes para visitar",
+    "bueno": "Buen momento para disfrutar de",
+    "regular": "Condiciones moderadas en",
+    "no_recomendado": "No se recomienda realizar visitas en este momento a",
+}
+
+
+def _describir_viento(kmh: float) -> str:
+    if kmh < 15:
         return "viento suave"
-    if viento < 25:
+    if kmh < 30:
         return "viento moderado"
-    if viento < 40:
+    if kmh < 45:
         return "viento fuerte"
     return "viento muy fuerte"
 
 
-def _describir_uv(uv: float) -> str:
-    if uv < 3:
+def _describir_uv(indice: float) -> str:
+    if indice < 3:
         return "UV bajo"
-    if uv < 6:
+    if indice < 6:
         return "UV moderado"
-    if uv < 8:
+    if indice < 8:
         return "UV alto"
-    if uv < 11:
+    if indice < 11:
         return "UV muy alto"
     return "UV extremo"
-
-
-_ENCABEZADOS = {
-    "excelente": "Excelente momento para",
-    "bueno": "Buen momento para",
-    "regular": "Condiciones regulares para",
-    "no_recomendado": "No se recomienda ahora",
-}
 
 
 def generar_recomendacion(
@@ -172,22 +209,35 @@ def generar_recomendacion(
     temperatura: float,
     uv: float,
     viento: float,
-    precipitacion: float,
+    precipitacion: float = 0.0,
+    preferencias_usuario: list[str] | None = None,
 ) -> ResultadoRecomendacion:
-    """Lógica pura (testeable sin BD): clima + atractivo -> recomendación."""
     perfil = seleccionar_perfil(slugs_categorias, nombre_atractivo)
-    score, factores, consejos = evaluar_condiciones(
-        temperatura=temperatura, uv=uv, viento=viento, precipitacion=precipitacion, perfil=perfil
+    score, factores, consejos, afinidad = _evaluar_factores(
+        temperatura=temperatura,
+        uv=uv,
+        viento=viento,
+        precipitacion=precipitacion,
+        perfil=perfil,
+        preferencias_usuario=preferencias_usuario,
     )
     nivel = nivel_desde_puntaje(score)
     encabezado = _ENCABEZADOS[nivel]
     sujeto = f"{encabezado} {nombre_atractivo}" if nivel != "no_recomendado" else f"{encabezado}: {nombre_atractivo}"
     detalle = f"{temperatura:.0f} °C, {_describir_viento(viento)} ({viento:.0f} km/h), {_describir_uv(uv)} ({uv:.0f})"
     texto = f"{sujeto}. Condiciones actuales: {detalle}."
+    if afinidad > 0:
+        texto += " (Recomendado según tus preferencias de viaje en Ica)."
     if consejos:
         texto += " " + " ".join(consejos)
     return ResultadoRecomendacion(
-        score=score, nivel=nivel, texto=texto[:900], factores=factores, consejos=consejos, perfil=perfil.nombre
+        score=score,
+        nivel=nivel,
+        texto=texto[:900],
+        factores=factores,
+        consejos=consejos,
+        perfil=perfil.nombre,
+        afinidad_preferencia=afinidad,
     )
 
 
@@ -228,18 +278,30 @@ def detectar_alertas(
 # Redacción opcional con Gemini
 # ======================================================================
 async def redactar_con_gemini(
-    *, nombre_atractivo: str, resultado: ResultadoRecomendacion, temperatura: float,
-    uv: float, viento: float, condicion: str,
+    *,
+    nombre_atractivo: str,
+    resultado: ResultadoRecomendacion,
+    temperatura: float,
+    uv: float,
+    viento: float,
+    condicion: str,
+    preferencias_usuario: list[str] | None = None,
+    idioma: str = "es",
 ) -> str | None:
     """Devuelve un texto redactado por Gemini o ``None`` si no está configurado / falla."""
     if not configuracion.GEMINI_API_KEY:
         return None
+    
+    intereses_str = f"Intereses del turista: {', '.join(preferencias_usuario)}." if preferencias_usuario else ""
+    idioma_str = "en inglés" if idioma == "en" else "en español"
+
     prompt = (
-        "Eres un asistente turístico de Ica, Perú. Redacta en español, en máximo 2 frases "
-        "(220 caracteres), una recomendación amable para un turista. Usa SOLO estos datos, "
+        f"Eres el asistente turístico oficial de DIRCETUR Ica, Perú. Redacta {idioma_str}, en máximo 2 frases "
+        "(220 caracteres), una recomendación amable y personalizada para un visitante. Usa SOLO estos datos, "
         "no inventes nada.\n"
         f"Atractivo: {nombre_atractivo}\nNivel: {resultado.nivel} (puntaje {resultado.score})\n"
         f"Clima: {temperatura:.0f} °C, viento {viento:.0f} km/h, UV {uv:.0f}, {condicion}\n"
+        f"{intereses_str}\n"
         f"Consejos base: {' '.join(resultado.consejos) or 'ninguno'}"
     )
     url = (
