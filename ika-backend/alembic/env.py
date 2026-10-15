@@ -19,6 +19,7 @@ import src.modules.weather.models  # noqa: F401
 import src.modules.users.models    # noqa: F401
 import src.modules.emergency.models  # noqa: F401
 import src.modules.reviews.models  # noqa: F401
+import src.modules.analytics.models  # noqa: F401
 
 # Este es el objeto de configuración de Alembic, que provee
 # acceso a los valores dentro del archivo .ini en uso.
