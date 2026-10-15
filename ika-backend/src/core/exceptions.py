@@ -45,6 +45,18 @@ class AccesoAdminDenegadoException(ErrorDeNegocio):
     mensaje_por_defecto = "Clave de administración inválida o ausente."
 
 
+class RateLimitExceededException(ErrorDeNegocio):
+    codigo_http = 429
+    codigo = "LIMITE_SOLICITUDES_EXCEDIDO"
+    mensaje_por_defecto = "Demasiadas solicitudes. Intente nuevamente más tarde."
+
+    def __init__(self, window_seconds: int) -> None:
+        super().__init__(
+            f"Demasiadas solicitudes. Intente nuevamente en {window_seconds} segundos.",
+            extra={"retry_after": window_seconds},
+        )
+
+
 class AdminNoConfiguradoException(ErrorDeNegocio):
     codigo_http = 503
     codigo = "admin_no_configurado"
