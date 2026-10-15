@@ -77,11 +77,11 @@ Entregar el módulo `translation` (RNF-04) y el Panel Analítico DIRCETUR (RF-06
 | F-5 Integración de eventos y rate limit | Francis | 2 | 6 |
 | F-6 Endpoint analítico de incidencias | Francis | 5 | 7–8 |
 | F-7 Tests Francis (29) | Francis | 5 | transversal |
-| P-1 Modelo `UsageEvent`, migración, recorder | Paulo | 5 | 1–2 |
-| P-2 Excepciones, rate limiter, config | Paulo | 3 | 2 |
-| P-3 Analytics: idiomas, preferencias, top atractivos | Paulo | 8 | 3–6 |
-| P-4 Instrumentación del catálogo | Paulo | 3 | 6 |
-| P-5 Resumen consolidado y caché | Paulo | 3 | 7 |
+| P-1 Modelo `UsageEvent`, migración, recorder (COMPLETADA) | Paulo | 5 | 1–2 |
+| P-2 Excepciones, rate limiter, config (COMPLETADA) | Paulo | 3 | 2 |
+| P-3 Analytics: idiomas, preferencias, top atractivos (COMPLETADA) | Paulo | 8 | 3–6 |
+| P-4 Instrumentación del catálogo (COMPLETADA) | Paulo | 3 | 6 |
+| P-5 Resumen consolidado y caché (COMPLETADA) | Paulo | 3 | 7 |
 | P-6 Tests Paulo (20), conftest, CI | Paulo | 5 | transversal |
 | P-7 Revisión cruzada, docs, merge | Paulo | 3 | 9–10 |
 | **Total** | | **54 SP** | |
