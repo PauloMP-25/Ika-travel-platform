@@ -1,9 +1,11 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import obtener_bd
+from src.modules.analytics.dependencies import track_attraction_search, track_attraction_view, get_usage_recorder
+from src.shared.usage_events import UsageRecorder
 from src.modules.catalog import service
 from src.modules.catalog.schemas import (
     AgencyAdminResponse,
@@ -35,12 +37,16 @@ router = APIRouter(prefix="/catalog")
 
 @router.get("/attractions", response_model=PaginatedAttractionsResponse, tags=["catalog"])
 async def listar_atractivos(
+    request: Request,
+    tasks: BackgroundTasks,
     category: str | None = Query(None, description="Slug de categoría, ej. sandboarding"),
     district: str | None = Query(None, description="Distrito, ej. Ica"),
     search: str | None = Query(None, min_length=2, max_length=100, description="Texto en el nombre"),
     paginacion: ParametrosPaginacion = Depends(),
     db: AsyncSession = Depends(obtener_bd),
+    recorder: UsageRecorder = Depends(get_usage_recorder),
 ):
+    await track_attraction_search(request, tasks, recorder)
     return await service.get_paginated_attractions(
         db,
         category_slug=category,
@@ -59,8 +65,16 @@ async def listar_categorias(db: AsyncSession = Depends(obtener_bd)):
 @router.get(
     "/attractions/{attraction_id}", response_model=AttractionDetailResponse, tags=["catalog"]
 )
-async def detalle_atractivo(attraction_id: UUID, db: AsyncSession = Depends(obtener_bd)):
-    return await service.get_attraction_detail(db, attraction_id)
+async def detalle_atractivo(
+    attraction_id: UUID,
+    request: Request,
+    tasks: BackgroundTasks,
+    db: AsyncSession = Depends(obtener_bd),
+    recorder: UsageRecorder = Depends(get_usage_recorder),
+):
+    result = await service.get_attraction_detail(db, attraction_id)
+    await track_attraction_view(attraction_id, request, tasks, recorder)
+    return result
 
 
 @router.get(

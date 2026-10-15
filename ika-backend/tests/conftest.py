@@ -28,7 +28,8 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.pool import NullPool
 
 from src.core.config import configuracion
-from src.core.database import Base, obtener_bd
+from src.core.database import Base, obtener_bd, SesionAsincronaLocal
+from src.modules.analytics.dependencies import get_session_factory
 from src.main import aplicacion
 
 # Importar los modelos pobla `Base.metadata` para poder crear las tablas.
@@ -36,6 +37,8 @@ import src.modules.catalog.models  # noqa: F401
 import src.modules.emergency.models  # noqa: F401
 import src.modules.users.models  # noqa: F401
 import src.modules.weather.models  # noqa: F401
+import src.modules.reviews.models  # noqa: F401
+import src.modules.analytics.models  # noqa: F401
 
 # Misma URL de la BD de trabajo, pero con el esquema de pruebas.
 TEST_DATABASE_URL = os.getenv(
@@ -148,6 +151,7 @@ def client(app: FastAPI, _clean_database) -> TestClient:
             yield session
 
     app.dependency_overrides[obtener_bd] = override_get_db
+    app.dependency_overrides[get_session_factory] = lambda: TestingSessionLocal
     try:
         with TestClient(app) as test_client:
             yield test_client

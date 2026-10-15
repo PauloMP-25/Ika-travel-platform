@@ -9,6 +9,7 @@ from src.modules.catalog.router import router as catalog_router
 from src.modules.emergency.router import emergency_router
 from src.modules.geo.router import router as geo_router
 from src.modules.reviews.router import reviews_router
+from src.modules.analytics.router import router as analytics_router
 from src.modules.weather.router import router as weather_router
 from src.modules.users.router import users_router
 from src.modules.users.exceptions import register_users_exception_handlers
@@ -46,6 +47,7 @@ aplicacion.include_router(weather_router, prefix=PREFIJO_API)
 aplicacion.include_router(geo_router, prefix=PREFIJO_API)
 aplicacion.include_router(emergency_router, prefix=PREFIJO_API)
 aplicacion.include_router(reviews_router, prefix=PREFIJO_API)
+aplicacion.include_router(analytics_router, prefix=PREFIJO_API)
 
 
 @aplicacion.get("/")
