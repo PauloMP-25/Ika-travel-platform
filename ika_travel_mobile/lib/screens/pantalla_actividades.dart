@@ -3,12 +3,21 @@ import 'package:flutter/material.dart';
 import '../config/tema.dart';
 import 'pantalla_detalle.dart';
 
-class PantallaActividades extends StatelessWidget {
+class PantallaActividades extends StatefulWidget {
   final VoidCallback? onVolverInicio;
 
   const PantallaActividades({super.key, this.onVolverInicio});
 
-  // Datos falsos (mock) de las actividades, luego vendrán del backend
+  @override
+  State<PantallaActividades> createState() => _PantallaActividadesState();
+}
+
+class _PantallaActividadesState extends State<PantallaActividades> {
+  // 1. Controlador para la barra de búsqueda
+  final TextEditingController _buscadorController = TextEditingController();
+  String _textoBusqueda = '';
+
+  // Datos falsos (mock) de las actividades
   final List<Map<String, dynamic>> actividades = const [
     {
       'titulo': 'Sandboarding\nen Huacachina',
@@ -62,8 +71,31 @@ class PantallaActividades extends StatelessWidget {
     },
   ];
 
+  // 2. Lógica de filtrado
+  List<Map<String, dynamic>> get _actividadesFiltradas {
+    if (_textoBusqueda.isEmpty) {
+      return actividades; // Si no hay búsqueda, devuelve todas
+    }
+    return actividades.where((actividad) {
+      final titulo = actividad['titulo'].toLowerCase();
+      final subtitulo = actividad['subtitulo'].toLowerCase();
+      final busqueda = _textoBusqueda.toLowerCase();
+
+      // Devuelve true si el texto buscado está en el título o en el subtítulo
+      return titulo.contains(busqueda) || subtitulo.contains(busqueda);
+    }).toList();
+  }
+
+  @override
+  void dispose() {
+    _buscadorController.dispose(); // Limpiar el controlador al salir
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final listaParaMostrar = _actividadesFiltradas; // Lista ya filtrada
+
     return Scaffold(
       backgroundColor: AppColores.arenaFondo,
       body: SafeArea(
@@ -80,8 +112,8 @@ class PantallaActividades extends StatelessWidget {
                       color: AppColores.marronOscuro,
                     ),
                     onPressed: () {
-                      if (onVolverInicio != null) {
-                        onVolverInicio!();
+                      if (widget.onVolverInicio != null) {
+                        widget.onVolverInicio!();
                       }
                     },
                   ),
@@ -105,6 +137,13 @@ class PantallaActividades extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: TextField(
+                controller: _buscadorController,
+                // 👇 Lógica que actualiza el filtro mientras escribes
+                onChanged: (value) {
+                  setState(() {
+                    _textoBusqueda = value;
+                  });
+                },
                 decoration: InputDecoration(
                   hintText: 'Buscar actividad o lugar',
                   hintStyle: TextStyle(
@@ -131,91 +170,113 @@ class PantallaActividades extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // 3. Lista de actividades
+            // 3. Lista de actividades (AHORA FILTRADA)
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: actividades.length,
-                itemBuilder: (context, index) {
-                  final actividad = actividades[index];
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(15),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      borderRadius: BorderRadius.circular(15),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(10),
-                        leading: ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: Image.asset(
-                            actividad['imagen'],
-                            width: 70,
-                            height: 70,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                width: 70,
-                                height: 70,
-                                color: Colors.grey[300],
-                                child: const Icon(
-                                  Icons.image_not_supported,
-                                  color: Colors.grey,
-                                ),
-                              );
-                            },
+              child: listaParaMostrar.isEmpty
+                  // 👇 Mensaje si no se encuentra ninguna actividad
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.search_off,
+                            size: 60,
+                            color: Colors.grey[400],
                           ),
-                        ),
-                        title: Text(
-                          actividad['titulo'],
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                            color: AppColores.marronOscuro,
-                            height: 1.2,
+                          const SizedBox(height: 10),
+                          Text(
+                            'No se encontraron actividades',
+                            style: TextStyle(
+                              color: AppColores.grisTexto,
+                              fontSize: 16,
+                            ),
                           ),
-                        ),
-                        subtitle: Text(
-                          actividad['subtitulo'],
-                          style: const TextStyle(
-                            color: AppColores.grisTexto,
-                            fontSize: 13,
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      itemCount: listaParaMostrar.length,
+                      itemBuilder: (context, index) {
+                        final actividad = listaParaMostrar[index];
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(15),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
-                        ),
-                        trailing: const Icon(
-                          Icons.arrow_forward_ios,
-                          size: 16,
-                          color: AppColores.grisTexto,
-                        ),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => PantallaDetalle(
-                                titulo: actividad['titulo'],
-                                subtitulo: actividad['subtitulo'],
-                                imagenes: List<String>.from(
-                                  actividad['imagenes_detalle'],
+                          child: Material(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.circular(15),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.all(10),
+                              leading: ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Image.asset(
+                                  actividad['imagen'],
+                                  width: 70,
+                                  height: 70,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      width: 70,
+                                      height: 70,
+                                      color: Colors.grey[300],
+                                      child: const Icon(
+                                        Icons.image_not_supported,
+                                        color: Colors.grey,
+                                      ),
+                                    );
+                                  },
                                 ),
                               ),
+                              title: Text(
+                                actividad['titulo'],
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: AppColores.marronOscuro,
+                                  height: 1.2,
+                                ),
+                              ),
+                              subtitle: Text(
+                                actividad['subtitulo'],
+                                style: const TextStyle(
+                                  color: AppColores.grisTexto,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              trailing: const Icon(
+                                Icons.arrow_forward_ios,
+                                size: 16,
+                                color: AppColores.grisTexto,
+                              ),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => PantallaDetalle(
+                                      titulo: actividad['titulo'],
+                                      subtitulo: actividad['subtitulo'],
+                                      imagenes: List<String>.from(
+                                        actividad['imagenes_detalle'],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
-                          );
-                        },
-                      ),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
             ),
           ],
         ),

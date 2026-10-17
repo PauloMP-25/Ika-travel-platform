@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../config/tema.dart';
 import 'pantalla_inicio.dart';
 import 'pantalla_actividades.dart';
+import 'pantalla_pronostico.dart'; // 👈 NUEVO: Importamos la pantalla de pronóstico
 
 class MainScaffold extends StatefulWidget {
   const MainScaffold({super.key});
@@ -14,7 +15,6 @@ class MainScaffold extends StatefulWidget {
 class _MainScaffoldState extends State<MainScaffold> {
   int _indiceActual = 0;
 
-  // Función que se pasa a las pantallas hijas para que puedan cambiar de pestaña
   void _cambiarPestana(int nuevoIndice) {
     setState(() {
       _indiceActual = nuevoIndice;
@@ -27,9 +27,9 @@ class _MainScaffoldState extends State<MainScaffold> {
     final List<Widget> pantallas = [
       const PantallaInicio(),
       PantallaActividades(onVolverInicio: () => _cambiarPestana(0)),
-      const _PantallaPlaceholder(titulo: 'Mapa'),
-      const _PantallaPlaceholder(titulo: 'Pronóstico'), // 👈 Cambiado
-      const _PantallaPlaceholder(titulo: 'Favoritos'),
+      const _PantallaPlaceholder(titulo: 'Mapa'), // Aún no implementado
+      const PantallaPronostico(), // 👈 AQUÍ conectamos el Pronóstico
+      const _PantallaPlaceholder(titulo: 'Favoritos'), // Aún no implementado
     ];
 
     return Scaffold(
@@ -53,16 +53,14 @@ class _MainScaffoldState extends State<MainScaffold> {
             label: 'Actividades',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.location_on_outlined), // 📍 Pin de ubicación
+            icon: Icon(Icons.location_on_outlined),
             activeIcon: Icon(Icons.location_on),
             label: 'Mapa',
           ),
           BottomNavigationBarItem(
-            icon: Icon(
-              Icons.wb_cloudy_outlined,
-            ), // ☁️ Nube con sol (estilo pronóstico)
+            icon: Icon(Icons.wb_cloudy_outlined),
             activeIcon: Icon(Icons.wb_cloudy),
-            label: 'Pronóstico', // 👈 Cambiado de "Predicción" a "Pronóstico"
+            label: 'Pronóstico',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.favorite_border),
