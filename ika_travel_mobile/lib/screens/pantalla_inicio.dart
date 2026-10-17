@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../config/tema.dart';
+import 'pantalla_detalle_dia.dart';
+import 'pantalla_alertas.dart';
+import 'pantalla_mas.dart';
 
 class PantallaInicio extends StatefulWidget {
   const PantallaInicio({super.key});
@@ -113,20 +116,48 @@ class _PantallaInicioState extends State<PantallaInicio> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Iconos de menú y notificación
+                            // 👇 ICONOS CONECTADOS
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: const [
-                                Icon(Icons.menu, color: Colors.white, size: 28),
-                                Icon(
-                                  Icons.notifications_none,
-                                  color: Colors.white,
-                                  size: 28,
+                              children: [
+                                // Botón de Menú (3 rayitas)
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.menu,
+                                    color: Colors.white,
+                                    size: 28,
+                                  ),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const PantallaMas(),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                // Botón de Alertas (Campana)
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.notifications_none,
+                                    color: Colors.white,
+                                    size: 28,
+                                  ),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const PantallaAlertas(),
+                                      ),
+                                    );
+                                  },
                                 ),
                               ],
                             ),
                             const SizedBox(height: 30),
-                            // 👇 TÍTULOS (SIN SizedBox con doble infinity)
+                            // TÍTULOS
                             const Padding(
                               padding: EdgeInsets.symmetric(horizontal: 8),
                               child: Column(
@@ -301,7 +332,19 @@ class _PantallaInicioState extends State<PantallaInicio> {
                       borderRadius: BorderRadius.circular(15),
                     ),
                   ),
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PantallaDetalleDia(
+                          tituloActividad: 'Clima en Ica hoy',
+                          imagenActividad:
+                              'assets/images/carrusel_1_huacachina.jpg',
+                          fecha: 'Sábado, 17 de octubre de 2026',
+                        ),
+                      ),
+                    );
+                  },
                   child: const Text(
                     'Ver recomendación del día',
                     style: TextStyle(

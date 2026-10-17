@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../config/tema.dart';
+import '../config/favoritos_manager.dart';
+import 'pantalla_detalle_dia.dart';
 
 class PantallaDetalle extends StatefulWidget {
   final String titulo;
@@ -19,7 +21,7 @@ class PantallaDetalle extends StatefulWidget {
 }
 
 class _PantallaDetalleState extends State<PantallaDetalle> {
-  bool _esFavorito = false;
+  // Eliminamos _esFavorito local
   int _paginaActual = 0;
 
   @override
@@ -42,18 +44,13 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                   SizedBox(
                     height: 320,
                     width: double.infinity,
-                    // 👇 GestureDetector captura los gestos horizontales
-                    // para que el SingleChildScrollView no los intercepte
                     child: GestureDetector(
-                      onHorizontalDragUpdate: (details) {
-                        // Solo captura el gesto, no hace nada
-                      },
+                      onHorizontalDragUpdate: (details) {},
                       child: PageView.builder(
                         itemCount: widget.imagenes.length,
                         onPageChanged: (index) {
                           setState(() => _paginaActual = index);
                         },
-                        // 👇 Mejoras de física y comportamiento
                         physics: const BouncingScrollPhysics(),
                         padEnds: true,
                         itemBuilder: (context, index) {
@@ -76,7 +73,7 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                     ),
                   ),
 
-                  // Capa oscura para que el texto se lea
+                  // Capa oscura
                   IgnorePointer(
                     child: Container(
                       height: 320,
@@ -113,18 +110,31 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                             ),
                             onPressed: () => Navigator.pop(context),
                           ),
-                          IconButton(
-                            icon: Icon(
-                              _esFavorito
-                                  ? Icons.favorite
-                                  : Icons.favorite_border,
-                              color: Colors.white,
-                              size: 28,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _esFavorito = !_esFavorito;
-                              });
+
+                          // 👇 BOTÓN DE FAVORITO CONECTADO AL MANAGER GLOBAL
+                          ValueListenableBuilder(
+                            valueListenable: listaFavoritos,
+                            builder: (context, favoritos, child) {
+                              final esFav = favoritos.any(
+                                (e) => e['titulo'] == widget.titulo,
+                              );
+                              return IconButton(
+                                icon: Icon(
+                                  esFav
+                                      ? Icons.favorite
+                                      : Icons.favorite_border,
+                                  color: Colors.white,
+                                  size: 28,
+                                ),
+                                onPressed: () {
+                                  toggleFavorito({
+                                    'titulo': widget.titulo,
+                                    'subtitulo': widget.subtitulo,
+                                    'imagen': widget.imagenes.first,
+                                    'imagenes_detalle': widget.imagenes,
+                                  });
+                                },
+                              );
                             },
                           ),
                         ],
@@ -206,57 +216,76 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(15),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 55,
-                          height: 55,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFFFF3E0),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Center(
-                            child: Text('😊', style: TextStyle(fontSize: 30)),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PantallaDetalleDia(
+                            tituloActividad: widget.titulo,
+                            imagenActividad: widget.imagenes.first,
+                            fecha: 'Sábado, 17 de octubre de 2026',
                           ),
                         ),
-                        const SizedBox(width: 15),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Excelente',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColores.marronOscuro,
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(15),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 55,
+                            height: 55,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFFFF3E0),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Center(
+                              child: Text('😊', style: TextStyle(fontSize: 30)),
+                            ),
+                          ),
+                          const SizedBox(width: 15),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Excelente',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColores.marronOscuro,
+                                  ),
                                 ),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                'Condiciones ideales para disfrutar estas actividades.',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppColores.grisTexto,
+                                SizedBox(height: 4),
+                                Text(
+                                  'Condiciones ideales para disfrutar estas actividades.',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColores.grisTexto,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                          const Icon(
+                            Icons.arrow_forward_ios,
+                            size: 16,
+                            color: AppColores.grisTexto,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
