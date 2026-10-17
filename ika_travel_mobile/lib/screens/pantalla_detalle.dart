@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../config/tema.dart';
-import 'pantalla_detalle_dia.dart'; // 👈 NUEVO: Importamos la pantalla del día
+import '../config/favoritos_manager.dart';
+import 'pantalla_detalle_dia.dart';
 
 class PantallaDetalle extends StatefulWidget {
   final String titulo;
@@ -20,7 +21,7 @@ class PantallaDetalle extends StatefulWidget {
 }
 
 class _PantallaDetalleState extends State<PantallaDetalle> {
-  bool _esFavorito = false;
+  // Eliminamos _esFavorito local
   int _paginaActual = 0;
 
   @override
@@ -44,9 +45,7 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                     height: 320,
                     width: double.infinity,
                     child: GestureDetector(
-                      onHorizontalDragUpdate: (details) {
-                        // Solo captura el gesto para que el PageView responda
-                      },
+                      onHorizontalDragUpdate: (details) {},
                       child: PageView.builder(
                         itemCount: widget.imagenes.length,
                         onPageChanged: (index) {
@@ -74,7 +73,7 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                     ),
                   ),
 
-                  // Capa oscura para que el texto se lea
+                  // Capa oscura
                   IgnorePointer(
                     child: Container(
                       height: 320,
@@ -111,18 +110,31 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                             ),
                             onPressed: () => Navigator.pop(context),
                           ),
-                          IconButton(
-                            icon: Icon(
-                              _esFavorito
-                                  ? Icons.favorite
-                                  : Icons.favorite_border,
-                              color: Colors.white,
-                              size: 28,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _esFavorito = !_esFavorito;
-                              });
+
+                          // 👇 BOTÓN DE FAVORITO CONECTADO AL MANAGER GLOBAL
+                          ValueListenableBuilder(
+                            valueListenable: listaFavoritos,
+                            builder: (context, favoritos, child) {
+                              final esFav = favoritos.any(
+                                (e) => e['titulo'] == widget.titulo,
+                              );
+                              return IconButton(
+                                icon: Icon(
+                                  esFav
+                                      ? Icons.favorite
+                                      : Icons.favorite_border,
+                                  color: Colors.white,
+                                  size: 28,
+                                ),
+                                onPressed: () {
+                                  toggleFavorito({
+                                    'titulo': widget.titulo,
+                                    'subtitulo': widget.subtitulo,
+                                    'imagen': widget.imagenes.first,
+                                    'imagenes_detalle': widget.imagenes,
+                                  });
+                                },
+                              );
                             },
                           ),
                         ],
@@ -204,8 +216,6 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                     ),
                   ),
                   const SizedBox(height: 10),
-
-                  // 👇 AQUÍ ESTÁ LA MAGIA: Envolvemos el Container en GestureDetector
                   GestureDetector(
                     onTap: () {
                       Navigator.push(
@@ -269,7 +279,6 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                               ],
                             ),
                           ),
-                          // 👇 Agregamos una flechita para indicar que se puede tocar
                           const Icon(
                             Icons.arrow_forward_ios,
                             size: 16,

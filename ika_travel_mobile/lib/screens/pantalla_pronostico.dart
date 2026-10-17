@@ -14,105 +14,68 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
   int _opcionSeleccionada = 0;
 
   // Datos de HOY
-  final List<Map<String, dynamic>> _datosHoy = [
-    {
-      'hora': '08:00',
-      'icono': Icons.wb_sunny,
-      'condicion': 'Excelente',
-      'indice': 90,
-    },
-    {
-      'hora': '11:00',
-      'icono': Icons.wb_sunny,
-      'condicion': 'Excelente',
-      'indice': 92,
-    },
-    {
-      'hora': '14:00',
-      'icono': Icons.wb_cloudy,
-      'condicion': 'Bueno',
-      'indice': 75,
-    },
-    {'hora': '17:00', 'icono': Icons.air, 'condicion': 'Regular', 'indice': 55},
-    {
-      'hora': '20:00',
-      'icono': Icons.nightlight_round,
-      'condicion': 'Bueno',
-      'indice': 70,
-    },
-  ];
+  final Map<String, dynamic> _datosHoy = {
+    'tempActual': '26°C',
+    'condicion': 'Soleado',
+    'tempMax': '27°C',
+    'tempMin': '16°C',
+    'iconoPrincipal': Icons.wb_sunny,
+    'viento': '12 km/h',
+    'humedad': '48%',
+    'lluvia': '8%',
+    'uv': 'Alto',
+    'porHoras': [
+      {'hora': '08:00', 'icono': Icons.wb_sunny, 'grados': '20°'},
+      {'hora': '11:00', 'icono': Icons.wb_sunny, 'grados': '25°'},
+      {'hora': '14:00', 'icono': Icons.wb_cloudy, 'grados': '25°'},
+      {'hora': '17:00', 'icono': Icons.air, 'grados': '22°'},
+      {'hora': '20:00', 'icono': Icons.nightlight_round, 'grados': '19°'},
+    ],
+  };
 
   // Datos de MAÑANA
-  final List<Map<String, dynamic>> _datosManana = [
-    {'hora': '08:00', 'icono': Icons.cloud, 'condicion': 'Bueno', 'indice': 80},
-    {
-      'hora': '11:00',
-      'icono': Icons.wb_sunny,
-      'condicion': 'Excelente',
-      'indice': 95,
-    },
-    {
-      'hora': '14:00',
-      'icono': Icons.wb_sunny,
-      'condicion': 'Excelente',
-      'indice': 88,
-    },
-    {'hora': '17:00', 'icono': Icons.cloud, 'condicion': 'Bueno', 'indice': 65},
-    {
-      'hora': '20:00',
-      'icono': Icons.nightlight_round,
-      'condicion': 'Regular',
-      'indice': 50,
-    },
-  ];
+  final Map<String, dynamic> _datosManana = {
+    'tempActual': '22°C',
+    'condicion': 'Parcialmente nublado',
+    'tempMax': '24°C',
+    'tempMin': '14°C',
+    'iconoPrincipal': Icons.wb_cloudy,
+    'viento': '20 km/h',
+    'humedad': '60%',
+    'lluvia': '15%',
+    'uv': 'Moderado',
+    'porHoras': [
+      {'hora': '08:00', 'icono': Icons.cloud, 'grados': '16°'},
+      {'hora': '11:00', 'icono': Icons.wb_cloudy, 'grados': '20°'},
+      {'hora': '14:00', 'icono': Icons.wb_sunny, 'grados': '23°'},
+      {'hora': '17:00', 'icono': Icons.cloud, 'grados': '18°'},
+      {'hora': '20:00', 'icono': Icons.nightlight_round, 'grados': '15°'},
+    ],
+  };
 
-  // Datos de 7 DÍAS (Agrupado por días)
-  final List<Map<String, dynamic>> _datos7Dias = [
-    {
-      'hora': 'Lunes',
-      'icono': Icons.wb_sunny,
-      'condicion': 'Excelente',
-      'indice': 90,
-    },
-    {
-      'hora': 'Martes',
-      'icono': Icons.wb_sunny,
-      'condicion': 'Excelente',
-      'indice': 85,
-    },
-    {
-      'hora': 'Miércoles',
-      'icono': Icons.wb_cloudy,
-      'condicion': 'Bueno',
-      'indice': 70,
-    },
-    {
-      'hora': 'Jueves',
-      'icono': Icons.air,
-      'condicion': 'Regular',
-      'indice': 55,
-    },
-    {
-      'hora': 'Viernes',
-      'icono': Icons.wb_sunny,
-      'condicion': 'Excelente',
-      'indice': 88,
-    },
-    {
-      'hora': 'Sábado',
-      'icono': Icons.cloud,
-      'condicion': 'Bueno',
-      'indice': 75,
-    },
-    {
-      'hora': 'Domingo',
-      'icono': Icons.wb_sunny,
-      'condicion': 'Excelente',
-      'indice': 92,
-    },
-  ];
+  final Map<String, dynamic> _datos7Dias = {
+    'tempActual': '24°C',
+    'condicion': 'Variable',
+    'tempMax': '27°C',
+    'tempMin': '15°C',
+    'iconoPrincipal': Icons.wb_cloudy,
+    'viento': '15 km/h',
+    'humedad': '55%',
+    'lluvia': '10%',
+    'uv': 'Moderado',
+    'porHoras': [
+      // Usamos la lista horizontal para mostrar los días de la semana
+      {'hora': 'Lunes', 'icono': Icons.wb_sunny, 'grados': '27°'},
+      {'hora': 'Martes', 'icono': Icons.wb_cloudy, 'grados': '25°'},
+      {'hora': 'Miércoles', 'icono': Icons.wb_sunny, 'grados': '28°'},
+      {'hora': 'Jueves', 'icono': Icons.air, 'grados': '22°'},
+      {'hora': 'Viernes', 'icono': Icons.cloud, 'grados': '21°'},
+      {'hora': 'Sábado', 'icono': Icons.wb_sunny, 'grados': '26°'},
+      {'hora': 'Domingo', 'icono': Icons.wb_sunny, 'grados': '29°'},
+    ],
+  };
 
-  List<Map<String, dynamic>> get _datosActuales {
+  Map<String, dynamic> get _datosActuales {
     if (_opcionSeleccionada == 0) return _datosHoy;
     if (_opcionSeleccionada == 1) return _datosManana;
     return _datos7Dias;
@@ -120,31 +83,28 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
 
   @override
   Widget build(BuildContext context) {
-    final listaActual = _datosActuales;
+    final data = _datosActuales; // Obtenemos los datos actuales
 
     return Scaffold(
       backgroundColor: AppColores.arenaFondo,
       body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 1. Título
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
                   Text(
-                    'Pronóstico por Horas',
+                    'Pronóstico general',
                     style: TextStyle(
-                      fontSize: 22,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                       color: AppColores.marronOscuro,
                     ),
                   ),
-                  SizedBox(height: 5),
                   Text(
-                    'Sandboarding en Huacachina',
+                    'Ica',
                     style: TextStyle(fontSize: 14, color: AppColores.grisTexto),
                   ),
                 ],
@@ -172,135 +132,158 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
 
             const SizedBox(height: 20),
 
-            // 3. Cabecera de la tabla
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 1,
-                    child: Text(
-                      'Hora',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
+            // 3. Tarjeta principal del clima (DINÁMICA)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(15),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
                     ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      'Condición',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 1,
-                    child: Text(
-                      'Índice',
-                      textAlign: TextAlign.end,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(),
-
-            // 4. Lista de horas (AHORA DINÁMICA)
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: listaActual.length,
-                itemBuilder: (context, index) {
-                  final data = listaActual[index];
-                  return Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        child: Row(
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          data['iconoPrincipal'],
+                          size: 50,
+                          color: Colors.orange,
+                        ),
+                        const SizedBox(width: 15),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Hora
-                            Expanded(
-                              flex: 1,
-                              child: Text(
-                                data['hora'],
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
+                            Text(
+                              data['tempActual'],
+                              style: const TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: AppColores.marronOscuro,
                               ),
                             ),
-                            // Icono + Condición
-                            Expanded(
-                              flex: 2,
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    data['icono'],
-                                    size: 20,
-                                    color: AppColores.grisTexto,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    data['condicion'],
-                                    style: const TextStyle(fontSize: 14),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            // Índice
-                            Expanded(
-                              flex: 1,
-                              child: Text(
-                                data['indice'].toString(),
-                                textAlign: TextAlign.end,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
+                            Text(
+                              data['condicion'],
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: AppColores.grisTexto,
                               ),
                             ),
                           ],
                         ),
-                      ),
-                      const Divider(
-                        height: 1,
-                        thickness: 0.5,
-                        color: Colors.black12,
-                      ),
-                    ],
-                  );
-                },
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          'Máx. ${data['tempMax']}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColores.grisTexto,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Mín. ${data['tempMin']}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColores.grisTexto,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
 
-            // 5. Alerta inferior
+            const SizedBox(height: 15),
+
+            // 4. Fila de 4 íconos (DINÁMICA)
             Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Container(
-                padding: const EdgeInsets.all(15),
+                padding: const EdgeInsets.symmetric(vertical: 15),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF3E0), // Fondo naranja claro
-                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(15),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Row(
-                  children: const [
-                    Icon(Icons.info_outline, color: AppColores.naranjaBoton),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'Los vientos suelen intensificarse por la tarde en Huacachina.',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppColores.marronOscuro,
-                        ),
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _MiniFactor(
+                      icono: Icons.air,
+                      valor: data['viento'],
+                      etiqueta: 'Viento',
+                    ),
+                    _MiniFactor(
+                      icono: Icons.water_drop,
+                      valor: data['humedad'],
+                      etiqueta: 'Humedad',
+                    ),
+                    _MiniFactor(
+                      icono: Icons.water_drop_outlined,
+                      valor: data['lluvia'],
+                      etiqueta: 'Lluvia',
+                    ),
+                    _MiniFactor(
+                      icono: Icons.wb_sunny,
+                      valor: data['uv'],
+                      etiqueta: 'UV',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 25),
+
+            // 5. Sección "Por horas" (DINÁMICA)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _opcionSeleccionada == 2 ? 'Próximos días' : 'Por horas',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColores.marronOscuro,
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+                    SizedBox(
+                      height: 100,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: (data['porHoras'] as List).length,
+                        itemBuilder: (context, index) {
+                          final item = data['porHoras'][index];
+                          return _HoraItem(
+                            hora: item['hora'],
+                            icono: item['icono'],
+                            grados: item['grados'],
+                          );
+                        },
                       ),
                     ),
                   ],
@@ -313,7 +296,6 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
     );
   }
 
-  // Widget auxiliar para los botones del toggle
   Widget _botonToggle(String texto, int index) {
     final bool activo = _opcionSeleccionada == index;
     return Expanded(
@@ -339,6 +321,78 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _MiniFactor extends StatelessWidget {
+  final IconData icono;
+  final String valor;
+  final String etiqueta;
+
+  const _MiniFactor({
+    required this.icono,
+    required this.valor,
+    required this.etiqueta,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Icon(icono, color: AppColores.grisTexto, size: 22),
+        const SizedBox(height: 5),
+        Text(
+          etiqueta,
+          style: const TextStyle(fontSize: 10, color: AppColores.grisTexto),
+        ),
+        Text(
+          valor,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: AppColores.marronOscuro,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HoraItem extends StatelessWidget {
+  final String hora;
+  final IconData icono;
+  final String grados;
+
+  const _HoraItem({
+    required this.hora,
+    required this.icono,
+    required this.grados,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 25),
+      child: Column(
+        children: [
+          Text(
+            hora,
+            style: const TextStyle(fontSize: 12, color: AppColores.grisTexto),
+          ),
+          const SizedBox(height: 8),
+          Icon(icono, color: AppColores.marronOscuro, size: 20),
+          const SizedBox(height: 8),
+          Text(
+            grados,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: AppColores.marronOscuro,
+            ),
+          ),
+        ],
       ),
     );
   }
