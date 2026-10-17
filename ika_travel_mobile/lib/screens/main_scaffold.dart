@@ -64,6 +64,7 @@ class _MainScaffoldState extends State<MainScaffold> {
             activeIcon: Icon(Icons.wb_cloudy),
             label: 'Pronóstico',
           ),
+
           BottomNavigationBarItem(
             icon: Icon(Icons.favorite_border),
             activeIcon: Icon(Icons.favorite),

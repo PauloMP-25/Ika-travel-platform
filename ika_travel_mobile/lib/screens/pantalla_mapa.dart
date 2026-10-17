@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../config/tema.dart';
 import 'pantalla_detalle.dart';
+import 'pantalla_mas.dart';
 
 class PantallaMapa extends StatefulWidget {
   const PantallaMapa({super.key});
@@ -76,9 +77,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
     },
   ];
 
-  // Ubicación seleccionada actualmente
   Map<String, dynamic>? _seleccionada;
-
   String _filtroActual = 'Todas';
 
   List<Map<String, dynamic>> get _ubicacionesFiltradas {
@@ -88,7 +87,6 @@ class _PantallaMapaState extends State<PantallaMapa> {
     return _ubicaciones.where((u) => u['categoria'] == _filtroActual).toList();
   }
 
-  // Función para mostrar el menú de filtros
   void _mostrarFiltros() {
     showModalBottomSheet(
       context: context,
@@ -136,14 +134,13 @@ class _PantallaMapaState extends State<PantallaMapa> {
           _filtroActual = titulo;
           _seleccionada = null;
         });
-        Navigator.pop(context); // Cierra el menú
+        Navigator.pop(context);
       },
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Obtenemos solo las ubicaciones que coinciden con el filtro
     final listaParaMostrar = _ubicacionesFiltradas;
 
     return Scaffold(
@@ -157,10 +154,20 @@ class _PantallaMapaState extends State<PantallaMapa> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Icon(
-                    Icons.menu,
-                    color: AppColores.marronOscuro,
-                    size: 28,
+                  IconButton(
+                    icon: const Icon(
+                      Icons.menu,
+                      color: AppColores.marronOscuro,
+                      size: 28,
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PantallaMas(),
+                        ),
+                      );
+                    },
                   ),
                   const Text(
                     'Mapa',
@@ -198,7 +205,6 @@ class _PantallaMapaState extends State<PantallaMapa> {
                         userAgentPackageName: 'com.example.ika_travel_mobile',
                       ),
                       MarkerLayer(
-                        // 👇 Usamos la lista filtrada
                         markers: listaParaMostrar.map((ubicacion) {
                           return Marker(
                             point: LatLng(ubicacion['lat'], ubicacion['lng']),

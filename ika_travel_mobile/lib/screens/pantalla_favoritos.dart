@@ -10,22 +10,47 @@ class PantallaFavoritos extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool puedeVolver = Navigator.canPop(context);
+
     return Scaffold(
       backgroundColor: AppColores.arenaFondo,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Título
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-              child: Text(
-                'Favoritos',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: AppColores.marronOscuro,
-                ),
+            // 1. Título con flecha condicional
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  // 👇 Si puede volver, muestra la flecha. Si no, un espacio vacío
+                  if (puedeVolver)
+                    IconButton(
+                      icon: const Icon(
+                        Icons.arrow_back,
+                        color: AppColores.marronOscuro,
+                        size: 28,
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                    )
+                  else
+                    const SizedBox(width: 48),
+
+                  const Expanded(
+                    child: Text(
+                      'Favoritos',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: AppColores.marronOscuro,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(
+                    width: 48,
+                  ), // Espacio para equilibrar el título
+                ],
               ),
             ),
 
@@ -111,9 +136,7 @@ class PantallaFavoritos extends StatelessWidget {
                                 color: AppColores.naranjaBoton,
                               ),
                               onPressed: () {
-                                toggleFavorito(
-                                  actividad,
-                                ); // Lo quita de la lista
+                                toggleFavorito(actividad);
                               },
                             ),
                             onTap: () {
@@ -152,7 +175,6 @@ class PantallaFavoritos extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  // 👇 AQUÍ ESTÁ LA NAVEGACIÓN A ALERTAS
                   onPressed: () {
                     Navigator.push(
                       context,

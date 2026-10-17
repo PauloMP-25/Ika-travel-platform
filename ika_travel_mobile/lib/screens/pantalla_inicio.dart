@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../config/tema.dart';
 import 'pantalla_detalle_dia.dart';
+import 'pantalla_alertas.dart';
+import 'pantalla_mas.dart';
 
 class PantallaInicio extends StatefulWidget {
   const PantallaInicio({super.key});
@@ -114,15 +116,43 @@ class _PantallaInicioState extends State<PantallaInicio> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Iconos de menú y notificación
+                            // 👇 ICONOS CONECTADOS
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: const [
-                                Icon(Icons.menu, color: Colors.white, size: 28),
-                                Icon(
-                                  Icons.notifications_none,
-                                  color: Colors.white,
-                                  size: 28,
+                              children: [
+                                // Botón de Menú (3 rayitas)
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.menu,
+                                    color: Colors.white,
+                                    size: 28,
+                                  ),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const PantallaMas(),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                // Botón de Alertas (Campana)
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.notifications_none,
+                                    color: Colors.white,
+                                    size: 28,
+                                  ),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const PantallaAlertas(),
+                                      ),
+                                    );
+                                  },
                                 ),
                               ],
                             ),
@@ -289,6 +319,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
 
             const SizedBox(height: 20),
 
+            // 4. BOTÓN
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: SizedBox(
@@ -301,7 +332,6 @@ class _PantallaInicioState extends State<PantallaInicio> {
                       borderRadius: BorderRadius.circular(15),
                     ),
                   ),
-
                   onPressed: () {
                     Navigator.push(
                       context,
