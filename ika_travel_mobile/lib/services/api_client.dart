@@ -44,4 +44,32 @@ class ApiClient {
       );
     }
   }
+
+  Future<dynamic> post(
+    String endpoint,
+    dynamic body, {
+    Map<String, String>? headers,
+  }) async {
+    final uri = Uri.parse('$baseUrl$endpoint');
+    final response = await _client.post(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Accept-Language': 'es-PE,es;q=0.9',
+        ...?headers,
+      },
+      body: body != null ? jsonEncode(body) : null,
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      if (response.body.isEmpty) return null;
+      return jsonDecode(utf8.decode(response.bodyBytes));
+    } else {
+      throw HttpException(
+        'Error ${response.statusCode}: ${response.body}',
+        uri: uri,
+      );
+    }
+  }
 }
