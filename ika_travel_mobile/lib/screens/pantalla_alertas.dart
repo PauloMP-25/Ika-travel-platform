@@ -2,24 +2,58 @@ import 'package:flutter/material.dart';
 
 import '../config/tema.dart';
 import '../config/favoritos_manager.dart';
-import '../models/weather_model.dart';
-import '../services/weather_service.dart';
 
 class PantallaAlertas extends StatefulWidget {
-  final WeatherService? weatherService;
-
-  const PantallaAlertas({super.key, this.weatherService});
+  const PantallaAlertas({super.key});
 
   @override
   State<PantallaAlertas> createState() => _PantallaAlertasState();
 }
 
 class _PantallaAlertasState extends State<PantallaAlertas> {
-  int _opcionSeleccionada = 0; // 0 = Alertas, 1 = Historial
-  late final WeatherService _weatherService;
-  List<AlertaClimaModel> _alertasBackend = [];
-  bool _cargando = true;
+  int _opcionSeleccionada = 0;
 
+  // 1. Alertas activas por actividad (simulando backend)
+  final Map<String, List<Map<String, dynamic>>> _alertasPorActividad = {
+    'Sandboarding\nen Huacachina': [
+      {
+        'titulo': 'Viento fuerte en Huacachina',
+        'fecha': 'Hoy, 16:00',
+        'descripcion': 'Vientos de 25 km/h. Ideal para sandboarding.',
+        'icono': Icons.warning_amber_rounded,
+        'colorIcono': Colors.orange,
+      },
+    ],
+    'Islas Ballestas': [
+      {
+        'titulo': 'Mar picado en Paracas',
+        'fecha': 'Hoy, 14:00',
+        'descripcion': 'Oleaje moderado. Lleva ropa impermeable.',
+        'icono': Icons.water,
+        'colorIcono': Colors.blue,
+      },
+    ],
+    'Reserva Nacional\nde Paracas': [
+      {
+        'titulo': 'Sol intenso en la Reserva',
+        'fecha': 'Mañana',
+        'descripcion': 'UV Alto. Usa protector solar y gorra.',
+        'icono': Icons.wb_sunny,
+        'colorIcono': Colors.orange,
+      },
+    ],
+    'Viñedos y bodegas': [
+      {
+        'titulo': 'Clima agradable en viñedos',
+        'fecha': 'Hoy, 12:00',
+        'descripcion': 'Temperatura 24°C. Perfecto para un tour.',
+        'icono': Icons.info_outline,
+        'colorIcono': AppColores.marronOscuro,
+      },
+    ],
+  };
+
+  // 2. Historial de alertas (datos fijos de ejemplo)
   final List<Map<String, dynamic>> _historial = [
     {
       'titulo': 'Viento fuerte en Paracas',
@@ -36,39 +70,6 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
       'colorIcono': Colors.orange,
     },
   ];
-
-  @override
-  void initState() {
-    super.initState();
-    _weatherService = widget.weatherService ?? WeatherService();
-    _cargarAlertas();
-  }
-
-  Future<void> _cargarAlertas() async {
-    setState(() => _cargando = true);
-    final alertas = await _weatherService.getAlertasActivas();
-    if (mounted) {
-      setState(() {
-        _alertasBackend = alertas;
-        _cargando = false;
-      });
-    }
-  }
-
-  IconData _iconoAlerta(String code) {
-    final c = code.toUpperCase();
-    if (c.contains('VIENTO') || c.contains('PARACAS')) return Icons.air;
-    if (c.contains('UV') || c.contains('SOL')) return Icons.wb_sunny;
-    if (c.contains('LLUV') || c.contains('AGUA')) return Icons.water;
-    return Icons.warning_amber_rounded;
-  }
-
-  Color _colorAlerta(String severity) {
-    final s = severity.toUpperCase();
-    if (s == 'HIGH' || s == 'CRITICAL') return Colors.red;
-    if (s == 'MODERATE') return Colors.orange;
-    return Colors.blue;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +93,7 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
                     onPressed: () => Navigator.pop(context),
                   ),
                   const Text(
-                    'Alertas Climáticas',
+                    'Alertas',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -101,11 +102,11 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
                   ),
                   IconButton(
                     icon: const Icon(
-                      Icons.refresh,
+                      Icons.settings_outlined,
                       color: AppColores.marronOscuro,
-                      size: 26,
+                      size: 28,
                     ),
-                    onPressed: _cargarAlertas,
+                    onPressed: () {},
                   ),
                 ],
               ),
@@ -122,7 +123,7 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
                 ),
                 child: Row(
                   children: [
-                    _botonToggle('Alertas activas', 0),
+                    _botonToggle('Alertas', 0),
                     _botonToggle('Historial', 1),
                   ],
                 ),
@@ -131,16 +132,11 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
 
             const SizedBox(height: 20),
 
-            // Contenido
+            // Contenido según la pestaña seleccionada
             Expanded(
-              child: _cargando
-                  ? const Center(child: CircularProgressIndicator())
-                  : RefreshIndicator(
-                      onRefresh: _cargarAlertas,
-                      child: _opcionSeleccionada == 0
-                          ? _buildAlertasActivas()
-                          : _buildHistorial(),
-                    ),
+              child: _opcionSeleccionada == 0
+                  ? _buildAlertasActivas()
+                  : _buildHistorial(),
             ),
           ],
         ),
@@ -149,112 +145,62 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
   }
 
   Widget _buildAlertasActivas() {
-    if (_alertasBackend.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.check_circle_outline, size: 55, color: Colors.green),
-            SizedBox(height: 10),
-            Text(
-              'No hay alertas climáticas adversas en la región.',
-              style: TextStyle(color: AppColores.grisTexto, fontSize: 15),
+    return ValueListenableBuilder(
+      valueListenable: listaFavoritos,
+      builder: (context, favoritos, child) {
+        if (favoritos.isEmpty) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.notifications_off_outlined,
+                  size: 60,
+                  color: Colors.grey,
+                ),
+                SizedBox(height: 10),
+                Text(
+                  'Agrega actividades a favoritos\npara recibir sus alertas.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColores.grisTexto, fontSize: 16),
+                ),
+              ],
             ),
-          ],
-        ),
-      );
-    }
+          );
+        }
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      itemCount: _alertasBackend.length,
-      itemBuilder: (context, index) {
-        final alerta = _alertasBackend[index];
-        final color = _colorAlerta(alerta.severity);
-        final icono = _iconoAlerta(alerta.code);
+        List<Map<String, dynamic>> alertasAMostrar = [];
+        for (var fav in favoritos) {
+          final titulo = fav['titulo'];
+          if (_alertasPorActividad.containsKey(titulo)) {
+            alertasAMostrar.addAll(_alertasPorActividad[titulo]!);
+          }
+        }
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(15),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icono, color: color, size: 28),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Zona: ${alerta.zone}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                            color: AppColores.marronOscuro,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: color.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            alerta.severity,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: color,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      alerta.message,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColores.marronOscuro,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
+        if (alertasAMostrar.isEmpty) {
+          return const Center(
+            child: Text(
+              'No hay alertas activas para tus favoritos.',
+              style: TextStyle(color: AppColores.grisTexto, fontSize: 16),
+            ),
+          );
+        }
+
+        return _construirLista(alertasAMostrar);
       },
     );
   }
 
   Widget _buildHistorial() {
+    return _construirLista(_historial);
+  }
+
+  Widget _construirLista(List<Map<String, dynamic>> lista) {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      itemCount: _historial.length,
+      itemCount: lista.length,
       itemBuilder: (context, index) {
-        final alerta = _historial[index];
+        final alerta = lista[index];
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),

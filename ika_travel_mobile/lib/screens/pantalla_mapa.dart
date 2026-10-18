@@ -3,390 +3,363 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../config/tema.dart';
-import '../services/attractions_service.dart';
 import 'pantalla_detalle.dart';
 import 'pantalla_mas.dart';
 
 class PantallaMapa extends StatefulWidget {
-  final AttractionsService? attractionsService;
-
-  const PantallaMapa({super.key, this.attractionsService});
+  const PantallaMapa({super.key});
 
   @override
   State<PantallaMapa> createState() => _PantallaMapaState();
 }
 
 class _PantallaMapaState extends State<PantallaMapa> {
-  late final AttractionsService _attractionsService;
-  List<Map<String, dynamic>> _ubicaciones = [];
-  bool _cargando = true;
-
-  final MapController _mapController = MapController();
-  final LatLng _centroIca = const LatLng(-14.0678, -75.7286);
-  double _zoomActual = 9.0;
-  Map<String, dynamic>? _ubicacionSeleccionada;
-
-  // Semilla de respaldo
-  final List<Map<String, dynamic>> _ubicacionesSemilla = [
+  final List<Map<String, dynamic>> _ubicaciones = [
     {
-      'id': '1',
-      'titulo': 'Sandboarding en Huacachina',
+      'titulo': 'Sandboarding\nen Huacachina',
       'subtitulo': 'Ica',
       'lat': -14.0875,
       'lng': -75.7628,
       'condicion': 'Excelente',
+      'indice': '95/100',
       'categoria': 'Aventura',
       'imagen': 'assets/images/detalle_sandboarding_1.jpg',
-      'imagenes_detalle': ['assets/images/detalle_sandboarding_1.jpg'],
+      'imagenes_detalle': [
+        'assets/images/detalle_sandboarding_1.jpg',
+        'assets/images/detalle_sandboarding_2.jpg',
+        'assets/images/detalle_sandboarding_3.jpg',
+      ],
     },
     {
-      'id': '2',
       'titulo': 'Islas Ballestas',
       'subtitulo': 'Paracas',
       'lat': -13.8333,
       'lng': -76.2500,
       'condicion': 'Excelente',
+      'indice': '88/100',
       'categoria': 'Naturaleza',
       'imagen': 'assets/images/act_ballestas1.jpg',
-      'imagenes_detalle': ['assets/images/act_ballestas1.jpg'],
+      'imagenes_detalle': [
+        'assets/images/act_ballestas1.jpg',
+        'assets/images/detalle_ballestas_2.jpg',
+        'assets/images/detalle_ballestas_3.jpg',
+      ],
     },
     {
-      'id': '3',
-      'titulo': 'Reserva Nacional de Paracas',
+      'titulo': 'Reserva Nacional\nde Paracas',
       'subtitulo': 'Paracas',
       'lat': -13.8833,
       'lng': -76.2667,
       'condicion': 'Bueno',
+      'indice': '75/100',
       'categoria': 'Naturaleza',
       'imagen': 'assets/images/act_reserva1.jpg',
-      'imagenes_detalle': ['assets/images/act_reserva1.jpg'],
+      'imagenes_detalle': [
+        'assets/images/act_reserva1.jpg',
+        'assets/images/detalle_reserva_2.jpg',
+        'assets/images/detalle_reserva_3.jpg',
+      ],
+    },
+    {
+      'titulo': 'Viñedos y bodegas',
+      'subtitulo': 'Ica',
+      'lat': -14.0678,
+      'lng': -75.7286,
+      'condicion': 'Excelente',
+      'indice': '90/100',
+      'categoria': 'Gastronomía',
+      'imagen': 'assets/images/act_vinos.jpg',
+      'imagenes_detalle': [
+        'assets/images/act_vinos.jpg',
+        'assets/images/detalle_vinos_2.jpg',
+        'assets/images/detalle_vinos_3.jpg',
+      ],
     },
   ];
 
-  @override
-  void initState() {
-    super.initState();
-    _attractionsService = widget.attractionsService ?? AttractionsService();
-    _cargarAtractivosMapa();
+  Map<String, dynamic>? _seleccionada;
+  String _filtroActual = 'Todas';
+
+  List<Map<String, dynamic>> get _ubicacionesFiltradas {
+    if (_filtroActual == 'Todas') {
+      return _ubicaciones;
+    }
+    return _ubicaciones.where((u) => u['categoria'] == _filtroActual).toList();
   }
 
-  Future<void> _cargarAtractivosMapa() async {
-    setState(() => _cargando = true);
-    try {
-      final items = await _attractionsService.getAttractions(pageSize: 30);
-      if (items.isNotEmpty) {
-        // Obtenemos coordenadas para los primeros atractivos en paralelo
-        final detalles = await Future.wait(
-          items.take(10).map((att) async {
-            try {
-              final det = await _attractionsService.getAttractionDetail(att.id);
-              return {
-                'id': det.id,
-                'titulo': det.name,
-                'subtitulo': det.district,
-                'lat': det.latitude != 0.0 ? det.latitude : -14.0678,
-                'lng': det.longitude != 0.0 ? det.longitude : -75.7286,
-                'condicion': 'Favorable',
-                'categoria': det.categories.isNotEmpty ? det.categories.first : 'Turismo',
-                'imagen': det.images.isNotEmpty ? det.images.first : (att.coverImageUrl ?? 'assets/images/carrusel_1_huacachina.jpg'),
-                'imagenes_detalle': det.images.isNotEmpty ? det.images : [att.coverImageUrl ?? 'assets/images/carrusel_1_huacachina.jpg'],
-              };
-            } catch (_) {
-              return att.toMap();
-            }
-          }),
+  void _mostrarFiltros() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColores.arenaFondo,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Filtrar por categoría',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColores.marronOscuro,
+                ),
+              ),
+              const SizedBox(height: 15),
+              _itemFiltro('Todas'),
+              _itemFiltro('Aventura'),
+              _itemFiltro('Naturaleza'),
+              _itemFiltro('Gastronomía'),
+              const SizedBox(height: 10),
+            ],
+          ),
         );
-
-        if (mounted) {
-          setState(() {
-            _ubicaciones = detalles;
-            _cargando = false;
-          });
-          return;
-        }
-      }
-    } catch (e) {
-      debugPrint('[PantallaMapa] Fallo al cargar del backend: $e');
-    }
-
-    if (mounted) {
-      setState(() {
-        _ubicaciones = _ubicacionesSemilla;
-        _cargando = false;
-      });
-    }
+      },
+    );
   }
 
-  void _zoomIn() {
-    setState(() {
-      _zoomActual = (_zoomActual + 1).clamp(3.0, 18.0);
-      _mapController.move(_mapController.camera.center, _zoomActual);
-    });
-  }
-
-  void _zoomOut() {
-    setState(() {
-      _zoomActual = (_zoomActual - 1).clamp(3.0, 18.0);
-      _mapController.move(_mapController.camera.center, _zoomActual);
-    });
-  }
-
-  void _centrarMapa() {
-    setState(() {
-      _zoomActual = 9.0;
-      _mapController.move(_centroIca, _zoomActual);
-    });
+  Widget _itemFiltro(String titulo) {
+    bool seleccionado = _filtroActual == titulo;
+    return ListTile(
+      title: Text(titulo),
+      trailing: seleccionado
+          ? const Icon(Icons.check, color: AppColores.naranjaBoton)
+          : null,
+      onTap: () {
+        setState(() {
+          _filtroActual = titulo;
+          _seleccionada = null;
+        });
+        Navigator.pop(context);
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final listaParaMostrar = _ubicacionesFiltradas;
+
     return Scaffold(
       backgroundColor: AppColores.arenaFondo,
-      body: Stack(
-        children: [
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: _centroIca,
-              initialZoom: _zoomActual,
-              minZoom: 3.0,
-              maxZoom: 18.0,
-              onTap: (_, __) {
-                if (_ubicacionSeleccionada != null) {
-                  setState(() => _ubicacionSeleccionada = null);
-                }
-              },
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.ikatravel.app',
-              ),
-              MarkerLayer(
-                markers: _ubicaciones.map((ubicacion) {
-                  final isSelected = _ubicacionSeleccionada?['titulo'] == ubicacion['titulo'];
-                  final lat = (ubicacion['lat'] as num?)?.toDouble() ?? _centroIca.latitude;
-                  final lng = (ubicacion['lng'] as num?)?.toDouble() ?? _centroIca.longitude;
-
-                  return Marker(
-                    point: LatLng(lat, lng),
-                    width: isSelected ? 55 : 45,
-                    height: isSelected ? 55 : 45,
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _ubicacionSeleccionada = ubicacion;
-                        });
-                        _mapController.move(LatLng(lat, lng), 12.0);
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        decoration: BoxDecoration(
-                          color: isSelected ? Colors.red : AppColores.naranjaBoton,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2.5),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.3),
-                              blurRadius: 6,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          isSelected ? Icons.location_on : Icons.place,
-                          color: Colors.white,
-                          size: isSelected ? 30 : 24,
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ],
-          ),
-
-          // Header
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // 1. AppBar personalizado
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 8,
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.map, size: 18, color: AppColores.naranjaBoton),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${_ubicaciones.length} Atractivos en Ica',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                        ),
-                      ],
-                    ),
-                  ),
                   IconButton(
-                    icon: const CircleAvatar(
-                      backgroundColor: Colors.white,
-                      child: Icon(Icons.menu, color: AppColores.marronOscuro),
+                    icon: const Icon(
+                      Icons.menu,
+                      color: AppColores.marronOscuro,
+                      size: 28,
                     ),
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const PantallaMas()),
+                        MaterialPageRoute(
+                          builder: (context) => const PantallaMas(),
+                        ),
                       );
                     },
+                  ),
+                  const Text(
+                    'Mapa',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppColores.marronOscuro,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.filter_list,
+                      color: AppColores.marronOscuro,
+                      size: 28,
+                    ),
+                    onPressed: _mostrarFiltros,
                   ),
                 ],
               ),
             ),
-          ),
 
-          // Controles de zoom
-          Positioned(
-            right: 16,
-            bottom: _ubicacionSeleccionada != null ? 180 : 30,
-            child: Column(
-              children: [
-                _botonControl(icon: Icons.add, onPressed: _zoomIn),
-                const SizedBox(height: 8),
-                _botonControl(icon: Icons.remove, onPressed: _zoomOut),
-                const SizedBox(height: 8),
-                _botonControl(icon: Icons.my_location, onPressed: _centrarMapa),
-              ],
-            ),
-          ),
-
-          // Card flotante al seleccionar marcador
-          if (_ubicacionSeleccionada != null)
-            Positioned(
-              left: 16,
-              right: 16,
-              bottom: 20,
-              child: GestureDetector(
-                onTap: () {
-                  final imagenes = (_ubicacionSeleccionada!['imagenes_detalle'] as List<dynamic>?)
-                          ?.map((e) => e.toString())
-                          .toList() ??
-                      [_ubicacionSeleccionada!['imagen'].toString()];
-
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PantallaDetalle(
-                        titulo: _ubicacionSeleccionada!['titulo'] ?? 'Atractivo',
-                        subtitulo: _ubicacionSeleccionada!['subtitulo'] ?? 'Ica',
-                        imagenes: imagenes,
-                      ),
+            // 2. Mapa
+            Expanded(
+              child: Stack(
+                children: [
+                  FlutterMap(
+                    options: const MapOptions(
+                      initialCenter: LatLng(-14.0678, -75.7286),
+                      initialZoom: 9.0,
                     ),
-                  );
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
-                        blurRadius: 15,
-                        offset: const Offset(0, 5),
+                    children: [
+                      TileLayer(
+                        urlTemplate:
+                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        userAgentPackageName: 'com.example.ika_travel_mobile',
+                      ),
+                      MarkerLayer(
+                        markers: listaParaMostrar.map((ubicacion) {
+                          return Marker(
+                            point: LatLng(ubicacion['lat'], ubicacion['lng']),
+                            width: 40,
+                            height: 40,
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _seleccionada = ubicacion;
+                                });
+                              },
+                              child: const Icon(
+                                Icons.location_on,
+                                color: Colors.teal,
+                                size: 40,
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
                     ],
                   ),
-                  child: Row(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: _ubicacionSeleccionada!['imagen'].toString().startsWith('http')
-                            ? Image.network(
-                                _ubicacionSeleccionada!['imagen'],
-                                width: 70,
-                                height: 70,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(
-                                  width: 70,
-                                  height: 70,
-                                  color: Colors.grey[300],
-                                  child: const Icon(Icons.image),
-                                ),
-                              )
-                            : Image.asset(
-                                _ubicacionSeleccionada!['imagen'],
-                                width: 70,
-                                height: 70,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(
-                                  width: 70,
-                                  height: 70,
-                                  color: Colors.grey[300],
-                                  child: const Icon(Icons.image),
+
+                  // 3. Tarjeta inferior flotante
+                  if (_seleccionada != null)
+                    Positioned(
+                      bottom: 20,
+                      left: 20,
+                      right: 20,
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PantallaDetalle(
+                                titulo: _seleccionada!['titulo'],
+                                subtitulo: _seleccionada!['subtitulo'],
+                                imagenes: List<String>.from(
+                                  _seleccionada!['imagenes_detalle'],
                                 ),
                               ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _ubicacionSeleccionada!['titulo'],
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _ubicacionSeleccionada!['subtitulo'],
-                              style: const TextStyle(color: AppColores.grisTexto, fontSize: 13),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              _ubicacionSeleccionada!['categoria'] ?? 'Turismo',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColores.naranjaBoton),
-                            ),
-                          ],
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(15),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 15,
+                                offset: const Offset(0, 5),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Image.asset(
+                                  _seleccionada!['imagen'],
+                                  width: 70,
+                                  height: 70,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Container(
+                                        width: 70,
+                                        height: 70,
+                                        color: Colors.grey[300],
+                                        child: const Icon(
+                                          Icons.image,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                ),
+                              ),
+                              const SizedBox(width: 15),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _seleccionada!['titulo'].replaceAll(
+                                        '\n',
+                                        ' ',
+                                      ),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                        color: AppColores.marronOscuro,
+                                      ),
+                                    ),
+                                    Text(
+                                      _seleccionada!['subtitulo'],
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        color: AppColores.grisTexto,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 6,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.green.withOpacity(
+                                              0.1,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            _seleccionada!['condicion'],
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              color: Colors.green,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          _seleccionada!['indice'],
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColores.marronOscuro,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                Icons.arrow_forward_ios,
+                                size: 16,
+                                color: AppColores.grisTexto,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      const Icon(Icons.arrow_forward_ios, size: 16, color: AppColores.grisTexto),
-                    ],
-                  ),
-                ),
+                    ),
+                ],
               ),
             ),
-        ],
-      ),
-    );
-  }
-
-  Widget _botonControl({required IconData icon, required VoidCallback onPressed}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.12),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: IconButton(
-        icon: Icon(icon, color: AppColores.marronOscuro, size: 22),
-        onPressed: onPressed,
+          ],
+        ),
       ),
     );
   }

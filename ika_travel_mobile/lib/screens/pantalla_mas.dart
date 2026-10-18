@@ -1,4 +1,3 @@
-import 'pantalla_traduccion.dart';
 import 'package:flutter/material.dart';
 
 import '../config/tema.dart';
@@ -77,19 +76,6 @@ class PantallaMas extends StatelessWidget {
                     },
                   ),
                   const Divider(),
-                  _itemMenu(
-                    context,
-                    icono: Icons.translate,
-                    titulo: 'Traductor y Frases',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const PantallaTraduccion(),
-                        ),
-                      );
-                    },
-                  ),
                   _itemMenu(
                     context,
                     icono: Icons.menu_book,
