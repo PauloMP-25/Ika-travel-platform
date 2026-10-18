@@ -36,6 +36,9 @@ class Review(Base):
         UniqueConstraint("user_id", "attraction_id", name="uq_user_attraction_review"),
         Index("ix_reviews_attraction_id", "attraction_id"),
         Index("ix_reviews_user_id", "user_id"),
+        # Sprint 4, F2: `avg(rating)` y distribución por atractivo con
+        # index-only scan sobre (attraction_id, rating).
+        Index("idx_reviews_attraction_rating", "attraction_id", "rating"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)

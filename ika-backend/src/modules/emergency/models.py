@@ -4,7 +4,7 @@ import enum
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, Enum, Float, ForeignKey, String, Text, Uuid, func
+from sqlalchemy import DateTime, Enum, Float, ForeignKey, Index, String, Text, Uuid, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
@@ -62,6 +62,11 @@ class SOSReport(Base):
     """Reporte de emergencia emitido por el botón SOS."""
 
     __tablename__ = "sos_reports"
+    __table_args__ = (
+        # Sprint 4, F2/F4: historial del usuario ordenado por fecha y
+        # unicidad de la Idempotency-Key dentro del ámbito del usuario.
+        Index("idx_sos_reports_user_created", "user_id", text("created_at DESC")),
+    )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
     user_id: Mapped[UUID] = mapped_column(
@@ -97,6 +102,11 @@ class TouristIncidentReport(Base):
     """Reporte de informalidad o incidencia enviado a DIRCETUR Ica (RF-05 / CUN06)."""
 
     __tablename__ = "tourist_incident_reports"
+    __table_args__ = (
+        # Sprint 4, F2: panel de fiscalización DIRCETUR (filtro por estado,
+        # más recientes primero).
+        Index("idx_incident_reports_status_created", "status", text("created_at DESC")),
+    )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
     user_id: Mapped[UUID] = mapped_column(
