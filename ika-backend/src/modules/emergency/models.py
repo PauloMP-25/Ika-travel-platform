@@ -4,7 +4,19 @@ import enum
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, Enum, Float, ForeignKey, Index, String, Text, Uuid, func, text
+from sqlalchemy import (
+    DateTime,
+    Enum,
+    Float,
+    ForeignKey,
+    Index,
+    String,
+    Text,
+    UniqueConstraint,
+    Uuid,
+    func,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
@@ -64,8 +76,13 @@ class SOSReport(Base):
     __tablename__ = "sos_reports"
     __table_args__ = (
         # Sprint 4, F2/F4: historial del usuario ordenado por fecha y
-        # unicidad de la Idempotency-Key dentro del ámbito del usuario.
+        # unicidad de la Idempotency-Key dentro del ámbito del usuario
+        # (PostgreSQL admite varios NULL, así que el header sigue siendo
+        # opcional).
         Index("idx_sos_reports_user_created", "user_id", text("created_at DESC")),
+        UniqueConstraint(
+            "user_id", "idempotency_key", name="uq_sos_reports_user_idempotency"
+        ),
     )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
@@ -89,6 +106,10 @@ class SOSReport(Base):
     resolved_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # Sprint 4, F4: clave opcional de idempotencia y huella del payload, para
+    # detectar la misma clave usada con un cuerpo distinto.
+    idempotency_key: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    request_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     user = relationship("User", back_populates="sos_reports")
     notifications: Mapped[list["EmergencyNotification"]] = relationship(
@@ -104,8 +125,11 @@ class TouristIncidentReport(Base):
     __tablename__ = "tourist_incident_reports"
     __table_args__ = (
         # Sprint 4, F2: panel de fiscalización DIRCETUR (filtro por estado,
-        # más recientes primero).
+        # más recientes primero) y unicidad de la Idempotency-Key por usuario.
         Index("idx_incident_reports_status_created", "status", text("created_at DESC")),
+        UniqueConstraint(
+            "user_id", "idempotency_key", name="uq_incident_reports_user_idempotency"
+        ),
     )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
@@ -133,6 +157,9 @@ class TouristIncidentReport(Base):
         index=True,
     )
     admin_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Sprint 4, F4: idempotencia opcional de la creación del reporte.
+    idempotency_key: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    request_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

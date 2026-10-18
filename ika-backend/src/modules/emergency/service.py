@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.modules.emergency import tasks
@@ -28,6 +29,8 @@ from src.modules.emergency.schemas import (
     TouristIncidentUpdateAdmin,
 )
 from src.modules.users.models import User
+from src.shared.exceptions import IdempotencyKeyReutilizadaError
+from src.shared.idempotency import calcular_hash_solicitud
 
 logger = logging.getLogger(__name__)
 
@@ -96,15 +99,49 @@ def _dispatch_notifications(report_id: UUID) -> None:
         )
 
 
-async def create_sos_report(
-    db: AsyncSession, user_id: UUID, data: SOSCreate
-) -> SOSReport:
-    """Registra un reporte SOS y crea sus notificaciones pendientes (RN-04)."""
+async def _buscar_sos_por_clave(
+    db: AsyncSession, user_id: UUID, clave: str
+) -> SOSReport | None:
+    """Consulta por la clave de idempotencia **dentro del ámbito del usuario**."""
+    resultado = await db.execute(
+        select(SOSReport).where(
+            SOSReport.user_id == user_id,
+            SOSReport.idempotency_key == clave,
+        )
+    )
+    return resultado.scalars().first()
+
+
+def _validar_repeticion_sos(previo: SOSReport, huella: str) -> SOSReport:
+    """Misma clave: si el payload coincide se reenvía el recurso original; si no, 422."""
+    if previo.request_hash != huella:
+        raise IdempotencyKeyReutilizadaError()
+    return previo
+
+
+async def crear_reporte_sos(
+    db: AsyncSession,
+    user_id: UUID,
+    data: SOSCreate,
+    clave: str | None = None,
+) -> tuple[SOSReport, bool]:
+    """Crea un reporte SOS respetando la `Idempotency-Key` opcional (Sprint 4, F4).
+
+    Devuelve `(reporte, repetido)`. La validación RN-04 (coordenadas) ocurre
+    **antes** de consultar la clave: una petición malformada nunca consume la
+    clave ni se considera un replay.
+    """
     lat, lon = _validate_location(data)
 
     user = await db.get(User, user_id)
     if user is None:
         raise UnauthorizedIncidentAccessException()
+
+    huella = calcular_hash_solicitud(data)
+    if clave is not None:
+        previo = await _buscar_sos_por_clave(db, user_id, clave)
+        if previo is not None:
+            return _validar_repeticion_sos(previo, huella), True
 
     report = SOSReport(
         user_id=user.id,
@@ -112,17 +149,46 @@ async def create_sos_report(
         longitude=lon,
         description=data.description,
         status=SOSStatus.PENDING,
+        idempotency_key=clave,
+        request_hash=huella,
     )
     db.add(report)
-    await db.flush()  # obtiene el id antes de crear las notificaciones
+    try:
+        # El `flush` ya puede fallar con IntegrityError (PostgreSQL valida la
+        # restricción única al INSERTar), por eso va dentro del `try`: es el
+        # caso típico de dos peticiones simultáneas con la misma clave.
+        await db.flush()  # obtiene el id antes de crear las notificaciones
 
-    for notification in _build_notifications(user, report):
-        db.add(notification)
+        for notification in _build_notifications(user, report):
+            db.add(notification)
 
-    await db.commit()
+        await db.commit()
+    except IntegrityError:
+        # Carrera entre dos peticiones simultáneas con la misma clave: la
+        # restricción única (user_id, idempotency_key) decide la ganadora.
+        await db.rollback()
+        if clave is not None:
+            previo = await _buscar_sos_por_clave(db, user_id, clave)
+            if previo is not None:
+                return _validar_repeticion_sos(previo, huella), True
+        raise
+
     await db.refresh(report)
 
+    # El despacho se encola solo en la creación real, nunca en un replay.
     _dispatch_notifications(report.id)
+    return report, False
+
+
+async def create_sos_report(
+    db: AsyncSession, user_id: UUID, data: SOSCreate
+) -> SOSReport:
+    """Registra un reporte SOS y crea sus notificaciones pendientes (RN-04).
+
+    Equivalente a `crear_reporte_sos` sin cabecera de idempotencia: se mantiene
+    como fachada para los clientes y tests existentes.
+    """
+    report, _ = await crear_reporte_sos(db, user_id, data, clave=None)
     return report
 
 
@@ -170,15 +236,45 @@ async def resolve_sos_report(
 # Lógica de Reportes de Informalidad e Incidencias (RF-05 / CUN06)
 # ============================================================================
 
-async def create_tourist_incident_report(
+async def _buscar_incidencia_por_clave(
+    db: AsyncSession, user_id: UUID, clave: str
+) -> TouristIncidentReport | None:
+    resultado = await db.execute(
+        select(TouristIncidentReport).where(
+            TouristIncidentReport.user_id == user_id,
+            TouristIncidentReport.idempotency_key == clave,
+        )
+    )
+    return resultado.scalars().first()
+
+
+def _validar_repeticion_incidencia(
+    previo: TouristIncidentReport, huella: str
+) -> TouristIncidentReport:
+    if previo.request_hash != huella:
+        raise IdempotencyKeyReutilizadaError()
+    return previo
+
+
+async def crear_reporte_incidencia(
     db: AsyncSession,
     user_id: UUID,
     data: TouristIncidentCreate,
-) -> TouristIncidentReport:
-    """Registra un reporte de informalidad o incidencia enviado por un turista."""
+    clave: str | None = None,
+) -> tuple[TouristIncidentReport, bool]:
+    """Crea un reporte de informalidad con `Idempotency-Key` opcional (F4).
+
+    Devuelve `(reporte, repetido)`.
+    """
     user = await db.get(User, user_id)
     if user is None:
         raise UnauthorizedIncidentAccessException()
+
+    huella = calcular_hash_solicitud(data)
+    if clave is not None:
+        previo = await _buscar_incidencia_por_clave(db, user_id, clave)
+        if previo is not None:
+            return _validar_repeticion_incidencia(previo, huella), True
 
     incident = TouristIncidentReport(
         user_id=user.id,
@@ -189,10 +285,30 @@ async def create_tourist_incident_report(
         longitude=data.longitude,
         agency_name=data.agency_name,
         status=IncidentStatus.RECEIVED,
+        idempotency_key=clave,
+        request_hash=huella,
     )
     db.add(incident)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        if clave is not None:
+            previo = await _buscar_incidencia_por_clave(db, user_id, clave)
+            if previo is not None:
+                return _validar_repeticion_incidencia(previo, huella), True
+        raise
     await db.refresh(incident)
+    return incident, False
+
+
+async def create_tourist_incident_report(
+    db: AsyncSession,
+    user_id: UUID,
+    data: TouristIncidentCreate,
+) -> TouristIncidentReport:
+    """Registra un reporte de informalidad (fachada sin idempotencia)."""
+    incident, _ = await crear_reporte_incidencia(db, user_id, data, clave=None)
     return incident
 
 

@@ -27,7 +27,7 @@ def _sign_up(client: TestClient, email: str) -> dict:
             "full_name": "Viajero Ica",
         },
     )
-    assert response.status_code == 201
+    assert response.status_code == 201, f"register falló: {response.text}"
     return response.json()
 
 
@@ -36,7 +36,7 @@ def _headers(client: TestClient, email: str) -> dict[str, str]:
         f"{API}/auth/login",
         json={"email": email, "password": "secreto123"},
     )
-    assert response.status_code == 200
+    assert response.status_code == 200, f"login falló: {response.text}"
     return {"Authorization": f"Bearer {response.json()['access_token']}"}
 
 
@@ -337,3 +337,220 @@ def test_admin_reports_allowed_and_can_update_status(
     assert patch_res.status_code == 200
     assert patch_res.json()["status"] == "in_review"
     assert "fiscalización" in patch_res.json()["admin_notes"]
+
+
+# ============================================================================
+# Sprint 4, F4: Idempotency-Key en POST /emergency/sos y /emergency/reports
+# ============================================================================
+
+CLAVE = "ikatravel-0000-0000-0000-000000000001"
+
+
+def test_misma_clave_mismo_payload_crea_una_sola_fila(
+    client: TestClient, db_session: AsyncSession
+) -> None:
+    """Reenviar la misma clave devuelve el recurso original (200 + replay)."""
+    _sign_up(client, "idem@ika.pe")
+    headers = _headers(client, "idem@ika.pe")
+    headers_con_clave = {**headers, "Idempotency-Key": CLAVE}
+
+    primera = _create_sos(client, headers_con_clave)
+    segunda = _create_sos(client, headers_con_clave)
+
+    assert primera.status_code == 201
+    assert segunda.status_code == 200
+    assert segunda.headers.get("idempotent-replayed") == "true"
+    assert segunda.json()["id"] == primera.json()["id"]
+
+    filas = run(
+        db_session.execute(select(SOSReport).where(SOSReport.user_id.is_not(None)))
+    )
+    assert len(filas.scalars().all()) == 1
+
+
+def test_el_replay_no_vuelve_a_despachar_notificaciones(
+    client: TestClient, monkeypatch
+) -> None:
+    """El despacho Celery solo se encola en la creación real."""
+    from src.modules.emergency import service as service_emergency
+
+    _sign_up(client, "spy@ika.pe")
+    headers = _headers(client, "spy@ika.pe")
+    headers_con_clave = {**headers, "Idempotency-Key": CLAVE}
+
+    llamadas: list[str] = []
+    monkeypatch.setattr(
+        service_emergency.tasks.dispatch_sos_notifications,
+        "delay",
+        lambda report_id: llamadas.append(report_id),
+    )
+
+    _create_sos(client, headers_con_clave)
+    _create_sos(client, headers_con_clave)
+
+    assert len(llamadas) == 1
+
+
+def test_misma_clave_payload_distinto_da_422(client: TestClient) -> None:
+    _sign_up(client, "reusa@ika.pe")
+    headers = {**_headers(client, "reusa@ika.pe"), "Idempotency-Key": CLAVE}
+
+    _create_sos(client, headers)
+    conflicto = _create_sos(client, headers, description="Otra emergencia distinta")
+
+    assert conflicto.status_code == 422
+    assert conflicto.json()["codigo"] == "IDEMPOTENCY_KEY_REUTILIZADA"
+
+
+def test_sin_header_el_comportamiento_anterior_se_mantiene(
+    client: TestClient, db_session: AsyncSession
+) -> None:
+    """Sin cabecera no hay idempotencia: dos peticiones crean dos filas."""
+    _sign_up(client, "sin-header@ika.pe")
+    headers = _headers(client, "sin-header@ika.pe")
+
+    primera = _create_sos(client, headers)
+    segunda = _create_sos(client, headers)
+
+    assert primera.status_code == segunda.status_code == 201
+    assert primera.json()["id"] != segunda.json()["id"]
+
+    filas = run(
+        db_session.execute(select(SOSReport).where(SOSReport.user_id.is_not(None)))
+    )
+    assert len(filas.scalars().all()) == 2
+
+
+def test_clave_con_formato_invalido_da_400(client: TestClient) -> None:
+    _sign_up(client, "formato@ika.pe")
+    headers = {**_headers(client, "formato@ika.pe"), "Idempotency-Key": "abc"}
+
+    respuesta = _create_sos(client, headers)
+
+    assert respuesta.status_code == 400
+    assert respuesta.json()["codigo"] == "IDEMPOTENCY_KEY_INVALIDA"
+
+
+def test_la_clave_tiene_ambito_por_usuario(client: TestClient) -> None:
+    """La misma clave de dos usuarios distintos crea dos filas (ámbito usuario)."""
+    _sign_up(client, "usuario-a@ika.pe")
+    _sign_up(client, "usuario-b@ika.pe")
+    headers_a = {**_headers(client, "usuario-a@ika.pe"), "Idempotency-Key": CLAVE}
+    headers_b = {**_headers(client, "usuario-b@ika.pe"), "Idempotency-Key": CLAVE}
+
+    respuesta_a = _create_sos(client, headers_a)
+    respuesta_b = _create_sos(client, headers_b)
+
+    assert respuesta_a.status_code == respuesta_b.status_code == 201
+    assert respuesta_a.json()["id"] != respuesta_b.json()["id"]
+
+
+def test_idempotencia_tambien_en_emergency_reports(client: TestClient) -> None:
+    """El mismo contrato aplica a POST /emergency/reports."""
+    _sign_up(client, "reportes-idem@ika.pe")
+    headers = {**_headers(client, "reportes-idem@ika.pe"), "Idempotency-Key": CLAVE}
+    payload = {
+        "incident_type": "information_error",
+        "title": "Señalización incorrecta en el centro",
+        "description": "El letrero indica mal la ruta hacia el museo regional de Ica.",
+    }
+
+    primera = client.post(f"{API}/emergency/reports", json=payload, headers=headers)
+    segunda = client.post(f"{API}/emergency/reports", json=payload, headers=headers)
+
+    assert primera.status_code == 201
+    assert segunda.status_code == 200
+    assert segunda.headers.get("idempotent-replayed") == "true"
+    assert segunda.json()["id"] == primera.json()["id"]
+
+
+def test_clave_es_por_ambito_de_usuario_en_reports(
+    client: TestClient,
+) -> None:
+    """La misma clave de dos usuarios distintos crea dos filas en /reports."""
+    _sign_up(client, "ambito-a@ika.pe")
+    _sign_up(client, "ambito-b@ika.pe")
+    payload = {
+        "incident_type": "information_error",
+        "title": "Horario incorrecto",
+        "description": "El horario publicado no coincide con el real.",
+    }
+
+    primera = client.post(
+        f"{API}/emergency/reports",
+        json=payload,
+        headers={**_headers(client, "ambito-a@ika.pe"), "Idempotency-Key": CLAVE},
+    )
+    segunda = client.post(
+        f"{API}/emergency/reports",
+        json=payload,
+        headers={**_headers(client, "ambito-b@ika.pe"), "Idempotency-Key": CLAVE},
+    )
+
+    assert primera.status_code == 201
+    assert segunda.status_code == 201
+    assert primera.json()["id"] != segunda.json()["id"]
+
+
+def test_rn04_se_valida_antes_de_consumir_la_clave(client: TestClient) -> None:
+    """Una petición sin GPS válidos no consume la Idempotency-Key (RN-04)."""
+    _sign_up(client, "gps-invalido@ika.pe")
+    headers = _headers(client, "gps-invalido@ika.pe")
+
+    rechazado = _create_sos(
+        client,
+        {**headers, "Idempotency-Key": CLAVE},
+        latitude=None,
+        longitude=None,
+    )
+
+    assert rechazado.status_code == 400
+
+    # La clave sigue disponible: no se registró nada con ella.
+    valido = _create_sos(client, {**headers, "Idempotency-Key": CLAVE})
+    assert valido.status_code == 201
+
+
+def test_carrera_por_clave_termina_en_una_sola_fila(
+    client: TestClient, db_session: AsyncSession, monkeypatch
+) -> None:
+    """Simula la carrera: la lectura inicial no ve la fila y pega la restricción única."""
+    from src.modules.emergency import service as emergency_service
+    from src.modules.emergency.schemas import SOSCreate
+
+    _sign_up(client, "carrera-servicio@ika.pe")
+    headers = _headers(client, "carrera-servicio@ika.pe")
+    creada = _create_sos(client, {**headers, "Idempotency-Key": CLAVE})
+    assert creada.status_code == 201
+
+    usuario_id = run(_id_de_usuario(db_session, "carrera-servicio@ika.pe"))
+    datos = SOSCreate(
+        latitude=-14.089, longitude=-75.697, description="Caída en dunas"
+    )
+
+    original = emergency_service._buscar_sos_por_clave
+    estado = {"primera_lectura": True}
+
+    async def _buscar_invisible(db, user_id, clave):
+        if estado["primera_lectura"]:
+            estado["primera_lectura"] = False  # como si aún no existiera
+            return None
+        return await original(db, user_id, clave)
+
+    monkeypatch.setattr(
+        emergency_service, "_buscar_sos_por_clave", _buscar_invisible
+    )
+
+    reporte, repetido = run(
+        emergency_service.crear_reporte_sos(db_session, usuario_id, datos, CLAVE)
+    )
+
+    assert repetido is True
+    assert reporte.idempotency_key == CLAVE
+
+
+async def _id_de_usuario(db: AsyncSession, email: str) -> UUID:
+    from src.modules.users.models import User
+
+    resultado = await db.execute(select(User.id).where(User.email == email))
+    return resultado.scalar_one()

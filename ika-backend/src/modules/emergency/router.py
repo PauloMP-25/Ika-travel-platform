@@ -7,6 +7,7 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
+from fastapi.responses import JSONResponse
 
 from src.modules.emergency import service
 from src.modules.emergency.models import IncidentStatus
@@ -25,8 +26,13 @@ from src.modules.users.dependencies import (
     require_dircetur_admin,
 )
 from src.modules.users.models import User
+from src.shared.idempotency import obtener_clave_idempotencia
 
 emergency_router = APIRouter()
+
+# Cabecera que marca una repetición idempotente (200 en lugar de 201).
+IdempotencyKey = Annotated[str | None, Depends(obtener_clave_idempotencia)]
+CABECERA_REPLAY = {"Idempotent-Replayed": "true"}
 
 
 # ============================================================================
@@ -91,10 +97,24 @@ async def create_sos_report(
     data: SOSCreate,
     current_user: CurrentUser,
     db: DbSession,
+    clave: IdempotencyKey,
 ) -> SOSResponse:
-    """Registra una emergencia con la ubicación GPS del usuario (RN-04)."""
-    report = await service.create_sos_report(db, current_user.id, data)
-    return SOSResponse.model_validate(report)
+    """Registra una emergencia con la ubicación GPS del usuario (RN-04).
+
+    Con cabecera `Idempotency-Key` repetida y mismo payload devuelve 200 con
+    `Idempotent-Replayed: true` y no vuelve a despachar notificaciones.
+    """
+    report, repetido = await service.crear_reporte_sos(
+        db, current_user.id, data, clave
+    )
+    cuerpo = SOSResponse.model_validate(report)
+    if repetido:
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content=cuerpo.model_dump(mode="json"),
+            headers=CABECERA_REPLAY,
+        )
+    return cuerpo
 
 
 @emergency_router.get(
@@ -141,12 +161,23 @@ async def report_tourist_incident(
     data: TouristIncidentCreate,
     current_user: CurrentUser,
     db: DbSession,
+    clave: IdempotencyKey,
 ) -> TouristIncidentResponse:
-    """Permite al turista autenticado emitir un reporte formal a DIRCETUR."""
-    incident = await service.create_tourist_incident_report(
-        db, current_user.id, data
+    """Permite al turista autenticado emitir un reporte formal a DIRCETUR.
+
+    Mismo contrato de idempotencia que `POST /emergency/sos`.
+    """
+    incident, repetido = await service.crear_reporte_incidencia(
+        db, current_user.id, data, clave
     )
-    return TouristIncidentResponse.model_validate(incident)
+    cuerpo = TouristIncidentResponse.model_validate(incident)
+    if repetido:
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content=cuerpo.model_dump(mode="json"),
+            headers=CABECERA_REPLAY,
+        )
+    return cuerpo
 
 
 @emergency_router.get(
