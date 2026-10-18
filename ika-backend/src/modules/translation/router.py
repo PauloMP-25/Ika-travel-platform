@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Request, Response
 from src.modules.translation.dependencies import (
     get_phrasebook,
     get_translation_service,
+    limit_translations,
 )
 from src.modules.translation.phrasebook import Phrasebook
 from src.modules.translation.schemas import (
@@ -33,6 +34,7 @@ _EJEMPLO_ERROR_502 = {
 @router.post(
     "/translate",
     response_model=TranslationResponse,
+    dependencies=[Depends(limit_translations)],
     summary="Traduce texto libre es↔en (frasebook, caché o proveedor)",
     responses={
         422: {"description": "Solicitud inválida: texto vacío, demasiado largo o idiomas iguales/no soportados"},
