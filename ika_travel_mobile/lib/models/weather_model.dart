@@ -146,3 +146,35 @@ class PronosticoCompletoModel {
     );
   }
 }
+
+class AlertaClimaModel {
+  final String id;
+  final String zone;
+  final String code;
+  final String severity;
+  final String message;
+  final DateTime startsAt;
+  final DateTime endsAt;
+
+  const AlertaClimaModel({
+    required this.id,
+    required this.zone,
+    required this.code,
+    required this.severity,
+    required this.message,
+    required this.startsAt,
+    required this.endsAt,
+  });
+
+  factory AlertaClimaModel.fromJson(Map<String, dynamic> json) {
+    return AlertaClimaModel(
+      id: json['id'] as String? ?? '',
+      zone: json['zone'] as String? ?? 'Ica',
+      code: json['code'] as String? ?? 'ALERTA',
+      severity: json['severity'] as String? ?? 'MODERATE',
+      message: json['message'] as String? ?? '',
+      startsAt: DateTime.tryParse(json['starts_at'] as String? ?? '') ?? DateTime.now(),
+      endsAt: DateTime.tryParse(json['ends_at'] as String? ?? '') ?? DateTime.now().add(const Duration(hours: 4)),
+    );
+  }
+}

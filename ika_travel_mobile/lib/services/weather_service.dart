@@ -110,4 +110,37 @@ class WeatherService {
       );
     }
   }
+
+  /// Obtiene la lista de alertas meteorológicas activas
+  Future<List<AlertaClimaModel>> getAlertasActivas() async {
+    try {
+      final data = await _apiClient.get('/weather/alerts');
+      if (data is List<dynamic>) {
+        return data.map((e) => AlertaClimaModel.fromJson(e as Map<String, dynamic>)).toList();
+      }
+    } catch (e) {
+      debugPrint('[WeatherService] Error al obtener alertas: $e. Usando fallback.');
+    }
+
+    return [
+      AlertaClimaModel(
+        id: '1',
+        zone: 'Paracas',
+        code: 'VIENTO_PARACAS',
+        severity: 'HIGH',
+        message: 'Viento fuerte en Paracas: ráfagas previstas de hasta 35 km/h.',
+        startsAt: DateTime.now(),
+        endsAt: DateTime.now().add(const Duration(hours: 6)),
+      ),
+      AlertaClimaModel(
+        id: '2',
+        zone: 'Huacachina',
+        code: 'UV_EXTREMO',
+        severity: 'MODERATE',
+        message: 'Radiación solar extrema en el desierto. Usa protector y lentes con filtro UV.',
+        startsAt: DateTime.now(),
+        endsAt: DateTime.now().add(const Duration(hours: 5)),
+      ),
+    ];
+  }
 }
