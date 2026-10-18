@@ -34,6 +34,7 @@ from src.main import aplicacion
 # Importar los modelos pobla `Base.metadata` para poder crear las tablas.
 import src.modules.catalog.models  # noqa: F401
 import src.modules.emergency.models  # noqa: F401
+import src.modules.reviews.models  # noqa: F401
 import src.modules.users.models  # noqa: F401
 import src.modules.weather.models  # noqa: F401
 

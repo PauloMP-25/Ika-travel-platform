@@ -1,6 +1,8 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from src.core.config import configuracion
 from src.core.database import motor
 from src.core.exceptions import registrar_manejadores_excepciones
@@ -9,6 +11,8 @@ from src.modules.catalog.router import router as catalog_router
 from src.modules.emergency.router import emergency_router
 from src.modules.geo.router import router as geo_router
 from src.modules.weather.router import router as weather_router
+from src.modules.reviews.exceptions import register_reviews_exception_handlers
+from src.modules.reviews.router import reviews_router
 from src.modules.users.router import users_router
 from src.modules.users.exceptions import register_users_exception_handlers
 from src.redis_client import cerrar_redis
@@ -36,6 +40,16 @@ aplicacion.add_middleware(
 )
 registrar_manejadores_excepciones(aplicacion)
 register_users_exception_handlers(aplicacion)
+register_reviews_exception_handlers(aplicacion)
+
+# Fotos de reseñas: `LocalStorageStrategy` devuelve URLs bajo /static/uploads.
+carpeta_uploads = Path(configuracion.UPLOADS_DIR)
+carpeta_uploads.mkdir(parents=True, exist_ok=True)
+aplicacion.mount(
+    "/static/uploads",
+    StaticFiles(directory=str(carpeta_uploads)),
+    name="uploads",
+)
 
 PREFIJO_API = "/api/v1"
 aplicacion.include_router(users_router, prefix=PREFIJO_API)
@@ -44,6 +58,7 @@ aplicacion.include_router(catalog_admin_router, prefix=PREFIJO_API)
 aplicacion.include_router(weather_router, prefix=PREFIJO_API)
 aplicacion.include_router(geo_router, prefix=PREFIJO_API)
 aplicacion.include_router(emergency_router, prefix=PREFIJO_API)
+aplicacion.include_router(reviews_router, prefix=PREFIJO_API)
 
 
 @aplicacion.get("/")

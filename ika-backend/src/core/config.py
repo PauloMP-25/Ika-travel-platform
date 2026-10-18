@@ -13,6 +13,9 @@ class Configuracion(BaseSettings):
     # --- Archivos (Reviews) ---
     UPLOADS_DIR: str = "./uploads"
     MAX_UPLOAD_MB: int = 5
+    # Estrategia de almacenamiento (Strategy Pattern): "local" hoy,
+    # "s3"/"gcs" en producción sin tocar el código (ver src/shared/storage.py).
+    STORAGE_BACKEND: str = "local"
 
     # --- Emergencias (SOS) ---
     SOS_NOTIFY_EMAILS: str = ""

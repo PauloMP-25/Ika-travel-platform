@@ -13,6 +13,7 @@ from src.modules.weather.exceptions import (
     DestinoNoEncontradoException,
     TodosLosProveedoresFallaronException,
 )
+from src.shared.storage import InvalidUploadError
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +58,13 @@ def registrar_manejadores_excepciones(aplicacion: FastAPI) -> None:
 
     # Manejador general de errores de negocio
     aplicacion.add_exception_handler(ErrorDeNegocio, _manejar_error_de_negocio)
+
+    # Archivos rechazados por el almacenamiento (tipo o tamaño): 422.
+    @aplicacion.exception_handler(InvalidUploadError)
+    async def manejar_archivo_invalido(
+        request: Request, exc: InvalidUploadError
+    ) -> JSONResponse:
+        return JSONResponse(status_code=422, content={"detail": str(exc)})
 
     # Manejadores del módulo weather
     @aplicacion.exception_handler(DestinoNoEncontradoException)

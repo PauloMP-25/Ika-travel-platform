@@ -70,11 +70,11 @@ El objetivo es permitir a los turistas autenticados calificar los atractivos tur
 - Exponer los endpoints POST y DELETE protegidos por JWT (`Depends(get_current_user)`).
 
 ### Criterios de Aceptación (Tests Obligatorios en `test_reviews.py`)
-- [ ] Intentar crear una reseña con calificación `0` o `6` debe fallar (HTTP 422).
-- [ ] Intentar publicar una segunda reseña en el mismo lugar debe fallar (HTTP 409).
-- [ ] Borrar una reseña usando un usuario distinto al autor original debe fallar (HTTP 403).
-- [ ] Llamar a `toggle_favorite` dos veces seguidas sobre el mismo lugar debe crear el registro en el primer intento y borrarlo en el segundo.
-- [ ] Intentar subir un PDF o una foto mayor a 5MB debe devolver un error 422.
+- [x] Intentar crear una reseña con calificación `0` o `6` debe fallar (HTTP 422).
+- [x] Intentar publicar una segunda reseña en el mismo lugar debe fallar (HTTP 409).
+- [x] Borrar una reseña usando un usuario distinto al autor original debe fallar (HTTP 403).
+- [x] Llamar a `toggle_favorite` dos veces seguidas sobre el mismo lugar debe crear el registro en el primer intento y borrarlo en el segundo.
+- [x] Intentar subir un PDF o una foto mayor a 5MB debe devolver un error 422.
 
 ---
 

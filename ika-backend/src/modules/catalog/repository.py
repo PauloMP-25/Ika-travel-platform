@@ -80,24 +80,15 @@ async def obtener_atractivo_por_id(
     return resultado.scalar_one_or_none()
 
 
-def _modelo_review():
-    """El módulo ``reviews`` es de otro desarrollador y puede no existir aún."""
-    try:
-        from src.modules.reviews.models import Review  # type: ignore[attr-defined]
-    except ImportError:
-        return None
-    return Review
-
-
 async def obtener_promedio_calificacion(db: AsyncSession, attraction_id: UUID) -> float | None:
-    """Promedio de calificaciones; ``None`` si no hay reseñas o el módulo reviews no está listo."""
-    review = _modelo_review()
-    if review is None:
-        return None
-    promedio = await db.scalar(
-        select(func.avg(review.rating)).where(review.attraction_id == attraction_id)
-    )
-    return float(promedio) if promedio is not None else None
+    """Promedio de calificaciones; delega en `reviews` (Sprint 2, sección Francis).
+
+    Import diferido para no acoplar el catálogo al módulo `reviews` a nivel
+    de import (mantiene el código operativo si `reviews` aún no está desplegado).
+    """
+    from src.modules.reviews.service import calculate_average_rating
+
+    return await calculate_average_rating(db, attraction_id)
 
 
 # ----------------------------------------------------------------------

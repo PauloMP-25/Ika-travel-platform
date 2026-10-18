@@ -57,9 +57,14 @@ class User(Base):
         nullable=False,
     )
 
-    # TODO(Dev 1): añadir las relationships `reviews` y `favorites` cuando
-    # exista el modelo `reviews`. Definirlas ahora rompería el mapper de
-    # SQLAlchemy porque `Review`/`Favorite` todavía no están registradas.
+    # `reviews` y `favorites` se definen en `reviews/models.py`
+    # (módulo `reviews`, Sprint 2); se declaran aquí para cerrar la relación.
+    reviews: Mapped[list["Review"]] = relationship(
+        "Review", back_populates="user", cascade="all, delete-orphan"
+    )
+    favorites: Mapped[list["Favorite"]] = relationship(
+        "Favorite", back_populates="user", cascade="all, delete-orphan"
+    )
     sos_reports: Mapped[list["SOSReport"]] = relationship(
         "SOSReport", back_populates="user"
     )

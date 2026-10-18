@@ -19,4 +19,7 @@ env/
 # Celery
 celerybeat-schedule
 
+# Archivos subidos por usuarios (fotos de reseñas)
+uploads/
+
 # Alembic (dejar versions/, ignorar solo si aplica)
