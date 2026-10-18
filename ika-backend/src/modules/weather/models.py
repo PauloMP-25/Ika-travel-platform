@@ -47,6 +47,14 @@ class WeatherSnapshot(Base):
     hora_atardecer: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     fecha_hora_pronostico: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     origen_api: Mapped[str] = mapped_column(String, nullable=False)
+    # --- Variables ampliadas para Ica (Sprint 4) ---
+    presion_atmosferica: Mapped[float | None] = mapped_column(Float, nullable=True)  # hPa (predictor de tormentas de arena)
+    precipitacion_mm: Mapped[float | None] = mapped_column(Float, nullable=True)  # mm acumulados
+    temperatura_suelo_arena: Mapped[float | None] = mapped_column(Float, nullable=True)  # °C arena dunas
+    calidad_aire_pm10: Mapped[float | None] = mapped_column(Float, nullable=True)  # ug/m3 particulas
+    ventana_pico_uv: Mapped[str | None] = mapped_column(String(50), nullable=True)  # ej. '11:00 - 14:30'
+    horas_sol_directo: Mapped[float | None] = mapped_column(Float, nullable=True)  # horas de sol
+    altura_ola_metros: Mapped[float | None] = mapped_column(Float, nullable=True)  # m en Paracas / costa
 
     # Momento en que se guardó la lectura; RN-03 se evalúa contra este campo.
     creado_en: Mapped[datetime] = mapped_column(

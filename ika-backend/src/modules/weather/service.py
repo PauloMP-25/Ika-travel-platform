@@ -108,6 +108,13 @@ class AgregadorClima:
         uvs_validos = [r.indice_uv for r in resultados if r.indice_uv > 0]
         promedio_uv = sum(uvs_validos) / len(uvs_validos) if uvs_validos else 0.0
 
+        def primer_valido(attr):
+            for r in resultados:
+                val = getattr(r, attr, None)
+                if val is not None:
+                    return val
+            return None
+
         return ClimaActual(
             temperatura_actual=round(prom([r.temperatura_actual for r in resultados]), 1),
             sensacion_termica=round(prom([r.sensacion_termica for r in resultados]), 1),
@@ -124,6 +131,13 @@ class AgregadorClima:
             hora_atardecer=resultados[0].hora_atardecer,
             fecha_hora_pronostico=datetime.now(tz=timezone.utc),
             origen_api=f"Consenso ({n} APIs): {', '.join(nombres)}",
+            presion_atmosferica=primer_valido("presion_atmosferica"),
+            precipitacion_mm=primer_valido("precipitacion_mm"),
+            temperatura_suelo_arena=primer_valido("temperatura_suelo_arena"),
+            calidad_aire_pm10=primer_valido("calidad_aire_pm10"),
+            ventana_pico_uv=primer_valido("ventana_pico_uv"),
+            horas_sol_directo=primer_valido("horas_sol_directo"),
+            altura_ola_metros=primer_valido("altura_ola_metros"),
         )
 
 
@@ -383,6 +397,19 @@ async def recomendacion_del_dia(
     atractivo = next(a for a in await _atractivos_activos(db) if a.id == mejor.atractivo_id)
     clima = await get_fresh_snapshot(db, ubicacion_de_atractivo(atractivo))
     resultado = _recomendar(atractivo, clima, preferencias=preferencias_usuario)
+    
+    # Obtener última narrativa generada para este atractivo (continuidad narrativa)
+    narrativa_previa = None
+    consulta_anterior = (
+        select(AIRecommendation.recommendation_text)
+        .where(AIRecommendation.atractivo_id == atractivo.id)
+        .order_by(AIRecommendation.generated_at.desc())
+        .limit(1)
+    )
+    rec_previa = (await db.execute(consulta_anterior)).scalar_one_or_none()
+    if rec_previa:
+        narrativa_previa = rec_previa
+
     texto = await ai_recommender.redactar_con_gemini(
         nombre_atractivo=atractivo.name,
         resultado=resultado,
@@ -392,6 +419,14 @@ async def recomendacion_del_dia(
         condicion=clima.descripcion_clima,
         preferencias_usuario=preferencias_usuario,
         idioma=idioma,
+        presion_hpa=clima.presion_atmosferica,
+        precipitacion_mm=clima.precipitacion_mm,
+        temperatura_arena=clima.temperatura_suelo_arena,
+        pm10=clima.calidad_aire_pm10,
+        ventana_pico_uv=clima.ventana_pico_uv,
+        horas_sol=clima.horas_sol_directo,
+        altura_ola=clima.altura_ola_metros,
+        narrativa_previa=narrativa_previa,
     )
     return _a_recomendacion_response(atractivo, resultado, texto)
 

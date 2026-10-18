@@ -30,6 +30,14 @@ class ClimaActual(BaseModel):
     hora_atardecer: datetime
     fecha_hora_pronostico: datetime = Field(..., description="Bloque de pronóstico (estrategia cada 3h)")
     origen_api: OrigenAPI
+    # --- Variables ampliadas para Ica (Sprint 4) ---
+    presion_atmosferica: Optional[float] = Field(None, description='hPa (presión a nivel de superficie)')
+    precipitacion_mm: Optional[float] = Field(None, ge=0, description='mm acumulados de precipitación')
+    temperatura_suelo_arena: Optional[float] = Field(None, description='°C de la arena o superficie')
+    calidad_aire_pm10: Optional[float] = Field(None, ge=0, description='µg/m³ partículas PM10 en polvo/arena')
+    ventana_pico_uv: Optional[str] = Field(None, description="Rango horario de máxima radiación, ej: '11:00 - 14:30'")
+    horas_sol_directo: Optional[float] = Field(None, ge=0, description='Horas estimadas de sol directo')
+    altura_ola_metros: Optional[float] = Field(None, ge=0, description='Altura de ola en costa (Paracas/marina)')
 
 
 class ClimaActualResponse(ClimaActual):

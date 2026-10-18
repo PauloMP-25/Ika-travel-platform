@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import httpx
-
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from src.core.config import configuracion
 from src.modules.weather.ai.engine import MotorGeminiClima
@@ -22,7 +21,6 @@ from src.modules.weather.rules import (
 
 logger = logging.getLogger(__name__)
 
-# Re-exportar para compatibilidad con código existente y tests
 __all__ = [
     "PERFILES",
     "PerfilActividad",
@@ -144,6 +142,15 @@ async def generar_recomendacion_enriquecida(
     alertas_activas: list[str] | None = None,
     preferencias_usuario: list[str] | None = None,
     idioma: str = "es",
+    # Variables ampliadas
+    presion_hpa: float | None = None,
+    precipitacion_mm: float | None = None,
+    temperatura_arena: float | None = None,
+    pm10: float | None = None,
+    ventana_pico_uv: str | None = None,
+    horas_sol: float | None = None,
+    altura_ola: float | None = None,
+    narrativa_previa: str | None = None,
 ) -> RecomendacionEnriquecida:
     """Genera la recomendación enriquecida utilizando Gemini (XML estructurado) o Fallback determinista."""
     motor = _obtener_motor_gemini()
@@ -161,6 +168,14 @@ async def generar_recomendacion_enriquecida(
         consejos_base=resultado.consejos,
         intereses_turista=preferencias_usuario,
         idioma=idioma,
+        presion_hpa=presion_hpa,
+        precipitacion_mm=precipitacion_mm,
+        temperatura_arena=temperatura_arena,
+        pm10=pm10,
+        ventana_pico_uv=ventana_pico_uv,
+        horas_sol=horas_sol,
+        altura_ola=altura_ola,
+        narrativa_previa=narrativa_previa,
     )
 
     respuesta_gemini = await motor.generar_recomendacion_estructurada(prompt_xml, idioma=idioma)
@@ -171,8 +186,13 @@ async def generar_recomendacion_enriquecida(
     prendas = ["Ropa ligera y fresca", "Lentes de sol", "Sombrero o gorro"]
     if viento >= 30:
         prendas.append("Cortavientos")
+    if temperatura_arena and temperatura_arena >= 38:
+        prendas.append("Calzado deportivo cerrado para arena")
 
     precauciones = list(resultado.consejos) or ["Mantener hidratación constante"]
+    if ventana_pico_uv:
+        precauciones.append(f"Evitar exposición solar directa entre {ventana_pico_uv}")
+
     resumen = (
         f"Condiciones óptimas en {nombre_atractivo} para disfrutar al máximo."
         if resultado.score >= 0.7
@@ -200,6 +220,15 @@ async def redactar_con_gemini(
     condicion: str,
     preferencias_usuario: list[str] | None = None,
     idioma: str = "es",
+    # Nuevos kwargs opcionales para máxima flexibilidad
+    presion_hpa: float | None = None,
+    precipitacion_mm: float | None = None,
+    temperatura_arena: float | None = None,
+    pm10: float | None = None,
+    ventana_pico_uv: str | None = None,
+    horas_sol: float | None = None,
+    altura_ola: float | None = None,
+    narrativa_previa: str | None = None,
 ) -> str | None:
     """Mantiene compatibilidad hacia atrás con callers que esperan un texto string."""
     enriquecida = await generar_recomendacion_enriquecida(
@@ -211,6 +240,14 @@ async def redactar_con_gemini(
         condicion=condicion,
         preferencias_usuario=preferencias_usuario,
         idioma=idioma,
+        presion_hpa=presion_hpa,
+        precipitacion_mm=precipitacion_mm,
+        temperatura_arena=temperatura_arena,
+        pm10=pm10,
+        ventana_pico_uv=ventana_pico_uv,
+        horas_sol=horas_sol,
+        altura_ola=altura_ola,
+        narrativa_previa=narrativa_previa,
     )
     if enriquecida.source == "gemini":
         return f"{enriquecida.summary} {enriquecida.climate_justification}"
