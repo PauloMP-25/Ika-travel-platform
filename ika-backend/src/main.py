@@ -36,6 +36,8 @@ aplicacion.add_middleware(
     allow_origins=configuracion.origenes_cors_lista,
     allow_methods=["*"],
     allow_headers=["*"],
+    # Sprint 4, F3/F4: el cliente web necesita leer estas cabeceras de origen.
+    expose_headers=["ETag", "Idempotent-Replayed"],
 )
 registrar_manejadores_excepciones(aplicacion)
 register_users_exception_handlers(aplicacion)
