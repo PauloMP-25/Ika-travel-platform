@@ -23,6 +23,12 @@ async def get_user_by_id(db: AsyncSession, user_id: UUID) -> User | None:
     return result.scalar_one_or_none()
 
 
+async def get_user_by_provider_id(db: AsyncSession, provider_id: str) -> User | None:
+    """Busca un usuario por el identificador del proveedor social (`sub`)."""
+    result = await db.execute(select(User).where(User.provider_id == provider_id))
+    return result.scalar_one_or_none()
+
+
 def add_user(db: AsyncSession, user: User) -> None:
     """Encola un usuario nuevo en la sesión actual."""
     db.add(user)

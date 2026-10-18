@@ -9,7 +9,10 @@ from fastapi import APIRouter, status
 from src.modules.users import service
 from src.modules.users.dependencies import CurrentUser, DbSession
 from src.modules.users.schemas import (
+    GoogleLoginRequest,
+    SocialLoginRequest,
     TokenResponse,
+    TokenSocialResponse,
     UserCreate,
     UserLogin,
     UserResponse,
@@ -58,5 +61,26 @@ async def update_current_user(
     return UserResponse.model_validate(user)
 
 
-# TODO(Dev 1 - fuera del sprint): POST /auth/login/social (login con
-# Google/Facebook, ver `service.authenticate_oauth`).
+@users_router.post(
+    "/auth/login/google",
+    response_model=TokenSocialResponse,
+    tags=["auth"],
+)
+async def login_google(data: GoogleLoginRequest, db: DbSession) -> TokenSocialResponse:
+    """Login con Google (Sprint 4, F1).
+
+    Verifica el `id_token`, aprovisiona o vincula la cuenta de turista y
+    emite el JWT. `es_nuevo_usuario` indica si se creó la cuenta en esta
+    petición (el cliente puede mostrar el onboarding).
+    """
+    return await service.login_con_google(db, data)
+
+
+@users_router.post(
+    "/auth/login/social",
+    response_model=TokenSocialResponse,
+    tags=["auth"],
+)
+async def login_social(data: SocialLoginRequest, db: DbSession) -> TokenSocialResponse:
+    """Alias genérico del login social (hoy solo `google`); delega en el mismo servicio."""
+    return await service.login_con_google(db, data)
