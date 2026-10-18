@@ -37,6 +37,14 @@ class Configuracion(BaseSettings):
     GEMINI_MODELO: str = "gemini-2.5-flash"
     GEMINI_TIMEOUT_SEGUNDOS: float = 8.0
 
+    # --- Traducción (Sprint 3, RNF-04) ---
+    TRANSLATION_MODEL: str | None = None  # si es None se usa GEMINI_MODELO
+    TRANSLATION_TIMEOUT_SECONDS: float = 8.0
+    TRANSLATION_MAX_CHARS: int = 500
+    TRANSLATION_CACHE_TTL_SECONDS: int = 604_800  # 7 días
+    TRANSLATION_FALLBACK_TTL_SECONDS: int = 2_592_000  # 30 días
+    TRANSLATION_RATE_LIMIT_PER_MINUTE: int = 30
+
     # --- Rutas ---
     RUTAS_URL_BASE: str = "https://routing.openstreetmap.de"
     RUTAS_TIMEOUT_SEGUNDOS: float = 10.0
