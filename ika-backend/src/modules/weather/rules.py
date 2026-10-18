@@ -8,6 +8,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from src.modules.weather.constants import UMBRALES_ICA
+
 
 @dataclass(frozen=True)
 class PerfilActividad:
@@ -161,31 +163,91 @@ def evaluar_factores(
     return max(0.0, min(1.0, round(score_final, 2))), factores, consejos, afinidad
 
 
+# ======================================================================
+# Motor de Alertas Meteorológicas de Ica (P2)
+# ======================================================================
 @dataclass(frozen=True)
-class AlertaDetectada:
-    code: str
-    severity: str  # low | medium | high
+class AlertaCandidata:
+    alert_type: str
+    severity: str  # low (advisory) | medium (warning) | high (danger)
     message: str
+    zone: str
+
+    @property
+    def code(self) -> str:
+        return self.alert_type
+
+
+def evaluar_alertas(
+    *,
+    temperatura: float,
+    uv: float,
+    viento: float,
+    precipitacion: float = 0.0,
+    temperatura_arena: float | None = None,
+    zona: str = "Ica",
+) -> list[AlertaCandidata]:
+    """Función pura para evaluar alertas meteorológicas según zona geográfica de Ica."""
+    alertas: list[AlertaCandidata] = []
+    zona_lower = zona.lower()
+
+    # 1. Viento Paracas: solo se activa en atractivos de Paracas / Costa
+    es_zona_paracas = "paracas" in zona_lower or "ballestas" in zona_lower or "chaco" in zona_lower
+    u_viento = UMBRALES_ICA["paracas_wind"]
+    if es_zona_paracas:
+        if viento >= u_viento.danger:
+            alertas.append(AlertaCandidata("paracas_wind", "high", f"Viento Paracas Peligroso ({viento:.0f} km/h): cierre preventivo de muelles y suspensión de navegación a Ballestas.", zona))
+        elif viento >= u_viento.warning:
+            alertas.append(AlertaCandidata("paracas_wind", "medium", f"Alerta Viento Paracas ({viento:.0f} km/h): oleaje anómalo y arena en suspensión.", zona))
+        elif viento >= u_viento.advisory:
+            alertas.append(AlertaCandidata("paracas_wind", "low", f"Aviso de Viento Paracas moderado ({viento:.0f} km/h).", zona))
+    else:
+        # Viento general en desierto (Huacachina, Ocucaje, etc.)
+        if viento >= 50:
+            alertas.append(AlertaCandidata("viento_fuerte", "high", f"Vientos muy fuertes ({viento:.0f} km/h): dunas y desierto cerrado por visibilidad nula.", zona))
+        elif viento >= 35:
+            alertas.append(AlertaCandidata("viento_fuerte", "medium", f"Vientos fuertes ({viento:.0f} km/h): arena en suspensión en el desierto.", zona))
+
+    # 2. Radiación UV Extrema (OMS)
+    u_uv = UMBRALES_ICA["extreme_uv"]
+    if uv >= u_uv.danger:
+        alertas.append(AlertaCandidata("uv_extremo", "high", f"Radiación UV Extrema ({uv:.0f}): riesgo crítico para la piel y vista. Evita exposición directa.", zona))
+    elif uv >= u_uv.warning:
+        alertas.append(AlertaCandidata("extreme_uv", "medium", f"Radiación UV Muy Alta ({uv:.0f}): uso obligatorio de bloqueador y sombrero.", zona))
+    elif uv >= u_uv.advisory:
+        alertas.append(AlertaCandidata("extreme_uv", "low", f"Radiación UV Alta ({uv:.0f}): protección solar recomendada.", zona))
+
+    # 3. Calor Extremo
+    u_calor = UMBRALES_ICA["high_temperature"]
+    if temperatura >= u_calor.danger:
+        alertas.append(AlertaCandidata("high_temperature", "high", f"Calor Extremo ({temperatura:.0f} °C): peligro de golpe de calor en desierto.", zona))
+    elif temperatura >= u_calor.warning:
+        alertas.append(AlertaCandidata("high_temperature", "medium", f"Calor Intenso ({temperatura:.0f} °C): hidratación obligatoria constante.", zona))
+    elif temperatura >= u_calor.advisory:
+        alertas.append(AlertaCandidata("high_temperature", "low", f"Ambiente Caluroso ({temperatura:.0f} °C).", zona))
+
+    # 4. Lluvia / Huayco
+    u_lluvia = UMBRALES_ICA["rain_hazard"]
+    if precipitacion >= u_lluvia.danger:
+        alertas.append(AlertaCandidata("rain_hazard", "high", f"Lluvias Torrenciales ({precipitacion:.1f} mm): riesgo de huaycos en quebradas y carreteras.", zona))
+    elif precipitacion >= u_lluvia.warning:
+        alertas.append(AlertaCandidata("rain_hazard", "medium", f"Lluvias Fuertes ({precipitacion:.1f} mm): precaución en rutas terrestres.", zona))
+
+    # 5. Temperatura de la Arena en Dunas
+    if temperatura_arena is not None:
+        u_arena = UMBRALES_ICA["hot_sand"]
+        if temperatura_arena >= u_arena.danger:
+            alertas.append(AlertaCandidata("hot_sand", "high", f"Arena en Dunas Muy Caliente ({temperatura_arena:.0f} °C): riesgo de quemaduras. Prohibido descalzo.", zona))
+        elif temperatura_arena >= u_arena.warning:
+            alertas.append(AlertaCandidata("hot_sand", "medium", f"Arena Caliente ({temperatura_arena:.0f} °C): uso obligatorio de calzado cerrado.", zona))
+
+    return alertas
 
 
 def detectar_alertas(
     *, temperatura: float, uv: float, viento: float, precipitacion: float
-) -> list[AlertaDetectada]:
-    alertas: list[AlertaDetectada] = []
-    if viento >= 60:
-        alertas.append(AlertaDetectada("viento_fuerte", "high", f"Vientos muy fuertes ({viento:.0f} km/h): evita dunas y zonas abiertas del desierto."))
-    elif viento >= 40:
-        alertas.append(AlertaDetectada("viento_fuerte", "medium", f"Vientos fuertes ({viento:.0f} km/h): posible arena en suspensión en zonas desérticas."))
-    if uv >= 11:
-        alertas.append(AlertaDetectada("uv_extremo", "high", f"Radiación UV extrema ({uv:.0f}): protégete y evita la exposición prolongada."))
-    if temperatura >= 42:
-        alertas.append(AlertaDetectada("calor_extremo", "high", f"Calor extremo ({temperatura:.0f} °C): riesgo de golpe de calor."))
-    elif temperatura >= 38:
-        alertas.append(AlertaDetectada("calor_extremo", "medium", f"Calor intenso ({temperatura:.0f} °C): hidrátate y evita las horas centrales."))
-    if temperatura <= 5:
-        alertas.append(AlertaDetectada("frio_intenso", "medium", f"Frío intenso ({temperatura:.0f} °C): lleva abrigo, sobre todo en la noche."))
-    if precipitacion >= 8:
-        alertas.append(AlertaDetectada("lluvia_intensa", "high", f"Lluvia intensa ({precipitacion:.1f} mm/h): riesgo en quebradas y caminos."))
-    elif precipitacion >= 2.5:
-        alertas.append(AlertaDetectada("lluvia_intensa", "medium", f"Lluvia moderada ({precipitacion:.1f} mm/h): precaución en caminos y quebradas."))
-    return alertas
+) -> list[AlertaCandidata]:
+    """Alias compatible hacia atrás."""
+    return evaluar_alertas(
+        temperatura=temperatura, uv=uv, viento=viento, precipitacion=precipitacion, zona="Ica"
+    )
