@@ -26,6 +26,7 @@ from src.modules.catalog.schemas import (
     TourUpdate,
 )
 from src.shared.admin import requerir_admin
+from src.shared.http_cache import responder_con_etag
 from src.shared.pagination import ParametrosPaginacion
 
 router = APIRouter(prefix="/catalog")
@@ -47,7 +48,7 @@ async def listar_atractivos(
     recorder: UsageRecorder = Depends(get_usage_recorder),
 ):
     await track_attraction_search(request, tasks, recorder)
-    return await service.get_paginated_attractions(
+    resultado = await service.get_paginated_attractions(
         db,
         category_slug=category,
         district=district,
@@ -55,6 +56,8 @@ async def listar_atractivos(
         page=paginacion.page,
         page_size=paginacion.page_size,
     )
+    # Sprint 4, F3: ETag sobre el cuerpo ya filtrado y paginado (304 en revalidación).
+    return responder_con_etag(request, resultado)
 
 
 @router.get("/categories", response_model=list[CategoryResponse], tags=["catalog"])
@@ -86,12 +89,16 @@ async def tours_del_atractivo(attraction_id: UUID, db: AsyncSession = Depends(ob
 
 @router.get("/agencies", response_model=list[AgencyListItem], tags=["catalog"])
 async def buscar_agencias(
+    request: Request,
     query: str | None = Query(None, min_length=2, max_length=100, description="Nombre de la agencia"),
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(obtener_bd),
 ):
-    return await service.search_agencies(db, query=query, limit=limit, offset=offset)
+    # RN-01 + F3: solo agencias validadas; si una deja de estarlo, el cuerpo
+    # cambia y el ETag cambia con él.
+    agencias = await service.search_agencies(db, query=query, limit=limit, offset=offset)
+    return responder_con_etag(request, agencias)
 
 
 @router.get("/agencies/{agency_id}", response_model=AgencyDetailResponse, tags=["catalog"])

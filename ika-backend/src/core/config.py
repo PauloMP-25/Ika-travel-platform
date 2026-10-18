@@ -36,6 +36,15 @@ class Configuracion(BaseSettings):
     GEMINI_API_KEY: str = ""
     GEMINI_MODELO: str = "gemini-2.5-flash"
     GEMINI_TIMEOUT_SEGUNDOS: float = 8.0
+    # Presupuesto de tiempo del recomendador estructurado (Sprint 4, P4).
+    GEMINI_TIMEOUT_RECOMENDACION_SEGUNDOS: float = 2.5
+
+    # --- Login social (Sprint 4, F1) ---
+    # Lista separada por comas de los `client_id` OAuth aceptados (Android, iOS y web).
+    GOOGLE_CLIENT_IDS: str = ""
+
+    # --- Proveedores de clima: tope por proveedor (Sprint 4, P1) ---
+    TIMEOUT_PROVEEDOR_CLIMA_SEGUNDOS: float = 3.0
 
     # --- Traducción (Sprint 3, RNF-04) ---
     TRANSLATION_MODEL: str | None = None  # si es None se usa GEMINI_MODELO
@@ -57,6 +66,11 @@ class Configuracion(BaseSettings):
     @property
     def origenes_cors_lista(self) -> list[str]:
         return [o.strip() for o in self.ORIGENES_CORS.split(",") if o.strip()]
+
+    @property
+    def google_client_ids_lista(self) -> list[str]:
+        """`GOOGLE_CLIENT_IDS` como lista limpia (para `GoogleAuthStrategy`)."""
+        return [i.strip() for i in self.GOOGLE_CLIENT_IDS.split(",") if i.strip()]
 
 
 configuracion = Configuracion()

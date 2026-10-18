@@ -4,6 +4,7 @@ Nunca se expone `password_hash` en un esquema de respuesta.
 """
 
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
@@ -59,3 +60,27 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     expires_in: int
+
+
+class GoogleLoginRequest(BaseModel):
+    """Payload del login con Google (`POST /auth/login/google`).
+
+    `acepta_politica_datos` es obligatorio la primera vez que se crea la
+    cuenta (RN de datos personales, Ley N° 29733).
+    """
+
+    id_token: str = Field(min_length=20, max_length=4096)
+    preferred_language: Literal["es", "en"] | None = None
+    acepta_politica_datos: bool = False
+
+
+class SocialLoginRequest(GoogleLoginRequest):
+    """Alias genérico `POST /auth/login/social` (hoy solo `google`)."""
+
+    provider: Literal["google"] = "google"
+
+
+class TokenSocialResponse(TokenResponse):
+    """JWT emitido tras un login social; `es_nuevo_usuario` indica alta nueva."""
+
+    es_nuevo_usuario: bool = False

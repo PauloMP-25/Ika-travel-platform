@@ -24,12 +24,15 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.core.database import Base
 
 # Tabla puente N:M Atractivo <-> Categoría (PK compuesta)
+# Índice compuesto (Sprint 4, F2): acelera el filtro por categoría del
+# catálogo y permite un index-only scan para el EXISTS de listados.
+# Reemplaza al antiguo `ix_attraction_category_category_id` (prefijo suyo).
 attraction_category = Table(
     "attraction_category",
     Base.metadata,
     Column("attraction_id", Uuid, ForeignKey("attraction.id", ondelete="CASCADE"), primary_key=True),
     Column("category_id", Uuid, ForeignKey("category.id", ondelete="CASCADE"), primary_key=True),
-    Index("ix_attraction_category_category_id", "category_id"),
+    Index("idx_attraction_category_category", "category_id", "attraction_id"),
 )
 
 
@@ -46,7 +49,10 @@ class Attraction(Base):
     __table_args__ = (
         CheckConstraint("latitude BETWEEN -90 AND 90", name="ck_attraction_latitude"),
         CheckConstraint("longitude BETWEEN -180 AND 180", name="ck_attraction_longitude"),
+        # Sprint 4, F2: prefiltro geográfico por bounding box antes del
+        # Haversine del módulo geo, y listado por distrito + estado activo.
         Index("ix_attraction_lat_lon", "latitude", "longitude"),
+        Index("idx_attractions_active_district", "is_active", "district"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
@@ -92,6 +98,11 @@ class AttractionImage(Base):
 
 class Agency(Base):
     __tablename__ = "agency"
+    __table_args__ = (
+        # RN-01 (Sprint 4, F2): el catálogo público solo lista agencias
+        # validadas; el índice parcial cubre exactamente ese subconjunto.
+        Index("idx_agencies_validated", "name", postgresql_where=text("is_validated")),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(200), index=True, nullable=False)
