@@ -146,7 +146,7 @@ async def obtener_clima(latitud: float, longitud: float, *, reintentos: int = 2)
     ultimo_error: Exception | None = None
     for intento in range(reintentos + 1):
         try:
-            async with httpx.AsyncClient(timeout=configuracion.CLIMA_TIMEOUT_SEGUNDOS) as cliente:
+            async with httpx.AsyncClient(timeout=configuracion.TIMEOUT_CLIMA_SEGUNDOS) as cliente:
                 respuesta = await cliente.get(configuracion.CLIMA_URL_BASE, params=parametros)
                 respuesta.raise_for_status()
                 return _parsear(respuesta.json())

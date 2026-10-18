@@ -1,20 +1,16 @@
-"""Dependencias de autenticación del módulo `users`.
-
-`get_current_user` es la dependencia que usarán TODOS los módulos
-protegidos (SOS, Reviews, Favoritos) — ver `users/README.md`.
-"""
+"""Dependencias de autenticación y autorización del módulo `users`."""
 
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends
+from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import obtener_bd
 from src.core.security import decode_access_token
 from src.modules.users.exceptions import InvalidCredentialsException
-from src.modules.users.models import User
+from src.modules.users.models import User, UserRole
 
 # Requiere que `users_router` se monte con `prefix="/api/v1"` en main.py.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
@@ -36,5 +32,18 @@ async def get_current_user(
     return user
 
 
+async def require_dircetur_admin(
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> User:
+    """Verifica que el usuario autenticado tenga rol de administrador DIRCETUR."""
+    if current_user.role != UserRole.DIRCETUR_ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Operación restringida al personal autorizado de DIRCETUR Ica.",
+        )
+    return current_user
+
+
 CurrentUser = Annotated[User, Depends(get_current_user)]
+CurrentDirceturAdmin = Annotated[User, Depends(require_dircetur_admin)]
 DbSession = Annotated[AsyncSession, Depends(obtener_bd)]

@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Optional
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -37,6 +38,9 @@ class ClimaActualResponse(ClimaActual):
     contrato interno que usan los adaptadores."""
 
     destino: str
+    atractivo_id: UUID | None = None
+    # True si el dato salió de Redis o de un snapshot previo de BD (útil para depurar en Flutter).
+    is_cached: bool = False
 
 
 class ErrorClimaResponse(BaseModel):
@@ -44,3 +48,55 @@ class ErrorClimaResponse(BaseModel):
 
     detalle: str
     proveedores_intentados: list[str] = []
+
+
+class PronosticoHoraResponse(BaseModel):
+    time: datetime
+    temperature: float
+    uv_index: float
+    wind_speed: float
+    precipitation_probability: float
+    condition: str
+
+
+class PronosticoDiaResponse(BaseModel):
+    date: str
+    temp_min: float
+    temp_max: float
+    uv_index_max: float
+    wind_speed_max: float
+    precipitation_sum: float
+    precipitation_probability_max: float
+    condition: str
+
+
+class PronosticoResponse(BaseModel):
+    """Pronóstico por horas (24 h) y por días (hasta 7)."""
+
+    destino: str
+    atractivo_id: UUID | None = None
+    horas: list[PronosticoHoraResponse]
+    dias: list[PronosticoDiaResponse]
+
+
+class AlertaClimaResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    zone: str
+    code: str
+    severity: str
+    message: str
+    starts_at: datetime
+    ends_at: datetime
+
+
+class RecomendacionResponse(BaseModel):
+    atractivo_id: UUID
+    atractivo_nombre: str
+    score: float = Field(..., ge=0, le=1)
+    nivel: str
+    recommendation_text: str
+    consejos: list[str] = []
+    generated_at: datetime
+
