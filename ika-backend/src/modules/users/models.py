@@ -4,7 +4,7 @@ import enum
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import Boolean, DateTime, Enum, JSON, String, Uuid, func
+from sqlalchemy import Boolean, DateTime, Enum, Index, JSON, String, Uuid, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
@@ -52,6 +52,16 @@ class User(Base):
     """Cuenta de usuario de la plataforma."""
 
     __tablename__ = "users"
+    __table_args__ = (
+        # Sprint 4: el `sub` del proveedor social es único entre los usuarios
+        # que tienen uno (índice parcial: los usuarios por email no chocan).
+        Index(
+            "uq_users_provider_id",
+            "provider_id",
+            unique=True,
+            postgresql_where=text("provider_id IS NOT NULL"),
+        ),
+    )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
     email: Mapped[str] = mapped_column(
