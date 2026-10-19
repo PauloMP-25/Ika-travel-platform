@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 
-import '../config/favoritos_manager.dart';
 import '../config/tema.dart';
-import '../models/weather_model.dart';
-import '../services/weather_service.dart';
+import '../models/alerta_modelo.dart';
+import '../models/alternativa_modelo.dart';
+import '../services/alertas_service.dart';
+import '../services/recomendador_service.dart';
+import 'pantalla_configurar_alertas.dart';
+import 'pantalla_detalle_alerta.dart';
+import 'pantalla_detalle_alternativa.dart';
+import 'pantalla_seguimiento_destino.dart';
 
 class PantallaAlertas extends StatefulWidget {
   const PantallaAlertas({super.key});
@@ -13,39 +18,22 @@ class PantallaAlertas extends StatefulWidget {
 }
 
 class _PantallaAlertasState extends State<PantallaAlertas> {
-  int _opcionSeleccionada = 0; // 0 = Alertas Activas, 1 = Historial
-  final WeatherService _weatherService = WeatherService();
-  late Future<List<AlertaClimaModel>> _alertasFuture;
+  int _opcionSeleccionada = 0; // 0 = Alertas activas, 1 = Alternativas recomendadas, 2 = Historial
+  final AlertasService _alertasService = AlertasService();
+  final RecomendadorService _recomendadorService = RecomendadorService();
 
-  @override
-  void initState() {
-    super.initState();
-    _alertasFuture = _weatherService.getAlertasActivas();
+  String _formatearFechaHora(DateTime dt) {
+    final hora = dt.hour.toString().padLeft(2, '0');
+    final minuto = dt.minute.toString().padLeft(2, '0');
+    final hoy = DateTime.now();
+    if (dt.day == hoy.day && dt.month == hoy.month && dt.year == hoy.year) {
+      return 'Hoy, $hora:$minuto';
+    } else if (hoy.difference(dt).inDays <= 1) {
+      return 'Ayer, $hora:$minuto';
+    } else {
+      return 'Hace ${hoy.difference(dt).inDays} días';
+    }
   }
-
-  void _recargar() {
-    setState(() {
-      _alertasFuture = _weatherService.getAlertasActivas();
-    });
-  }
-
-  // Historial de alertas de ejemplo
-  final List<Map<String, dynamic>> _historial = [
-    {
-      'titulo': 'Viento Paracas en la costa',
-      'fecha': 'Ayer, 15:00',
-      'descripcion': 'Se registraron ráfagas de 35 km/h en la Bahía de Paracas.',
-      'icono': Icons.air_rounded,
-      'colorIcono': Colors.teal,
-    },
-    {
-      'titulo': 'Cielo despejado en Ica',
-      'fecha': 'Hace 2 días',
-      'descripcion': 'Condiciones ideales registradas para turismo y viñedos.',
-      'icono': Icons.wb_sunny_rounded,
-      'colorIcono': Colors.orange,
-    },
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -54,9 +42,9 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
       body: SafeArea(
         child: Column(
           children: [
-            // AppBar
+            // 1. AppBar con flecha atrás, título y botones de acción
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -64,55 +52,161 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
                     icon: const Icon(
                       Icons.arrow_back,
                       color: AppColores.marronOscuro,
-                      size: 28,
+                      size: 26,
                     ),
                     onPressed: () => Navigator.pop(context),
                   ),
                   const Text(
-                    'Alertas y Avisos',
+                    'Alertas Inteligentes',
                     style: TextStyle(
-                      fontSize: 20,
+                      fontSize: 19,
                       fontWeight: FontWeight.bold,
                       color: AppColores.marronOscuro,
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.refresh_rounded,
-                      color: AppColores.marronOscuro,
-                      size: 28,
-                    ),
-                    onPressed: _recargar,
+                  Row(
+                    children: [
+                      IconButton(
+                        tooltip: 'Seguimiento de destinos',
+                        icon: const Icon(
+                          Icons.timeline,
+                          color: AppColores.naranjaBoton,
+                          size: 24,
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const PantallaSeguimientoDestino(),
+                            ),
+                          );
+                        },
+                      ),
+                      IconButton(
+                        tooltip: 'Configuración y permisos',
+                        icon: const Icon(
+                          Icons.settings_outlined,
+                          color: AppColores.marronOscuro,
+                          size: 24,
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const PantallaConfigurarAlertas(),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
 
-            // Selector de pestañas
+            // 2. Banner de demostración y simulación en vivo de alertas
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
               child: Container(
-                height: 45,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFFFD54F)),
                 ),
                 child: Row(
                   children: [
-                    _botonToggle('Alertas Activas', 0),
-                    _botonToggle('Historial', 1),
+                    const Icon(Icons.flash_on, color: Color(0xFFF57F17), size: 20),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Simulación de alerta automática en tiempo real:',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColores.marronOscuro,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        backgroundColor: AppColores.naranjaBoton,
+                        foregroundColor: Colors.white,
+                        visualDensity: VisualDensity.compact,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      onPressed: () {
+                        final nueva = _alertasService.simularDeteccionEnVivo();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              '¡Alerta automática generada para ${nueva.destino}!\n${nueva.titulo}',
+                            ),
+                            backgroundColor: const Color(0xFFC62828),
+                            duration: const Duration(seconds: 4),
+                            action: SnackBarAction(
+                              label: 'Ver detalle',
+                              textColor: Colors.white,
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        PantallaDetalleAlerta(alerta: nueva),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                      child: const Text('Simular', style: TextStyle(fontSize: 11)),
+                    ),
                   ],
                 ),
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
 
-            // Contenido según pestaña
+            // 3. Selector de 3 pestañas: Alertas Activas, Alternativas, Historial (Req 1)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    _botonToggle('Alertas', 0),
+                    _botonToggle('Alternativas', 1),
+                    _botonToggle('Historial', 2),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 14),
+
+            // 4. Contenido según la pestaña seleccionada
             Expanded(
-              child: _opcionSeleccionada == 0
-                  ? _buildAlertasActivas()
-                  : _buildHistorial(),
+              child: _opcionSeleccionada == 1
+                  ? _buildVistaAlternativas()
+                  : _buildVistaAlertasOHistorial(),
             ),
           ],
         ),
@@ -120,227 +214,463 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
     );
   }
 
-  Widget _buildAlertasActivas() {
-    return FutureBuilder<List<AlertaClimaModel>>(
-      future: _alertasFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(color: AppColores.naranjaBoton),
-          );
-        }
+  /// Vista de Alertas o Historial
+  Widget _buildVistaAlertasOHistorial() {
+    return ValueListenableBuilder<List<AlertaClima>>(
+      valueListenable: _alertasService.alertasNotifier,
+      builder: (context, todasAlertas, _) {
+        final listaAMostrar = _opcionSeleccionada == 0
+            ? _alertasService.alertasActivas
+            : _alertasService.historialAlertas;
 
-        final alertas = snapshot.data ?? [];
-        if (alertas.isEmpty) {
-          return const Center(
+        if (listaAMostrar.isEmpty) {
+          return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
-                  Icons.check_circle_outline_rounded,
-                  size: 64,
-                  color: Colors.green,
+                  _opcionSeleccionada == 0
+                      ? Icons.check_circle_outline
+                      : Icons.history_toggle_off,
+                  size: 56,
+                  color: Colors.grey.shade400,
                 ),
-                SizedBox(height: 12),
+                const SizedBox(height: 10),
                 Text(
-                  'No hay alertas meteorológicas críticas.',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: AppColores.marronOscuro,
-                  ),
-                ),
-                SizedBox(height: 6),
-                Text(
-                  'Las condiciones en el departamento de Ica son favorables.',
+                  _opcionSeleccionada == 0
+                      ? 'No hay alertas activas en tus destinos seguidos.'
+                      : 'No hay historial de alertas registrado.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColores.grisTexto, fontSize: 13),
+                  style: const TextStyle(
+                    color: AppColores.grisTexto,
+                    fontSize: 14,
+                  ),
                 ),
               ],
             ),
           );
         }
 
-        return RefreshIndicator(
-          color: AppColores.naranjaBoton,
-          onRefresh: () async => _recargar(),
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            itemCount: alertas.length,
-            itemBuilder: (context, index) {
-              final alerta = alertas[index];
-              return _tarjetaAlertaApi(alerta);
-            },
-          ),
+        return ListView(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          children: [
+            // Banner informativo en caso de condiciones desfavorables (Req 1)
+            if (_opcionSeleccionada == 0 &&
+                listaAMostrar.any((a) =>
+                    a.nivelRiesgo == NivelRiesgo.alto ||
+                    a.nivelRiesgo == NivelRiesgo.critico)) ...[
+              GestureDetector(
+                onTap: () {
+                  setState(() => _opcionSeleccionada = 1);
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF3E0),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFFFB74D)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.alt_route, color: Color(0xFFE65100), size: 20),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Hay condiciones desfavorables. Toca aquí para ver alternativas recomendadas.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFE65100),
+                          ),
+                        ),
+                      ),
+                      Icon(Icons.chevron_right, color: Color(0xFFE65100), size: 20),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+
+            ...listaAMostrar.map((alerta) => _buildItemAlerta(context, alerta)),
+          ],
         );
       },
     );
   }
 
-  Widget _tarjetaAlertaApi(AlertaClimaModel alerta) {
-    Color colorSeveridad = Colors.orange;
-    IconData icono = Icons.warning_amber_rounded;
+  /// Vista de Alternativas Recomendadas como tarjetas limpias (Req 1)
+  Widget _buildVistaAlternativas() {
+    final alternativas = _recomendadorService.obtenerAlternativasGenerales();
 
-    if (alerta.severity.toUpperCase() == 'HIGH' ||
-        alerta.severity.toUpperCase() == 'EXTREMA') {
-      colorSeveridad = Colors.redAccent;
-      icono = Icons.error_outline_rounded;
-    } else if (alerta.code.contains('VIENTO')) {
-      colorSeveridad = Colors.teal;
-      icono = Icons.air_rounded;
-    } else if (alerta.code.contains('UV')) {
-      colorSeveridad = Colors.deepOrange;
-      icono = Icons.wb_sunny_rounded;
-    }
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      children: [
+        Container(
+          margin: const EdgeInsets.only(bottom: 14),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE8F5E9),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFA5D6A7)),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.lightbulb_outline, color: Color(0xFF2E7D32), size: 22),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Alternativas sugeridas ante vientos, oleaje o radiación extrema en los destinos de Ica. Toca cualquier tarjeta para ver su detalle completo.',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF1B5E20), height: 1.3),
+                ),
+              ),
+            ],
+          ),
+        ),
 
+        ...alternativas.map((alt) => _buildTarjetaAlternativaResumida(context, alt)),
+      ],
+    );
+  }
+
+  /// Tarjeta de Alternativa con nombre, imagen, motivo y horario sugerido (Req 1)
+  Widget _buildTarjetaAlternativaResumida(BuildContext context, AlternativaRecomendada alt) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border(
-          left: BorderSide(color: colorSeveridad, width: 4),
-        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: colorSeveridad.withOpacity(0.12),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icono, color: colorSeveridad, size: 26),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            // Navega a la pantalla de detalle independiente de la alternativa (Req 1)
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PantallaDetalleAlternativa(alternativa: alt),
+              ),
+            );
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Imagen si está disponible
+              ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+                child: Stack(
+                  children: [
+                    SizedBox(
+                      height: 125,
+                      width: double.infinity,
+                      child: Image.asset(
+                        alt.imagen,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: Colors.grey.shade300,
+                          child: const Icon(Icons.image, size: 40, color: Colors.grey),
+                        ),
+                      ),
+                    ),
+                    Container(
+                      height: 125,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withValues(alpha: 0.7),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 10,
+                      left: 10,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColores.naranjaBoton,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          alt.tipoAlternativa.etiqueta,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 10,
+                      left: 14,
+                      right: 14,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            alt.tituloActividad,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          Text(
+                            alt.destino,
+                            style: const TextStyle(fontSize: 12, color: Colors.white70),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Motivo de la recomendación (Req 1)
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.recommend, color: AppColores.naranjaBoton, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            alt.motivoRecomendacion,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColores.marronOscuro,
+                              height: 1.3,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // Horario sugerido si está disponible (Req 1)
+                    if (alt.mejorHorarioSugerido != null) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(Icons.schedule, size: 16, color: Color(0xFFF57F17)),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'Horario sugerido: ${alt.mejorHorarioSugerido}',
+                              style: const TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFE65100),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+
+                    const SizedBox(height: 10),
+
+                    const Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(
+                          'Ver detalle completo',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppColores.marronOscuro,
+                          ),
+                        ),
+                        SizedBox(width: 4),
+                        Icon(Icons.arrow_forward, size: 14, color: AppColores.marronOscuro),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 14),
-          Expanded(
+        ),
+      ),
+    );
+  }
+
+  Widget _buildItemAlerta(BuildContext context, AlertaClima alerta) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PantallaDetalleAlerta(alerta: alerta),
+              ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(15),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      alerta.zone,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        color: AppColores.marronOscuro,
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: alerta.nivelRiesgo.colorFondo,
+                      child: Icon(
+                        alerta.nivelRiesgo.icono,
+                        color: alerta.nivelRiesgo.color,
+                        size: 22,
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: colorSeveridad.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        alerta.severity,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: colorSeveridad,
-                        ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppColores.arenaFondo,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  alerta.destino,
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColores.marronOscuro,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                _formatearFechaHora(alerta.fechaHora),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AppColores.grisTexto,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            alerta.titulo,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: AppColores.marronOscuro,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            alerta.actividad.replaceAll('\n', ' '),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColores.naranjaBoton,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 10),
                 Text(
-                  alerta.message,
+                  alerta.motivoCambio,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 13,
-                    height: 1.35,
-                    color: Colors.black87,
+                    fontSize: 12,
+                    color: AppColores.marronOscuro,
+                    height: 1.3,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Válido hasta: ${alerta.endsAt.hour.toString().padLeft(2, '0')}:${alerta.endsAt.minute.toString().padLeft(2, '0')} hrs',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColores.grisTexto,
-                  ),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: alerta.nivelRiesgo.colorFondo,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        alerta.nivelRiesgo.etiqueta,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: alerta.nivelRiesgo.color,
+                        ),
+                      ),
+                    ),
+                    const Row(
+                      children: [
+                        Text(
+                          '¿Por qué cambió?',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppColores.naranjaBoton,
+                          ),
+                        ),
+                        SizedBox(width: 4),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          size: 11,
+                          color: AppColores.naranjaBoton,
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-        ],
+        ),
       ),
-    );
-  }
-
-  Widget _buildHistorial() {
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      itemCount: _historial.length,
-      itemBuilder: (context, index) {
-        final alerta = _historial[index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(15),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(alerta['icono'], color: alerta['colorIcono'], size: 28),
-              const SizedBox(width: 15),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      alerta['titulo'],
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        color: AppColores.marronOscuro,
-                      ),
-                    ),
-                    Text(
-                      alerta['fecha'],
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColores.grisTexto,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      alerta['descripcion'],
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColores.marronOscuro,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 
@@ -365,6 +695,7 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
               style: TextStyle(
                 color: activo ? Colors.white : AppColores.grisTexto,
                 fontWeight: activo ? FontWeight.bold : FontWeight.normal,
+                fontSize: 12,
               ),
             ),
           ),

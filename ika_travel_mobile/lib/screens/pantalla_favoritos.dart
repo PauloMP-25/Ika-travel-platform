@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../config/tema.dart';
+import '../config/colores_tema.dart';
 import '../config/favoritos_manager.dart';
 import 'pantalla_detalle.dart';
 import 'pantalla_alertas.dart';
@@ -12,59 +13,54 @@ class PantallaFavoritos extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool puedeVolver = Navigator.canPop(context);
 
+    final colorTexto = TemaApp.texto(context);
+    final colorTextoSecundario = TemaApp.textoSecundario(context);
+    final colorTarjeta = TemaApp.tarjeta(context);
+
     return Scaffold(
-      backgroundColor: AppColores.arenaFondo,
+      backgroundColor: TemaApp.fondo(context),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Título con flecha condicional
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 children: [
-                  // 👇 Si puede volver, muestra la flecha. Si no, un espacio vacío
                   if (puedeVolver)
                     IconButton(
-                      icon: const Icon(
-                        Icons.arrow_back,
-                        color: AppColores.marronOscuro,
-                        size: 28,
-                      ),
+                      icon: Icon(Icons.arrow_back, color: colorTexto, size: 28),
                       onPressed: () => Navigator.pop(context),
                     )
                   else
                     const SizedBox(width: 48),
 
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'Favoritos',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: AppColores.marronOscuro,
+                        color: colorTexto,
                       ),
                     ),
                   ),
-                  const SizedBox(
-                    width: 48,
-                  ), // Espacio para equilibrar el título
+                  const SizedBox(width: 48),
                 ],
               ),
             ),
 
-            // 2. Lista de Favoritos (Escuchando los cambios)
             Expanded(
               child: ValueListenableBuilder(
                 valueListenable: listaFavoritos,
                 builder: (context, favoritos, child) {
                   if (favoritos.isEmpty) {
-                    return const Center(
+                    return Center(
                       child: Text(
                         'Aún no tienes favoritos ❤️',
                         style: TextStyle(
-                          color: AppColores.grisTexto,
+                          color: colorTextoSecundario,
                           fontSize: 16,
                         ),
                       ),
@@ -79,11 +75,11 @@ class PantallaFavoritos extends StatelessWidget {
                       return Container(
                         margin: const EdgeInsets.only(bottom: 12),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: colorTarjeta,
                           borderRadius: BorderRadius.circular(15),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
+                              color: Colors.black.withValues(alpha: 0.05),
                               blurRadius: 8,
                               offset: const Offset(0, 4),
                             ),
@@ -105,10 +101,10 @@ class PantallaFavoritos extends StatelessWidget {
                             ),
                             title: Text(
                               actividad['titulo'].replaceAll('\n', ' '),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 15,
-                                color: AppColores.marronOscuro,
+                                color: colorTexto,
                               ),
                             ),
                             subtitle: Row(
@@ -123,9 +119,9 @@ class PantallaFavoritos extends StatelessWidget {
                                 ),
                                 Text(
                                   '92/100',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12,
-                                    color: AppColores.grisTexto,
+                                    color: colorTextoSecundario,
                                   ),
                                 ),
                               ],
@@ -162,7 +158,6 @@ class PantallaFavoritos extends StatelessWidget {
               ),
             ),
 
-            // 3. Botón de alertas
             Padding(
               padding: const EdgeInsets.all(20),
               child: SizedBox(

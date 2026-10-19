@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../config/tema.dart';
+import '../config/colores_tema.dart';
+import '../services/api_service.dart'; // 👈 NUEVO: Importamos el servicio
 import 'pantalla_detalle.dart';
 
 class PantallaActividades extends StatefulWidget {
@@ -13,118 +15,78 @@ class PantallaActividades extends StatefulWidget {
 }
 
 class _PantallaActividadesState extends State<PantallaActividades> {
-  // 1. Controlador para la barra de búsqueda
   final TextEditingController _buscadorController = TextEditingController();
   String _textoBusqueda = '';
 
-  // Datos falsos (mock) de las actividades
-  final List<Map<String, dynamic>> actividades = const [
-    {
-      'titulo': 'Sandboarding\nen Huacachina',
-      'subtitulo': 'Ica',
-      'imagen': 'assets/images/detalle_sandboarding_1.jpg',
-      'imagenes_detalle': [
-        'assets/images/detalle_sandboarding_1.jpg',
-        'assets/images/detalle_sandboarding_2.jpg',
-        'assets/images/detalle_sandboarding_3.jpg',
-      ],
-    },
-    {
-      'titulo': 'Paseo en buggy\nen las dunas',
-      'subtitulo': 'Huacachina',
-      'imagen': 'assets/images/act_buggy1.jpg',
-      'imagenes_detalle': [
-        'assets/images/act_buggy1.jpg',
-        'assets/images/detalle_buggy_2.jpg',
-        'assets/images/detalle_buggy_3.jpg',
-      ],
-    },
-    {
-      'titulo': 'Islas Ballestas',
-      'subtitulo': 'Paracas',
-      'imagen': 'assets/images/act_ballestas1.jpg',
-      'imagenes_detalle': [
-        'assets/images/act_ballestas1.jpg',
-        'assets/images/detalle_ballestas_2.jpg',
-        'assets/images/detalle_ballestas_3.jpg',
-      ],
-    },
-    {
-      'titulo': 'Reserva Nacional\nde Paracas',
-      'subtitulo': 'Paracas',
-      'imagen': 'assets/images/act_reserva1.jpg',
-      'imagenes_detalle': [
-        'assets/images/act_reserva1.jpg',
-        'assets/images/detalle_reserva_2.jpg',
-        'assets/images/detalle_reserva_3.jpg',
-      ],
-    },
-    {
-      'titulo': 'Viñedos y bodegas',
-      'subtitulo': 'Ica',
-      'imagen': 'assets/images/act_vinos.jpg',
-      'imagenes_detalle': [
-        'assets/images/act_vinos.jpg',
-        'assets/images/detalle_vinos_2.jpg',
-        'assets/images/detalle_vinos_3.jpg',
-      ],
-    },
-  ];
+  // 👇 Variables para los datos del backend
+  List<Map<String, dynamic>> _actividades = [];
+  bool _cargando = true;
 
-  // 2. Lógica de filtrado
+  @override
+  void initState() {
+    super.initState();
+    _cargarActividades(); // 👈 Cargamos al abrir la pantalla
+  }
+
+  // Función para obtener las actividades del backend
+  Future<void> _cargarActividades() async {
+    final api = ApiService();
+    final datos = await api.obtenerActividades();
+    setState(() {
+      _actividades = datos;
+      _cargando = false;
+    });
+  }
+
   List<Map<String, dynamic>> get _actividadesFiltradas {
-    if (_textoBusqueda.isEmpty) {
-      return actividades; // Si no hay búsqueda, devuelve todas
-    }
-    return actividades.where((actividad) {
-      final titulo = actividad['titulo'].toLowerCase();
-      final subtitulo = actividad['subtitulo'].toLowerCase();
+    if (_textoBusqueda.isEmpty) return _actividades;
+    return _actividades.where((actividad) {
+      final titulo = (actividad['titulo'] ?? '').toString().toLowerCase();
+      final subtitulo = (actividad['subtitulo'] ?? '').toString().toLowerCase();
       final busqueda = _textoBusqueda.toLowerCase();
-
-      // Devuelve true si el texto buscado está en el título o en el subtítulo
       return titulo.contains(busqueda) || subtitulo.contains(busqueda);
     }).toList();
   }
 
   @override
   void dispose() {
-    _buscadorController.dispose(); // Limpiar el controlador al salir
+    _buscadorController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final listaParaMostrar = _actividadesFiltradas; // Lista ya filtrada
+    final listaParaMostrar = _actividadesFiltradas;
+
+    final colorTexto = TemaApp.texto(context);
+    final colorTextoSecundario = TemaApp.textoSecundario(context);
+    final colorTarjeta = TemaApp.tarjeta(context);
 
     return Scaffold(
-      backgroundColor: AppColores.arenaFondo,
+      backgroundColor: TemaApp.fondo(context),
       body: SafeArea(
         child: Column(
           children: [
-            // 1. Título "Actividades" con la flechita de volver
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(
-                      Icons.arrow_back,
-                      color: AppColores.marronOscuro,
-                    ),
+                    icon: Icon(Icons.arrow_back, color: colorTexto),
                     onPressed: () {
                       if (widget.onVolverInicio != null) {
                         widget.onVolverInicio!();
                       }
                     },
                   ),
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'Actividades',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: AppColores.marronOscuro,
+                        color: colorTexto,
                       ),
                     ),
                   ),
@@ -133,29 +95,25 @@ class _PantallaActividadesState extends State<PantallaActividades> {
               ),
             ),
 
-            // 2. Barra de búsqueda
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: TextField(
                 controller: _buscadorController,
-                // 👇 Lógica que actualiza el filtro mientras escribes
                 onChanged: (value) {
                   setState(() {
                     _textoBusqueda = value;
                   });
                 },
+                style: TextStyle(color: colorTexto),
                 decoration: InputDecoration(
                   hintText: 'Buscar actividad o lugar',
                   hintStyle: TextStyle(
-                    color: AppColores.grisTexto,
+                    color: colorTextoSecundario,
                     fontSize: 14,
                   ),
-                  prefixIcon: const Icon(
-                    Icons.search,
-                    color: AppColores.grisTexto,
-                  ),
+                  prefixIcon: Icon(Icons.search, color: colorTextoSecundario),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: colorTarjeta,
                   contentPadding: const EdgeInsets.symmetric(vertical: 0),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(30),
@@ -170,10 +128,15 @@ class _PantallaActividadesState extends State<PantallaActividades> {
             ),
             const SizedBox(height: 16),
 
-            // 3. Lista de actividades (AHORA FILTRADA)
+            // 👇 Indicador de carga mientras se conecta al backend
             Expanded(
-              child: listaParaMostrar.isEmpty
-                  // 👇 Mensaje si no se encuentra ninguna actividad
+              child: _cargando
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColores.naranjaBoton,
+                      ),
+                    )
+                  : listaParaMostrar.isEmpty
                   ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -181,13 +144,13 @@ class _PantallaActividadesState extends State<PantallaActividades> {
                           Icon(
                             Icons.search_off,
                             size: 60,
-                            color: Colors.grey[400],
+                            color: colorTextoSecundario,
                           ),
                           const SizedBox(height: 10),
                           Text(
                             'No se encontraron actividades',
                             style: TextStyle(
-                              color: AppColores.grisTexto,
+                              color: colorTextoSecundario,
                               fontSize: 16,
                             ),
                           ),
@@ -202,11 +165,11 @@ class _PantallaActividadesState extends State<PantallaActividades> {
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: colorTarjeta,
                             borderRadius: BorderRadius.circular(15),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
+                                color: Colors.black.withValues(alpha: 0.05),
                                 blurRadius: 8,
                                 offset: const Offset(0, 4),
                               ),
@@ -219,8 +182,10 @@ class _PantallaActividadesState extends State<PantallaActividades> {
                               contentPadding: const EdgeInsets.all(10),
                               leading: ClipRRect(
                                 borderRadius: BorderRadius.circular(10),
-                                child: Image.asset(
-                                  actividad['imagen'],
+                                // 👇 Usamos Image.network porque la imagen viene del backend
+                                child: Image.network(
+                                  actividad['imagen'] ??
+                                      'https://via.placeholder.com/150',
                                   width: 70,
                                   height: 70,
                                   fit: BoxFit.cover,
@@ -238,35 +203,38 @@ class _PantallaActividadesState extends State<PantallaActividades> {
                                 ),
                               ),
                               title: Text(
-                                actividad['titulo'],
-                                style: const TextStyle(
+                                actividad['titulo'] ?? 'Sin título',
+                                style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 15,
-                                  color: AppColores.marronOscuro,
+                                  color: colorTexto,
                                   height: 1.2,
                                 ),
                               ),
                               subtitle: Text(
-                                actividad['subtitulo'],
-                                style: const TextStyle(
-                                  color: AppColores.grisTexto,
+                                actividad['subtitulo'] ?? 'Ica',
+                                style: TextStyle(
+                                  color: colorTextoSecundario,
                                   fontSize: 13,
                                 ),
                               ),
-                              trailing: const Icon(
+                              trailing: Icon(
                                 Icons.arrow_forward_ios,
                                 size: 16,
-                                color: AppColores.grisTexto,
+                                color: colorTextoSecundario,
                               ),
                               onTap: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => PantallaDetalle(
-                                      titulo: actividad['titulo'],
-                                      subtitulo: actividad['subtitulo'],
+                                      titulo:
+                                          actividad['titulo'] ?? 'Sin título',
+                                      subtitulo:
+                                          actividad['subtitulo'] ?? 'Ica',
                                       imagenes: List<String>.from(
-                                        actividad['imagenes_detalle'],
+                                        actividad['imagenes_detalle'] ??
+                                            [actividad['imagen']],
                                       ),
                                     ),
                                   ),
