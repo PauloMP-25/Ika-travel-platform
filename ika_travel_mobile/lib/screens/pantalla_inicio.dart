@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../config/tema.dart';
+import '../config/colores_tema.dart';
 import '../services/alertas_service.dart';
+import '../services/weather_service.dart';
 import 'pantalla_detalle_dia.dart';
 import 'pantalla_alertas.dart';
 import 'pantalla_mas.dart';
@@ -29,10 +31,14 @@ class _PantallaInicioState extends State<PantallaInicio> {
   ];
 
   Timer? _timerCarrusel;
+  Map<String, dynamic>? _clima;
+  bool _cargandoClima = true;
 
   @override
   void initState() {
     super.initState();
+    _cargarClima();
+
     _timerCarrusel = Timer.periodic(const Duration(seconds: 4), (timer) {
       if (_paginaActual < _imagenesCarrusel.length - 1) {
         _paginaActual++;
@@ -49,6 +55,15 @@ class _PantallaInicioState extends State<PantallaInicio> {
     });
   }
 
+  Future<void> _cargarClima() async {
+    final weather = WeatherService();
+    final data = await weather.obtenerClimaActual();
+    setState(() {
+      _clima = data;
+      _cargandoClima = false;
+    });
+  }
+
   @override
   void dispose() {
     _timerCarrusel?.cancel();
@@ -60,13 +75,17 @@ class _PantallaInicioState extends State<PantallaInicio> {
   Widget build(BuildContext context) {
     final double alturaCarrusel = MediaQuery.of(context).size.height * 0.45;
 
+    final colorFondoApp = TemaApp.fondo(context);
+    final colorTarjeta = TemaApp.tarjeta(context);
+    final colorTexto = TemaApp.texto(context);
+    final colorTextoSecundario = TemaApp.textoSecundario(context);
+
     return Scaffold(
-      backgroundColor: AppColores.arenaFondo,
+      backgroundColor: colorFondoApp,
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. CARRUSEL con esquinas inferiores redondeadas
             ClipRRect(
               borderRadius: const BorderRadius.only(
                 bottomLeft: Radius.circular(30),
@@ -77,7 +96,6 @@ class _PantallaInicioState extends State<PantallaInicio> {
                 width: double.infinity,
                 child: Stack(
                   children: [
-                    // Imágenes del carrusel
                     PageView.builder(
                       controller: _pageController,
                       itemCount: _imagenesCarrusel.length,
@@ -95,7 +113,6 @@ class _PantallaInicioState extends State<PantallaInicio> {
                         );
                       },
                     ),
-                    // Capa oscura
                     IgnorePointer(
                       child: Container(
                         decoration: BoxDecoration(
@@ -110,7 +127,6 @@ class _PantallaInicioState extends State<PantallaInicio> {
                         ),
                       ),
                     ),
-                    // Contenido encima del carrusel
                     SafeArea(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
@@ -124,7 +140,6 @@ class _PantallaInicioState extends State<PantallaInicio> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                // Botón de Menú (3 rayitas)
                                 IconButton(
                                   icon: const Icon(
                                     Icons.menu,
@@ -254,7 +269,6 @@ class _PantallaInicioState extends State<PantallaInicio> {
                           ],
                         ),
                             const SizedBox(height: 30),
-                            // TÍTULOS
                             const Padding(
                               padding: EdgeInsets.symmetric(horizontal: 8),
                               child: Column(
@@ -305,8 +319,6 @@ class _PantallaInicioState extends State<PantallaInicio> {
                 ),
               ),
             ),
-
-            // 2. PUNTITOS indicadores
             const SizedBox(height: 15),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -320,14 +332,13 @@ class _PantallaInicioState extends State<PantallaInicio> {
                   decoration: BoxDecoration(
                     color: _paginaActual == index
                         ? AppColores.naranjaBoton
-                        : Colors.grey[400],
+                        : colorTextoSecundario.withOpacity(0.5),
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
               ),
             ),
             const SizedBox(height: 20),
-
             // 3. TARJETA DEL CLIMA CON MONITOREO DIRECTO
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -335,7 +346,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppColores.blancoTarjeta,
+                  color: colorTarjeta,
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
@@ -345,127 +356,130 @@ class _PantallaInicioState extends State<PantallaInicio> {
                     ),
                   ],
                 ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Ahora en Ica',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                            color: AppColores.marronOscuro,
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            _indicador(true, 'Sol'),
-                            const SizedBox(width: 8),
-                            _indicador(false, 'Nublado'),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Icon(
-                          Icons.wb_sunny,
-                          size: 55,
-                          color: Colors.orange,
-                        ),
-                        const Text(
-                          '26°C',
-                          style: TextStyle(
-                            fontSize: 42,
-                            fontWeight: FontWeight.bold,
-                            color: AppColores.marronOscuro,
-                          ),
-                        ),
-                        const Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Viento   12 km/h',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: AppColores.grisTexto,
-                              ),
-                            ),
-                            SizedBox(height: 2),
-                            Text(
-                              'Humedad  48%',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: AppColores.grisTexto,
-                              ),
-                            ),
-                            SizedBox(height: 2),
-                            Text(
-                              'UV        Alto',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: AppColores.grisTexto,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 14),
-                    const Divider(height: 1, thickness: 0.5),
-                    const SizedBox(height: 10),
-
-                    // Acceso a Seguimiento de Destino (Req 14)
-                    InkWell(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                const PantallaSeguimientoDestino(),
-                          ),
-                        );
-                      },
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: _cargandoClima
+                    ? const Center(child: CircularProgressIndicator())
+                    : Column(
                         children: [
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Icon(
-                                Icons.timeline,
-                                size: 18,
-                                color: AppColores.naranjaBoton,
-                              ),
-                              SizedBox(width: 6),
                               Text(
-                                'Seguimiento de destinos turísticos',
+                                'Ahora en Ica',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: colorTexto,
+                                ),
+                              ),
+                              Text(
+                                _clima != null
+                                    ? (_clima!['descripcion_clima'] ??
+                                          'Desconocido')
+                                    : 'Soleado',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColores.marronOscuro,
+                                  color: colorTextoSecundario,
                                 ),
                               ),
                             ],
                           ),
-                          Icon(
-                            Icons.arrow_forward_ios,
-                            size: 14,
-                            color: AppColores.naranjaBoton,
+                          const SizedBox(height: 20),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Icon(
+                                Icons.wb_sunny,
+                                size: 55,
+                                color: Colors.orange,
+                              ),
+                              // 👇 REDONDEAMOS LA TEMPERATURA
+                              Text(
+                                _clima != null
+                                    ? '${(_clima!['temperatura_actual'] as num).round()}°C'
+                                    : '26°C',
+                                style: TextStyle(
+                                  fontSize: 42,
+                                  fontWeight: FontWeight.bold,
+                                  color: colorTexto,
+                                ),
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Viento   ${_clima != null ? (_clima!['velocidad_viento'] as num).round() : '12'} km/h',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: colorTextoSecundario,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Humedad  ${_clima != null ? (_clima!['humedad'] as num).round() : '48'}%',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: colorTextoSecundario,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'UV        ${_clima != null ? (_clima!['indice_uv'] as num).round() : 'Alto'}',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: colorTextoSecundario,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          Divider(height: 1, thickness: 0.5, color: colorTextoSecundario.withOpacity(0.2)),
+                          const SizedBox(height: 10),
+                          // Acceso a Seguimiento de Destino (Req 14)
+                          InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const PantallaSeguimientoDestino(),
+                                ),
+                              );
+                            },
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.timeline,
+                                      size: 18,
+                                      color: AppColores.naranjaBoton,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Seguimiento de destinos turísticos',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: colorTexto,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 14,
+                                  color: AppColores.naranjaBoton,
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
               ),
             ),
-
             const SizedBox(height: 20),
-
             // 4. BANNER PLANIFICADOR DE VIAJES
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -658,26 +672,6 @@ class _PantallaInicioState extends State<PantallaInicio> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _indicador(bool activo, String texto) {
-    return Row(
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: activo ? AppColores.naranjaBoton : Colors.grey[300],
-          ),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          texto,
-          style: const TextStyle(fontSize: 12, color: AppColores.grisTexto),
-        ),
-      ],
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../config/tema.dart';
+import '../config/colores_tema.dart';
 import '../config/favoritos_manager.dart';
 import '../services/alertas_service.dart';
 import '../models/alerta_modelo.dart';
@@ -46,13 +47,16 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
 
   @override
   Widget build(BuildContext context) {
+    final colorTexto = TemaApp.texto(context);
+    final colorTextoSecundario = TemaApp.textoSecundario(context);
+    final colorTarjeta = TemaApp.tarjeta(context);
+
     return Scaffold(
-      backgroundColor: AppColores.arenaFondo,
+      backgroundColor: TemaApp.fondo(context),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Imagen con esquinas inferiores redondeadas + carrusel
             ClipRRect(
               borderRadius: const BorderRadius.only(
                 bottomLeft: Radius.circular(30),
@@ -60,7 +64,6 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
               ),
               child: Stack(
                 children: [
-                  // Carrusel de imágenes
                   SizedBox(
                     height: 320,
                     width: double.infinity,
@@ -93,7 +96,6 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                     ),
                   ),
 
-                  // Capa oscura
                   IgnorePointer(
                     child: Container(
                       height: 320,
@@ -112,7 +114,6 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                     ),
                   ),
 
-                  // Botones de arriba (atrás y favorito)
                   SafeArea(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
@@ -186,7 +187,6 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                     ),
                   ),
 
-                  // Título y subtítulo
                   Positioned(
                     bottom: 40,
                     left: 20,
@@ -222,7 +222,6 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                     ),
                   ),
 
-                  // Puntitos indicadores
                   Positioned(
                     bottom: 15,
                     left: 0,
@@ -366,18 +365,17 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
 
             const SizedBox(height: 12),
 
-            // 2. Tarjeta "Recomendación para hoy"
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Recomendación para hoy',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: AppColores.marronOscuro,
+                      color: colorTexto,
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -397,7 +395,7 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: colorTarjeta,
                         borderRadius: BorderRadius.circular(15),
                         boxShadow: [
                           BoxShadow(
@@ -421,7 +419,7 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                             ),
                           ),
                           const SizedBox(width: 15),
-                          const Expanded(
+                          Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -430,24 +428,24 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
-                                    color: AppColores.marronOscuro,
+                                    color: colorTexto,
                                   ),
                                 ),
-                                SizedBox(height: 4),
+                                const SizedBox(height: 4),
                                 Text(
                                   'Condiciones ideales para disfrutar estas actividades.',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: AppColores.grisTexto,
+                                    color: colorTextoSecundario,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          const Icon(
+                          Icon(
                             Icons.arrow_forward_ios,
                             size: 16,
-                            color: AppColores.grisTexto,
+                            color: colorTextoSecundario,
                           ),
                         ],
                       ),
@@ -536,24 +534,23 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
 
             const SizedBox(height: 20),
 
-            // 3. Factores estadísticos
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Factores estadísticos',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: AppColores.marronOscuro,
+                      color: colorTexto,
                     ),
                   ),
                   const SizedBox(height: 10),
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: colorTarjeta,
                       borderRadius: BorderRadius.circular(15),
                       boxShadow: [
                         BoxShadow(
@@ -563,24 +560,38 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                         ),
                       ],
                     ),
-                    child: const Column(
+                    child: Column(
                       children: [
                         _FilaFactor(
                           icono: Icons.thermostat,
                           nombre: 'Temperatura',
                           valor: '28°C',
+                          colorTexto: colorTexto,
+                          colorTextoSecundario: colorTextoSecundario,
                         ),
-                        Divider(height: 1, thickness: 0.5),
+                        Divider(
+                          height: 1,
+                          thickness: 0.5,
+                          color: colorTextoSecundario.withOpacity(0.2),
+                        ),
                         _FilaFactor(
                           icono: Icons.air,
                           nombre: 'Viento',
                           valor: '15 km/h',
+                          colorTexto: colorTexto,
+                          colorTextoSecundario: colorTextoSecundario,
                         ),
-                        Divider(height: 1, thickness: 0.5),
+                        Divider(
+                          height: 1,
+                          thickness: 0.5,
+                          color: colorTextoSecundario.withOpacity(0.2),
+                        ),
                         _FilaFactor(
                           icono: Icons.cloud_outlined,
                           nombre: 'Nubosidad',
                           valor: '10%',
+                          colorTexto: colorTexto,
+                          colorTextoSecundario: colorTextoSecundario,
                         ),
                       ],
                     ),
@@ -597,16 +608,19 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
   }
 }
 
-// Widget para cada fila de factor estadístico
 class _FilaFactor extends StatelessWidget {
   final IconData icono;
   final String nombre;
   final String valor;
+  final Color colorTexto;
+  final Color colorTextoSecundario;
 
   const _FilaFactor({
     required this.icono,
     required this.nombre,
     required this.valor,
+    required this.colorTexto,
+    required this.colorTextoSecundario,
   });
 
   @override
@@ -615,31 +629,24 @@ class _FilaFactor extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         children: [
-          Icon(icono, color: AppColores.marronOscuro, size: 22),
+          Icon(icono, color: colorTexto, size: 22),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               nombre,
-              style: const TextStyle(
-                fontSize: 14,
-                color: AppColores.marronOscuro,
-              ),
+              style: TextStyle(fontSize: 14, color: colorTexto),
             ),
           ),
           Text(
             valor,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: AppColores.marronOscuro,
+              color: colorTexto,
             ),
           ),
           const SizedBox(width: 8),
-          const Icon(
-            Icons.arrow_forward_ios,
-            size: 14,
-            color: AppColores.grisTexto,
-          ),
+          Icon(Icons.arrow_forward_ios, size: 14, color: colorTextoSecundario),
         ],
       ),
     );

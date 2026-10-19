@@ -17,10 +17,13 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   cupertino_icons: ^1.0.8
   
- 
   http: ^1.2.0
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
+
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.3  # 👈 Versión corregida para que coincida con flutter_localizations
 
 dev_dependencies:
   flutter_test:
@@ -40,6 +43,5 @@ flutter:
   # included with your application.
   uses-material-design: true
 
-  
   assets:
     - assets/images/
