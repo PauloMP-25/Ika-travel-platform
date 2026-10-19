@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import '../services/favorites_service.dart';
 
-final ValueNotifier<List<Map<String, dynamic>>> listaFavoritos = ValueNotifier(
-  [],
-);
+final ValueNotifier<List<Map<String, dynamic>>> listaFavoritos = ValueNotifier([]);
+final FavoritesService _favService = FavoritesService();
 
-// Función para agregar o quitar de favoritos
+// Función para agregar o quitar de favoritos (con sincronización remota si aplica)
 void toggleFavorito(Map<String, dynamic> actividad) {
   final favs = List<Map<String, dynamic>>.from(listaFavoritos.value);
 
@@ -13,12 +13,18 @@ void toggleFavorito(Map<String, dynamic> actividad) {
   );
 
   if (index >= 0) {
-    favs.removeAt(index); // Si existe, lo quitamos
+    favs.removeAt(index); // Si existe, lo quitamos localmente
   } else {
-    favs.add(actividad); // Si no existe, lo agregamos
+    favs.add(actividad); // Si no existe, lo agregamos localmente
   }
 
-  listaFavoritos.value = favs; // Notificamos el cambio
+  listaFavoritos.value = favs; // Notificamos a la UI inmediatamente
+
+  // Sincronización en segundo plano con el backend
+  final String? id = actividad['id']?.toString();
+  if (id != null && id.length >= 32) {
+    _favService.toggleRemoteFavorite(id);
+  }
 }
 
 // Función para saber si una actividad es favorita
