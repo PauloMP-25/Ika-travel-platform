@@ -1,3 +1,4 @@
+import "../widgets/tarjeta_clima.dart";
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -231,90 +232,10 @@ class _PantallaInicioState extends State<PantallaInicio> {
             ),
             const SizedBox(height: 20),
 
-            // 3. TARJETA DEL CLIMA
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: AppColores.blancoTarjeta,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 15,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Ahora en Ica',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        Row(
-                          children: [
-                            _indicador(true, 'Sol'),
-                            const SizedBox(width: 8),
-                            _indicador(false, 'Nublado'),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Icon(
-                          Icons.wb_sunny,
-                          size: 55,
-                          color: Colors.orange,
-                        ),
-                        const Text(
-                          '26°C',
-                          style: TextStyle(
-                            fontSize: 42,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text(
-                              'Viento   12 km/h',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: AppColores.grisTexto,
-                              ),
-                            ),
-                            SizedBox(height: 2),
-                            Text(
-                              'Humedad  48%',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: AppColores.grisTexto,
-                              ),
-                            ),
-                            SizedBox(height: 2),
-                            Text(
-                              'UV        Alto',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: AppColores.grisTexto,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+            // 3. TARJETA DEL CLIMA (CONECTADA AL BACKEND)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24),
+              child: TarjetaClima(destino: 'Ica'),
             ),
 
             const SizedBox(height: 20),

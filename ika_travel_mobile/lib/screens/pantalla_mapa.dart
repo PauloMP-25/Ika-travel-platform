@@ -3,6 +3,8 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../config/tema.dart';
+import '../models/attraction_model.dart';
+import '../services/attractions_service.dart';
 import 'pantalla_detalle.dart';
 import 'pantalla_mas.dart';
 
@@ -14,9 +16,12 @@ class PantallaMapa extends StatefulWidget {
 }
 
 class _PantallaMapaState extends State<PantallaMapa> {
-  final List<Map<String, dynamic>> _ubicaciones = [
+  final AttractionsService _attractionsService = AttractionsService();
+
+  final List<Map<String, dynamic>> _ubicacionesFallback = [
     {
-      'titulo': 'Sandboarding\nen Huacachina',
+      'id': '1',
+      'titulo': 'Sandboarding en Huacachina',
       'subtitulo': 'Ica',
       'lat': -14.0875,
       'lng': -75.7628,
@@ -31,6 +36,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
       ],
     },
     {
+      'id': '2',
       'titulo': 'Islas Ballestas',
       'subtitulo': 'Paracas',
       'lat': -13.8333,
@@ -46,7 +52,8 @@ class _PantallaMapaState extends State<PantallaMapa> {
       ],
     },
     {
-      'titulo': 'Reserva Nacional\nde Paracas',
+      'id': '3',
+      'titulo': 'Reserva Nacional de Paracas',
       'subtitulo': 'Paracas',
       'lat': -13.8833,
       'lng': -76.2667,
@@ -61,135 +68,228 @@ class _PantallaMapaState extends State<PantallaMapa> {
       ],
     },
     {
-      'titulo': 'Viñedos y bodegas',
+      'id': '4',
+      'titulo': 'Viñedos y Bodegas',
       'subtitulo': 'Ica',
-      'lat': -14.0678,
-      'lng': -75.7286,
+      'lat': -14.0500,
+      'lng': -75.7167,
       'condicion': 'Excelente',
       'indice': '90/100',
-      'categoria': 'Gastronomía',
-      'imagen': 'assets/images/act_vinos.jpg',
+      'categoria': 'Cultura',
+      'imagen': 'assets/images/act_vinas1.jpg',
       'imagenes_detalle': [
-        'assets/images/act_vinos.jpg',
-        'assets/images/detalle_vinos_2.jpg',
-        'assets/images/detalle_vinos_3.jpg',
+        'assets/images/act_vinas1.jpg',
+        'assets/images/detalle_vinas_2.jpg',
+        'assets/images/detalle_vinas_3.jpg',
+      ],
+    },
+    {
+      'id': '5',
+      'titulo': 'Cañón de los Perdidos',
+      'subtitulo': 'Ocucaje',
+      'lat': -14.5667,
+      'lng': -75.6833,
+      'condicion': 'Regular',
+      'indice': '60/100',
+      'categoria': 'Aventura',
+      'imagen': 'assets/images/act_canon1.jpg',
+      'imagenes_detalle': [
+        'assets/images/act_canon1.jpg',
+        'assets/images/detalle_canon_2.jpg',
+        'assets/images/detalle_canon_3.jpg',
       ],
     },
   ];
 
+  List<Map<String, dynamic>> _ubicaciones = [];
+  bool _cargando = true;
+  String _filtroSeleccionado = 'Todos';
   Map<String, dynamic>? _seleccionada;
-  String _filtroActual = 'Todas';
 
-  List<Map<String, dynamic>> get _ubicacionesFiltradas {
-    if (_filtroActual == 'Todas') {
-      return _ubicaciones;
-    }
-    return _ubicaciones.where((u) => u['categoria'] == _filtroActual).toList();
+  final List<String> _filtros = [
+    'Todos',
+    'Aventura',
+    'Naturaleza',
+    'Cultura',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarAtractivos();
   }
 
-  void _mostrarFiltros() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColores.arenaFondo,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Filtrar por categoría',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColores.marronOscuro,
-                ),
-              ),
-              const SizedBox(height: 15),
-              _itemFiltro('Todas'),
-              _itemFiltro('Aventura'),
-              _itemFiltro('Naturaleza'),
-              _itemFiltro('Gastronomía'),
-              const SizedBox(height: 10),
+  Future<void> _cargarAtractivos() async {
+    setState(() => _cargando = true);
+    try {
+      final items = await _attractionsService.getAttractions(pageSize: 30);
+      if (items.isNotEmpty) {
+        final List<Map<String, dynamic>> cargados = [];
+        for (var item in items) {
+          // Coordenadas conocidas por distrito o centro de Ica
+          double lat = -14.0678;
+          double lng = -75.7286;
+          final d = item.district.toLowerCase();
+          final n = item.name.toLowerCase();
+
+          if (n.contains('huacachina') || d.contains('huacachina')) {
+            lat = -14.0875;
+            lng = -75.7628;
+          } else if (n.contains('ballestas')) {
+            lat = -13.8333;
+            lng = -76.2500;
+          } else if (d.contains('paracas')) {
+            lat = -13.8833;
+            lng = -76.2667;
+          } else if (d.contains('nazca')) {
+            lat = -14.8333;
+            lng = -74.9333;
+          } else if (n.contains('perdidos') || d.contains('ocucaje')) {
+            lat = -14.5667;
+            lng = -75.6833;
+          }
+
+          cargados.add({
+            'id': item.id,
+            'titulo': item.name,
+            'subtitulo': item.district,
+            'lat': lat,
+            'lng': lng,
+            'condicion': 'Recomendado',
+            'indice': '88/100',
+            'categoria': item.categories.isNotEmpty ? item.categories.first : 'Cultura',
+            'imagen': item.coverImageUrl ?? 'assets/images/carrusel_1_huacachina.jpg',
+            'imagenes_detalle': [
+              item.coverImageUrl ?? 'assets/images/carrusel_1_huacachina.jpg',
             ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _itemFiltro(String titulo) {
-    bool seleccionado = _filtroActual == titulo;
-    return ListTile(
-      title: Text(titulo),
-      trailing: seleccionado
-          ? const Icon(Icons.check, color: AppColores.naranjaBoton)
-          : null,
-      onTap: () {
+          });
+        }
         setState(() {
-          _filtroActual = titulo;
-          _seleccionada = null;
+          _ubicaciones = cargados;
+          _cargando = false;
         });
-        Navigator.pop(context);
-      },
-    );
+        return;
+      }
+    } catch (_) {}
+
+    setState(() {
+      _ubicaciones = _ubicacionesFallback;
+      _cargando = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final listaParaMostrar = _ubicacionesFiltradas;
+    final listaParaMostrar = _filtroSeleccionado == 'Todos'
+        ? _ubicaciones
+        : _ubicaciones
+            .where((u) => u['categoria'] == _filtroSeleccionado)
+            .toList();
 
     return Scaffold(
       backgroundColor: AppColores.arenaFondo,
       body: SafeArea(
         child: Column(
           children: [
-            // 1. AppBar personalizado
+            // 1. Barra superior
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  IconButton(
-                    icon: const Icon(
-                      Icons.menu,
-                      color: AppColores.marronOscuro,
-                      size: 28,
-                    ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const PantallaMas(),
-                        ),
-                      );
-                    },
-                  ),
                   const Text(
-                    'Mapa',
+                    'Mapa Turístico',
                     style: TextStyle(
-                      fontSize: 20,
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
                       color: AppColores.marronOscuro,
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.filter_list,
-                      color: AppColores.marronOscuro,
-                      size: 28,
-                    ),
-                    onPressed: _mostrarFiltros,
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(
+                          Icons.refresh_rounded,
+                          color: AppColores.marronOscuro,
+                          size: 26,
+                        ),
+                        onPressed: _cargarAtractivos,
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.menu,
+                          color: AppColores.marronOscuro,
+                          size: 28,
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const PantallaMas(),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
 
-            // 2. Mapa
+            // Filtros de categoría
+            SizedBox(
+              height: 40,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: _filtros.length,
+                itemBuilder: (context, index) {
+                  final filtro = _filtros[index];
+                  final bool seleccionado = _filtroSeleccionado == filtro;
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _filtroSeleccionado = filtro;
+                        _seleccionada = null;
+                      });
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: seleccionado
+                            ? AppColores.naranjaBoton
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        filtro,
+                        style: TextStyle(
+                          color: seleccionado
+                              ? Colors.white
+                              : AppColores.marronOscuro,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Mapa interactivo
             Expanded(
               child: Stack(
                 children: [
@@ -208,18 +308,30 @@ class _PantallaMapaState extends State<PantallaMapa> {
                         markers: listaParaMostrar.map((ubicacion) {
                           return Marker(
                             point: LatLng(ubicacion['lat'], ubicacion['lng']),
-                            width: 40,
-                            height: 40,
+                            width: 44,
+                            height: 44,
                             child: GestureDetector(
                               onTap: () {
                                 setState(() {
                                   _seleccionada = ubicacion;
                                 });
                               },
-                              child: const Icon(
-                                Icons.location_on,
-                                color: Colors.teal,
-                                size: 40,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.2),
+                                      blurRadius: 6,
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(
+                                  Icons.location_on,
+                                  color: AppColores.naranjaBoton,
+                                  size: 32,
+                                ),
                               ),
                             ),
                           );
@@ -228,7 +340,21 @@ class _PantallaMapaState extends State<PantallaMapa> {
                     ],
                   ),
 
-                  // 3. Tarjeta inferior flotante
+                  if (_cargando)
+                    const Positioned(
+                      top: 15,
+                      right: 15,
+                      child: CircleAvatar(
+                        radius: 16,
+                        backgroundColor: Colors.white,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: AppColores.naranjaBoton,
+                        ),
+                      ),
+                    ),
+
+                  // Tarjeta inferior flotante al seleccionar un punto
                   if (_seleccionada != null)
                     Positioned(
                       bottom: 20,
@@ -253,12 +379,12 @@ class _PantallaMapaState extends State<PantallaMapa> {
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(15),
+                            borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 15,
-                                offset: const Offset(0, 5),
+                                color: Colors.black.withOpacity(0.12),
+                                blurRadius: 16,
+                                offset: const Offset(0, 6),
                               ),
                             ],
                           ),
@@ -266,33 +392,41 @@ class _PantallaMapaState extends State<PantallaMapa> {
                             children: [
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(10),
-                                child: Image.asset(
-                                  _seleccionada!['imagen'],
-                                  width: 70,
-                                  height: 70,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      Container(
+                                child: _seleccionada!['imagen'].startsWith('http')
+                                    ? Image.network(
+                                        _seleccionada!['imagen'],
                                         width: 70,
                                         height: 70,
-                                        color: Colors.grey[300],
-                                        child: const Icon(
-                                          Icons.image,
-                                          color: Colors.grey,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) =>
+                                            Container(
+                                          width: 70,
+                                          height: 70,
+                                          color: Colors.grey[300],
+                                          child: const Icon(Icons.image, color: Colors.grey),
+                                        ),
+                                      )
+                                    : Image.asset(
+                                        _seleccionada!['imagen'],
+                                        width: 70,
+                                        height: 70,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) =>
+                                            Container(
+                                          width: 70,
+                                          height: 70,
+                                          color: Colors.grey[300],
+                                          child: const Icon(Icons.image, color: Colors.grey),
                                         ),
                                       ),
-                                ),
                               ),
-                              const SizedBox(width: 15),
+                              const SizedBox(width: 14),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      _seleccionada!['titulo'].replaceAll(
-                                        '\n',
-                                        ' ',
-                                      ),
+                                      _seleccionada!['titulo'].replaceAll('\n', ' '),
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 15,
@@ -306,21 +440,17 @@ class _PantallaMapaState extends State<PantallaMapa> {
                                         color: AppColores.grisTexto,
                                       ),
                                     ),
-                                    const SizedBox(height: 4),
+                                    const SizedBox(height: 6),
                                     Row(
                                       children: [
                                         Container(
                                           padding: const EdgeInsets.symmetric(
-                                            horizontal: 6,
+                                            horizontal: 7,
                                             vertical: 2,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: Colors.green.withOpacity(
-                                              0.1,
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              4,
-                                            ),
+                                            color: Colors.green.withOpacity(0.12),
+                                            borderRadius: BorderRadius.circular(6),
                                           ),
                                           child: Text(
                                             _seleccionada!['condicion'],
@@ -346,7 +476,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
                                 ),
                               ),
                               const Icon(
-                                Icons.arrow_forward_ios,
+                                Icons.arrow_forward_ios_rounded,
                                 size: 16,
                                 color: AppColores.grisTexto,
                               ),
