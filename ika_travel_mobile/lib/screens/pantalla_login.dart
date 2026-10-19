@@ -97,8 +97,8 @@ class _PantallaLoginState extends State<PantallaLogin> {
   }
 
   void _llenarCredencialesDemo() {
-    _emailController.text = 'turista@ikatravel.pe';
-    _passwordController.text = 'Ika2026*';
+    _emailController.text = 'paulo@gmail.com';
+    _passwordController.text = 'Zoodiaco2#';
     setState(() => _mensajeError = null);
   }
 
