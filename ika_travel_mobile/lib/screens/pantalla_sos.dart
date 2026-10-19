@@ -20,6 +20,14 @@ class PantallaSos extends StatefulWidget {
 class _PantallaSosState extends State<PantallaSos> {
   final SosService _sosService = SosService();
 
+  @override
+  void initState() {
+    super.initState();
+    _sosService.sincronizarContactosOficiales().then((_) {
+      if (mounted) setState(() {});
+    });
+  }
+
   void _abrirDialogoContacto(BuildContext context, [ContactoEmergencia? contactoActual]) {
     final nombreCtrl = TextEditingController(text: contactoActual?.nombre ?? '');
     final telCtrl = TextEditingController(text: contactoActual?.telefono ?? '');

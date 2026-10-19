@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../config/api_config.dart';
 import 'package:flutter/foundation.dart';
 
 class ContactoEmergencia {
@@ -66,8 +69,36 @@ class SosService {
   double get longitudActual => -75.7626;
   String get lugarReferencia => 'Oasis de Huacachina, Ica, Perú';
 
+
+  /// Carga números de emergencia oficiales desde el backend FastAPI (/api/v1/emergency/contacts)
+  /// Si el servidor no responde, conserva la lista local predeterminada.
+  Future<void> sincronizarContactosOficiales() async {
+    try {
+      final res = await http.get(Uri.parse(ApiConfig.emergencyContacts)).timeout(const Duration(seconds: 4));
+      if (res.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(utf8.decode(res.bodyBytes));
+        if (data.isNotEmpty) {
+          _numerosOficialesDinamicos = data.map((item) {
+            return NumeroEmergenciaOficial(
+              nombre: item['name'] ?? '',
+              numero: item['phone'] ?? '',
+              descripcion: item['description'] ?? '',
+              tipo: item['category'] ?? 'general',
+            );
+          }).toList();
+        }
+      }
+    } catch (e) {
+      debugPrint('[SosService] Usando directorio de emergencia local: $e');
+    }
+  }
+
+  List<NumeroEmergenciaOficial>? _numerosOficialesDinamicos;
+
   /// Números de emergencia oficiales de Perú e Ica
-  final List<NumeroEmergenciaOficial> numerosOficiales = const [
+  List<NumeroEmergenciaOficial> get numerosOficiales => _numerosOficialesDinamicos ?? _numerosOficialesDefecto;
+
+  static const List<NumeroEmergenciaOficial> _numerosOficialesDefecto = [
     NumeroEmergenciaOficial(
       nombre: 'Policía Nacional del Perú',
       numero: '105',
@@ -92,7 +123,7 @@ class SosService {
       descripcion: 'Asistencia especializada y protección al turista.',
       tipo: 'turismo',
     ),
-  ];
+    ];
 
   /// Registrar o actualizar el contacto de confianza
   void guardarContacto({

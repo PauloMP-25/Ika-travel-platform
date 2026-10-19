@@ -12,6 +12,8 @@ import 'pantalla_login.dart';
 import 'pantalla_planer.dart';
 import 'pantalla_seguimiento_destino.dart';
 import 'pantalla_sos.dart';
+import 'pantalla_traduccion.dart';
+
 
 class PantallaMas extends StatelessWidget {
   const PantallaMas({super.key});
@@ -342,6 +344,20 @@ class PantallaMas extends StatelessWidget {
                         MaterialPageRoute(
                           builder: (context) =>
                               const PantallaConfigurarAlertas(),
+                        ),
+                      );
+                    },
+                  ),
+                  _itemMenu(
+                    context,
+                    icono: Icons.translate,
+                    titulo: 'Traducción y Frasebook',
+                    subtitulo: 'Traductor turístico con IA y frases útiles',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PantallaTraduccion(),
                         ),
                       );
                     },

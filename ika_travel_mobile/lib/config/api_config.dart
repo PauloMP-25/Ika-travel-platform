@@ -13,6 +13,10 @@ class ApiConfig {
   static const String weatherForecast = '$baseUrl/api/v1/weather/forecast';
   static const String weatherAlerts = '$baseUrl/api/v1/weather/alerts';
 
+  // --- EMERGENCY & SOS ---
+  static const String emergencyContacts = '$baseUrl/api/v1/emergency/contacts';
+  static const String emergencySos = '$baseUrl/api/v1/emergency/sos';
+
   // --- FAVORITES ---
   static String toggleFavorite(int id) =>
       '$baseUrl/api/v1/catalog/attractions/$id/favorite';
