@@ -1,3 +1,6 @@
+import src.modules.emergency.models
+import src.modules.reviews.models
+import src.modules.catalog.models
 """Script para generar tokens JWT de prueba (Mock Tokens) para desarrollo y testing de Flutter."""
 import asyncio
 import sys
@@ -5,7 +8,7 @@ from uuid import uuid4
 
 from sqlalchemy import select
 
-from src.core.database import SessionLocal
+from src.core.database import SesionAsincronaLocal as SessionLocal
 from src.core.security import create_access_token, hash_password
 from src.modules.users.models import CategoriaTuristicaIca, User, UserRole
 
@@ -18,7 +21,7 @@ async def generar_o_obtener_usuario_demo(
     prefs: list[str] | None = None,
 ) -> tuple[User, str]:
     if prefs is None:
-        prefs = [CategoriaTuristicaIca.AVENTURA_DESIERTO.value, CategoriaTuristicaIca.ENOTURISMO.value]
+        prefs = [CategoriaTuristicaIca.AVENTURA_DESIERTO.value, CategoriaTuristicaIca.ENOTURISMO_GASTRONOMIA.value]
 
     async with SessionLocal() as session:
         query = select(User).where(User.email == email)
