@@ -33,7 +33,7 @@ def test_la_ultima_revision_es_la_del_sprint_4() -> None:
 
     head = scripts.get_current_head()
 
-    assert head == "a1b2c3d4e5f6", (
+    assert head == "8db9ab3bcce4", (
         f"El head cambió ({head}); actualiza este test y documenta la nueva "
         "revisión en docs/sprint_4.md."
     )

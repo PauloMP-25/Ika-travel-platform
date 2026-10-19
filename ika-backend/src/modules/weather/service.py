@@ -108,6 +108,13 @@ class AgregadorClima:
         uvs_validos = [r.indice_uv for r in resultados if r.indice_uv > 0]
         promedio_uv = sum(uvs_validos) / len(uvs_validos) if uvs_validos else 0.0
 
+        def primer_valido(attr):
+            for r in resultados:
+                val = getattr(r, attr, None)
+                if val is not None:
+                    return val
+            return None
+
         return ClimaActual(
             temperatura_actual=round(prom([r.temperatura_actual for r in resultados]), 1),
             sensacion_termica=round(prom([r.sensacion_termica for r in resultados]), 1),
@@ -124,6 +131,13 @@ class AgregadorClima:
             hora_atardecer=resultados[0].hora_atardecer,
             fecha_hora_pronostico=datetime.now(tz=timezone.utc),
             origen_api=f"Consenso ({n} APIs): {', '.join(nombres)}",
+            presion_atmosferica=primer_valido("presion_atmosferica"),
+            precipitacion_mm=primer_valido("precipitacion_mm"),
+            temperatura_suelo_arena=primer_valido("temperatura_suelo_arena"),
+            calidad_aire_pm10=primer_valido("calidad_aire_pm10"),
+            ventana_pico_uv=primer_valido("ventana_pico_uv"),
+            horas_sol_directo=primer_valido("horas_sol_directo"),
+            altura_ola_metros=primer_valido("altura_ola_metros"),
         )
 
 
@@ -265,6 +279,25 @@ async def get_fresh_snapshot(
             await _guardar_en_redis(ubicacion, respuesta)
             return respuesta
 
+    if not forzar_refresco:
+        # Lock anti-stampede con Redis (RN-03): evita colapso concurrente en caché miss
+        clave_lock = f"weather:lock:{ubicacion.clave}"
+        from src.redis_client import obtener_cliente_redis
+        cliente_redis = await obtener_cliente_redis()
+        lock_obtenido = False
+        if cliente_redis:
+            try:
+                lock_obtenido = bool(await cliente_redis.set(clave_lock, "1", nx=True, ex=15))
+                if not lock_obtenido:
+                    # Esperar hasta 2s y verificar si el ganador del lock ya pobló la caché
+                    for _ in range(10):
+                        await asyncio.sleep(0.2)
+                        en_redis = await cache_obtener_json(_clave_cache("current", ubicacion))
+                        if en_redis:
+                            return ClimaActualResponse(**{**en_redis, "is_cached": True})
+            except Exception as e:
+                logger.warning("Error en lock redis anti-stampede: %s", e)
+
     agregador = agregador or agregador_clima
     try:
         clima = await agregador.obtener_consenso(ubicacion.latitud, ubicacion.longitud)
@@ -383,6 +416,31 @@ async def recomendacion_del_dia(
     atractivo = next(a for a in await _atractivos_activos(db) if a.id == mejor.atractivo_id)
     clima = await get_fresh_snapshot(db, ubicacion_de_atractivo(atractivo))
     resultado = _recomendar(atractivo, clima, preferencias=preferencias_usuario)
+    
+    # Obtener última narrativa generada para este atractivo (continuidad narrativa)
+    narrativa_previa = None
+    consulta_anterior = (
+        select(AIRecommendation.recommendation_text)
+        .where(AIRecommendation.atractivo_id == atractivo.id)
+        .order_by(AIRecommendation.generated_at.desc())
+        .limit(1)
+    )
+    rec_previa = (await db.execute(consulta_anterior)).scalar_one_or_none()
+    if rec_previa:
+        narrativa_previa = rec_previa
+
+    # Evaluar alertas oficiales de Ica
+    alertas_candidatas = ai_recommender.evaluar_alertas(
+        temperatura=clima.temperatura_actual,
+        uv=clima.indice_uv,
+        viento=clima.velocidad_viento,
+        precipitacion=clima.precipitacion_mm or 0.0,
+        temperatura_arena=clima.temperatura_suelo_arena,
+        zona=atractivo.name,
+    )
+    nombres_alertas = [a.message for a in alertas_candidatas]
+    hay_peligro = any(a.severity == "high" for a in alertas_candidatas)
+
     texto = await ai_recommender.redactar_con_gemini(
         nombre_atractivo=atractivo.name,
         resultado=resultado,
@@ -392,8 +450,33 @@ async def recomendacion_del_dia(
         condicion=clima.descripcion_clima,
         preferencias_usuario=preferencias_usuario,
         idioma=idioma,
+        presion_hpa=clima.presion_atmosferica,
+        precipitacion_mm=clima.precipitacion_mm,
+        temperatura_arena=clima.temperatura_suelo_arena,
+        pm10=clima.calidad_aire_pm10,
+        ventana_pico_uv=clima.ventana_pico_uv,
+        horas_sol=clima.horas_sol_directo,
+        altura_ola=clima.altura_ola_metros,
+        narrativa_previa=narrativa_previa,
     )
-    return _a_recomendacion_response(atractivo, resultado, texto)
+
+    # Guardarraíl de seguridad Post-IA (P4):
+    # Si hay una alerta de nivel 'high' (peligro), el score se recorta a <= 0.30 y nivel 'no_recomendado'
+    score_final = resultado.score
+    nivel_final = resultado.nivel
+    if hay_peligro:
+        score_final = min(score_final, 0.30)
+        nivel_final = "no_recomendado"
+
+    return RecomendacionResponse(
+        atractivo_id=atractivo.id,
+        atractivo_nombre=atractivo.name,
+        score=score_final,
+        nivel=nivel_final,
+        recommendation_text=texto or resultado.texto,
+        consejos=resultado.consejos,
+        generated_at=datetime.now(tz=timezone.utc),
+    )
 
 
 async def listar_alertas_activas(db: AsyncSession) -> list[WeatherAlert]:
