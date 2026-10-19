@@ -16,4 +16,9 @@ class ApiConfig {
   // --- FAVORITES ---
   static String toggleFavorite(int id) =>
       '$baseUrl/api/v1/catalog/attractions/$id/favorite';
+
+  // --- AUTH & USUARIOS ---
+  static const String authLogin = '$baseUrl/api/v1/auth/login';
+  static const String authRegister = '$baseUrl/api/v1/auth/register';
+  static const String usersMe = '$baseUrl/api/v1/users/me';
 }
