@@ -15,9 +15,17 @@ class PantallaMapa extends StatefulWidget {
 }
 
 class _PantallaMapaState extends State<PantallaMapa> {
+  final MapController _mapController = MapController();
+  final TextEditingController _busquedaController = TextEditingController();
+  final FocusNode _focusBusqueda = FocusNode();
+
+  String _textoBusqueda = '';
+  String _filtroActual = 'Todas';
+  Map<String, dynamic>? _seleccionada;
+
   final List<Map<String, dynamic>> _ubicaciones = [
     {
-      'titulo': 'Sandboarding\nen Huacachina',
+      'titulo': 'Sandboarding en Huacachina',
       'subtitulo': 'Ica',
       'lat': -14.0875,
       'lng': -75.7628,
@@ -29,6 +37,20 @@ class _PantallaMapaState extends State<PantallaMapa> {
         'assets/images/detalle_sandboarding_1.jpg',
         'assets/images/detalle_sandboarding_2.jpg',
         'assets/images/detalle_sandboarding_3.jpg',
+      ],
+    },
+    {
+      'titulo': 'Laguna de Huacachina',
+      'subtitulo': 'Ica',
+      'lat': -14.0870,
+      'lng': -75.7632,
+      'condicion': 'Excelente',
+      'indice': '94/100',
+      'categoria': 'Naturaleza',
+      'imagen': 'assets/images/carrusel_1_huacachina.jpg',
+      'imagenes_detalle': [
+        'assets/images/carrusel_1_huacachina.jpg',
+        'assets/images/detalle_sandboarding_1.jpg',
       ],
     },
     {
@@ -47,7 +69,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
       ],
     },
     {
-      'titulo': 'Reserva Nacional\nde Paracas',
+      'titulo': 'Reserva Nacional de Paracas',
       'subtitulo': 'Paracas',
       'lat': -13.8833,
       'lng': -76.2667,
@@ -62,7 +84,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
       ],
     },
     {
-      'titulo': 'Viñedos y bodegas',
+      'titulo': 'Viñedos y Bodega Tacama',
       'subtitulo': 'Ica',
       'lat': -14.0678,
       'lng': -75.7286,
@@ -76,16 +98,110 @@ class _PantallaMapaState extends State<PantallaMapa> {
         'assets/images/detalle_vinos_3.jpg',
       ],
     },
+    {
+      'titulo': 'Plaza de Armas de Ica',
+      'subtitulo': 'Ica',
+      'lat': -14.0685,
+      'lng': -75.7288,
+      'condicion': 'Excelente',
+      'indice': '92/100',
+      'categoria': 'Cultura',
+      'imagen': 'assets/images/carrusel_2_vinos.jpg',
+      'imagenes_detalle': [
+        'assets/images/carrusel_2_vinos.jpg',
+      ],
+    },
+    {
+      'titulo': 'Santuario del Señor de Luren',
+      'subtitulo': 'Ica',
+      'lat': -14.0722,
+      'lng': -75.7258,
+      'condicion': 'Excelente',
+      'indice': '89/100',
+      'categoria': 'Cultura',
+      'imagen': 'assets/images/act_buggy1.jpg',
+      'imagenes_detalle': [
+        'assets/images/act_buggy1.jpg',
+      ],
+    },
+    {
+      'titulo': 'Cachiche (Pueblo de las Brujas)',
+      'subtitulo': 'Ica',
+      'lat': -14.0911,
+      'lng': -75.7198,
+      'condicion': 'Bueno',
+      'indice': '82/100',
+      'categoria': 'Cultura',
+      'imagen': 'assets/images/detalle_buggy_2.jpg',
+      'imagenes_detalle': [
+        'assets/images/detalle_buggy_2.jpg',
+      ],
+    },
+    {
+      'titulo': 'Cañón de los Perdidos',
+      'subtitulo': 'Ocucaje, Ica',
+      'lat': -14.4722,
+      'lng': -75.7333,
+      'condicion': 'Bueno',
+      'indice': '86/100',
+      'categoria': 'Aventura',
+      'imagen': 'assets/images/act_buggy1.jpg',
+      'imagenes_detalle': [
+        'assets/images/act_buggy1.jpg',
+        'assets/images/detalle_buggy_3.jpg',
+      ],
+    },
   ];
 
-  Map<String, dynamic>? _seleccionada;
-  String _filtroActual = 'Todas';
+  @override
+  void initState() {
+    super.initState();
+    _busquedaController.addListener(() {
+      setState(() {
+        _textoBusqueda = _busquedaController.text;
+      });
+    });
+  }
 
+  @override
+  void dispose() {
+    _busquedaController.dispose();
+    _focusBusqueda.dispose();
+    super.dispose();
+  }
+
+  /// Lista de ubicaciones filtrada por categoría y por la barra de búsqueda de texto
   List<Map<String, dynamic>> get _ubicacionesFiltradas {
-    if (_filtroActual == 'Todas') {
-      return _ubicaciones;
-    }
-    return _ubicaciones.where((u) => u['categoria'] == _filtroActual).toList();
+    return _ubicaciones.where((u) {
+      final coincideCategoria =
+          _filtroActual == 'Todas' || u['categoria'] == _filtroActual;
+      if (!coincideCategoria) return false;
+
+      if (_textoBusqueda.trim().isEmpty) return true;
+
+      final query = _textoBusqueda.trim().toLowerCase();
+      final titulo = (u['titulo'] as String).toLowerCase();
+      final subtitulo = (u['subtitulo'] as String).toLowerCase();
+      final categoria = (u['categoria'] as String).toLowerCase();
+
+      return titulo.contains(query) ||
+          subtitulo.contains(query) ||
+          categoria.contains(query);
+    }).toList();
+  }
+
+  /// Selecciona un lugar, cierra el teclado y mueve la cámara del mapa
+  void _seleccionarLugar(Map<String, dynamic> lugar) {
+    setState(() {
+      _seleccionada = lugar;
+    });
+    _focusBusqueda.unfocus();
+    _mapController.move(LatLng(lugar['lat'], lugar['lng']), 13.0);
+  }
+
+  /// Restablece la vista general panorámica de Ica
+  void _centrarMapaGeneral() {
+    _mapController.move(const LatLng(-14.0678, -75.7286), 9.5);
   }
 
   void _mostrarFiltros() {
@@ -118,6 +234,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
               _itemFiltro('Aventura', colorTexto),
               _itemFiltro('Naturaleza', colorTexto),
               _itemFiltro('Gastronomía', colorTexto),
+              _itemFiltro('Cultura', colorTexto),
               const SizedBox(height: 10),
             ],
           ),
@@ -146,18 +263,23 @@ class _PantallaMapaState extends State<PantallaMapa> {
   @override
   Widget build(BuildContext context) {
     final listaParaMostrar = _ubicacionesFiltradas;
-
     final colorTexto = TemaApp.texto(context);
     final colorTextoSecundario = TemaApp.textoSecundario(context);
     final colorTarjeta = TemaApp.tarjeta(context);
+
+    // Sugerencias rápidas cuando el usuario escribe en la barra
+    final sugerencias = _textoBusqueda.trim().isNotEmpty
+        ? _ubicacionesFiltradas.take(4).toList()
+        : <Map<String, dynamic>>[];
 
     return Scaffold(
       backgroundColor: TemaApp.fondo(context),
       body: SafeArea(
         child: Column(
           children: [
+            // Cabecera superior
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -173,7 +295,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
                     },
                   ),
                   Text(
-                    'Mapa',
+                    'Mapa Turístico',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -181,19 +303,32 @@ class _PantallaMapaState extends State<PantallaMapa> {
                     ),
                   ),
                   IconButton(
-                    icon: Icon(Icons.filter_list, color: colorTexto, size: 28),
+                    tooltip: 'Filtrar por categoría',
+                    icon: Icon(
+                      _filtroActual == 'Todas'
+                          ? Icons.filter_list
+                          : Icons.filter_alt,
+                      color: _filtroActual == 'Todas'
+                          ? colorTexto
+                          : AppColores.naranjaBoton,
+                      size: 28,
+                    ),
                     onPressed: _mostrarFiltros,
                   ),
                 ],
               ),
             ),
+
+            // Mapa interactivo con Barra de Búsqueda flotante
             Expanded(
               child: Stack(
                 children: [
+                  // Capa del Mapa Leaflet / OpenStreetMap
                   FlutterMap(
+                    mapController: _mapController,
                     options: const MapOptions(
                       initialCenter: LatLng(-14.0678, -75.7286),
-                      initialZoom: 9.0,
+                      initialZoom: 9.5,
                     ),
                     children: [
                       TileLayer(
@@ -203,20 +338,43 @@ class _PantallaMapaState extends State<PantallaMapa> {
                       ),
                       MarkerLayer(
                         markers: listaParaMostrar.map((ubicacion) {
+                          final esSeleccionada =
+                              _seleccionada?['titulo'] == ubicacion['titulo'];
+
                           return Marker(
                             point: LatLng(ubicacion['lat'], ubicacion['lng']),
-                            width: 40,
-                            height: 40,
+                            width: esSeleccionada ? 52 : 42,
+                            height: esSeleccionada ? 52 : 42,
                             child: GestureDetector(
                               onTap: () {
-                                setState(() {
-                                  _seleccionada = ubicacion;
-                                });
+                                _seleccionarLugar(ubicacion);
                               },
-                              child: const Icon(
-                                Icons.location_on,
-                                color: Colors.teal,
-                                size: 40,
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 250),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: esSeleccionada
+                                      ? AppColores.naranjaBoton
+                                      : Colors.teal.shade700,
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: esSeleccionada ? 3 : 2,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.3),
+                                      blurRadius: esSeleccionada ? 10 : 4,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(
+                                  esSeleccionada
+                                      ? Icons.star_rounded
+                                      : Icons.location_on,
+                                  color: Colors.white,
+                                  size: esSeleccionada ? 30 : 24,
+                                ),
                               ),
                             ),
                           );
@@ -224,11 +382,255 @@ class _PantallaMapaState extends State<PantallaMapa> {
                       ),
                     ],
                   ),
+
+                  // BARRA DE BÚSQUEDA DE LUGARES POR ESCRITO (Flotante)
+                  Positioned(
+                    top: 12,
+                    left: 16,
+                    right: 16,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Caja principal de búsqueda
+                        Container(
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: colorTarjeta,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.12),
+                                blurRadius: 14,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: TextField(
+                            controller: _busquedaController,
+                            focusNode: _focusBusqueda,
+                            style: TextStyle(fontSize: 15, color: colorTexto),
+                            decoration: InputDecoration(
+                              hintText: 'Buscar lugares, huacachina, viñedos...',
+                              hintStyle: TextStyle(
+                                fontSize: 14,
+                                color: colorTextoSecundario,
+                              ),
+                              prefixIcon: const Icon(
+                                Icons.search,
+                                color: AppColores.naranjaBoton,
+                                size: 24,
+                              ),
+                              suffixIcon: _textoBusqueda.isNotEmpty
+                                  ? IconButton(
+                                      icon: const Icon(Icons.clear, size: 20),
+                                      color: colorTextoSecundario,
+                                      onPressed: () {
+                                        _busquedaController.clear();
+                                        setState(() {
+                                          _textoBusqueda = '';
+                                        });
+                                      },
+                                    )
+                                  : (_filtroActual != 'Todas'
+                                      ? Tooltip(
+                                          message: 'Filtro: $_filtroActual',
+                                          child: IconButton(
+                                            icon: const Icon(
+                                              Icons.filter_alt,
+                                              size: 20,
+                                              color: AppColores.naranjaBoton,
+                                            ),
+                                            onPressed: _mostrarFiltros,
+                                          ),
+                                        )
+                                      : null),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                            ),
+                            onSubmitted: (texto) {
+                              if (listaParaMostrar.isNotEmpty) {
+                                _seleccionarLugar(listaParaMostrar.first);
+                              }
+                            },
+                          ),
+                        ),
+
+                        // Lista desplegable de sugerencias rápidas al escribir
+                        if (_focusBusqueda.hasFocus && sugerencias.isNotEmpty)
+                          Container(
+                            margin: const EdgeInsets.only(top: 6),
+                            decoration: BoxDecoration(
+                              color: colorTarjeta,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.12),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              itemCount: sugerencias.length,
+                              separatorBuilder: (_, __) => Divider(
+                                height: 1,
+                                thickness: 0.5,
+                                color: colorTextoSecundario.withOpacity(0.2),
+                              ),
+                              itemBuilder: (context, idx) {
+                                final lugar = sugerencias[idx];
+                                return ListTile(
+                                  dense: true,
+                                  leading: const Icon(
+                                    Icons.place_outlined,
+                                    color: AppColores.naranjaBoton,
+                                    size: 22,
+                                  ),
+                                  title: Text(
+                                    lugar['titulo'],
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: colorTexto,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    '${lugar['subtitulo']} • ${lugar['categoria']}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: colorTextoSecundario,
+                                    ),
+                                  ),
+                                  trailing: const Icon(
+                                    Icons.north_west,
+                                    size: 16,
+                                    color: Colors.grey,
+                                  ),
+                                  onTap: () => _seleccionarLugar(lugar),
+                                );
+                              },
+                            ),
+                          ),
+
+                        // Aviso cuando no hay coincidencias con la búsqueda
+                        if (_textoBusqueda.isNotEmpty &&
+                            listaParaMostrar.isEmpty)
+                          Container(
+                            margin: const EdgeInsets.only(top: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: colorTarjeta,
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.08),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.search_off,
+                                  size: 18,
+                                  color: Colors.grey,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'No hay lugares con "$_textoBusqueda"',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: colorTextoSecundario,
+                                    ),
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () => _busquedaController.clear(),
+                                  child: const Text('Limpiar'),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+
+                  // Botón flotante para recentrar el mapa en Ica
+                  Positioned(
+                    right: 16,
+                    bottom: _seleccionada != null ? 150 : 20,
+                    child: FloatingActionButton.small(
+                      heroTag: 'btn_centrar_mapa',
+                      backgroundColor: colorTarjeta,
+                      foregroundColor: AppColores.naranjaBoton,
+                      elevation: 4,
+                      tooltip: 'Centrar vista de Ica',
+                      onPressed: _centrarMapaGeneral,
+                      child: const Icon(Icons.my_location),
+                    ),
+                  ),
+
+                  // Chip informativo de resultados activos cuando hay búsqueda o filtro
+                  if (_textoBusqueda.isNotEmpty || _filtroActual != 'Todas')
+                    Positioned(
+                      left: 16,
+                      bottom: _seleccionada != null ? 150 : 20,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: colorTarjeta.withOpacity(0.92),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.08),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.pin_drop,
+                              size: 14,
+                              color: AppColores.naranjaBoton,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '${listaParaMostrar.length} encontrados',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: colorTexto,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                  // Tarjeta inferior del lugar seleccionado
                   if (_seleccionada != null)
                     Positioned(
                       bottom: 20,
-                      left: 20,
-                      right: 20,
+                      left: 16,
+                      right: 16,
                       child: GestureDetector(
                         onTap: () {
                           Navigator.push(
@@ -248,46 +650,43 @@ class _PantallaMapaState extends State<PantallaMapa> {
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: colorTarjeta,
-                            borderRadius: BorderRadius.circular(15),
+                            borderRadius: BorderRadius.circular(18),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.1),
-                                blurRadius: 15,
-                                offset: const Offset(0, 5),
+                                color: Colors.black.withOpacity(0.15),
+                                blurRadius: 16,
+                                offset: const Offset(0, 6),
                               ),
                             ],
                           ),
                           child: Row(
                             children: [
                               ClipRRect(
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(12),
                                 child: Image.asset(
                                   _seleccionada!['imagen'],
-                                  width: 70,
-                                  height: 70,
+                                  width: 72,
+                                  height: 72,
                                   fit: BoxFit.cover,
                                   errorBuilder: (context, error, stackTrace) =>
                                       Container(
-                                        width: 70,
-                                        height: 70,
-                                        color: Colors.grey[300],
-                                        child: const Icon(
-                                          Icons.image,
-                                          color: Colors.grey,
-                                        ),
-                                      ),
+                                    width: 72,
+                                    height: 72,
+                                    color: Colors.grey[300],
+                                    child: const Icon(
+                                      Icons.image,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
                                 ),
                               ),
-                              const SizedBox(width: 15),
+                              const SizedBox(width: 14),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      _seleccionada!['titulo'].replaceAll(
-                                        '\n',
-                                        ' ',
-                                      ),
+                                      _seleccionada!['titulo'],
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 15,
@@ -295,27 +694,24 @@ class _PantallaMapaState extends State<PantallaMapa> {
                                       ),
                                     ),
                                     Text(
-                                      _seleccionada!['subtitulo'],
+                                      '${_seleccionada!['subtitulo']} • ${_seleccionada!['categoria']}',
                                       style: TextStyle(
-                                        fontSize: 13,
+                                        fontSize: 12,
                                         color: colorTextoSecundario,
                                       ),
                                     ),
-                                    const SizedBox(height: 4),
+                                    const SizedBox(height: 6),
                                     Row(
                                       children: [
                                         Container(
                                           padding: const EdgeInsets.symmetric(
-                                            horizontal: 6,
+                                            horizontal: 8,
                                             vertical: 2,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: Colors.green.withValues(
-                                              alpha: 0.1,
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              4,
-                                            ),
+                                            color: Colors.green.withOpacity(0.12),
+                                            borderRadius:
+                                                BorderRadius.circular(6),
                                           ),
                                           child: Text(
                                             _seleccionada!['condicion'],
@@ -340,10 +736,15 @@ class _PantallaMapaState extends State<PantallaMapa> {
                                   ],
                                 ),
                               ),
-                              Icon(
-                                Icons.arrow_forward_ios,
-                                size: 16,
+                              IconButton(
+                                tooltip: 'Cerrar tarjeta',
+                                icon: const Icon(Icons.close, size: 20),
                                 color: colorTextoSecundario,
+                                onPressed: () {
+                                  setState(() {
+                                    _seleccionada = null;
+                                  });
+                                },
                               ),
                             ],
                           ),
