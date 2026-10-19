@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../config/tema.dart';
 import '../config/favoritos_manager.dart';
+import 'pantalla_configurar_alertas.dart';
 
 class PantallaAlertas extends StatefulWidget {
   const PantallaAlertas({super.key});
@@ -106,7 +107,14 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
                       color: AppColores.marronOscuro,
                       size: 28,
                     ),
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PantallaConfigurarAlertas(),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
