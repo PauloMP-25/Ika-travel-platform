@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../config/tema.dart';
+import '../config/colores_tema.dart';
 import 'pantalla_detalle.dart';
 import 'pantalla_mas.dart';
 
@@ -88,9 +89,12 @@ class _PantallaMapaState extends State<PantallaMapa> {
   }
 
   void _mostrarFiltros() {
+    final colorFondo = TemaApp.tarjeta(context);
+    final colorTexto = TemaApp.texto(context);
+
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColores.arenaFondo,
+      backgroundColor: colorFondo,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
@@ -101,19 +105,19 @@ class _PantallaMapaState extends State<PantallaMapa> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Filtrar por categoría',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: AppColores.marronOscuro,
+                  color: colorTexto,
                 ),
               ),
               const SizedBox(height: 15),
-              _itemFiltro('Todas'),
-              _itemFiltro('Aventura'),
-              _itemFiltro('Naturaleza'),
-              _itemFiltro('Gastronomía'),
+              _itemFiltro('Todas', colorTexto),
+              _itemFiltro('Aventura', colorTexto),
+              _itemFiltro('Naturaleza', colorTexto),
+              _itemFiltro('Gastronomía', colorTexto),
               const SizedBox(height: 10),
             ],
           ),
@@ -122,10 +126,10 @@ class _PantallaMapaState extends State<PantallaMapa> {
     );
   }
 
-  Widget _itemFiltro(String titulo) {
+  Widget _itemFiltro(String titulo, Color colorTexto) {
     bool seleccionado = _filtroActual == titulo;
     return ListTile(
-      title: Text(titulo),
+      title: Text(titulo, style: TextStyle(color: colorTexto)),
       trailing: seleccionado
           ? const Icon(Icons.check, color: AppColores.naranjaBoton)
           : null,
@@ -143,23 +147,22 @@ class _PantallaMapaState extends State<PantallaMapa> {
   Widget build(BuildContext context) {
     final listaParaMostrar = _ubicacionesFiltradas;
 
+    final colorTexto = TemaApp.texto(context);
+    final colorTextoSecundario = TemaApp.textoSecundario(context);
+    final colorTarjeta = TemaApp.tarjeta(context);
+
     return Scaffold(
-      backgroundColor: AppColores.arenaFondo,
+      backgroundColor: TemaApp.fondo(context),
       body: SafeArea(
         child: Column(
           children: [
-            // 1. AppBar personalizado
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   IconButton(
-                    icon: const Icon(
-                      Icons.menu,
-                      color: AppColores.marronOscuro,
-                      size: 28,
-                    ),
+                    icon: Icon(Icons.menu, color: colorTexto, size: 28),
                     onPressed: () {
                       Navigator.push(
                         context,
@@ -169,27 +172,21 @@ class _PantallaMapaState extends State<PantallaMapa> {
                       );
                     },
                   ),
-                  const Text(
+                  Text(
                     'Mapa',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: AppColores.marronOscuro,
+                      color: colorTexto,
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(
-                      Icons.filter_list,
-                      color: AppColores.marronOscuro,
-                      size: 28,
-                    ),
+                    icon: Icon(Icons.filter_list, color: colorTexto, size: 28),
                     onPressed: _mostrarFiltros,
                   ),
                 ],
               ),
             ),
-
-            // 2. Mapa
             Expanded(
               child: Stack(
                 children: [
@@ -227,8 +224,6 @@ class _PantallaMapaState extends State<PantallaMapa> {
                       ),
                     ],
                   ),
-
-                  // 3. Tarjeta inferior flotante
                   if (_seleccionada != null)
                     Positioned(
                       bottom: 20,
@@ -252,7 +247,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: colorTarjeta,
                             borderRadius: BorderRadius.circular(15),
                             boxShadow: [
                               BoxShadow(
@@ -293,17 +288,17 @@ class _PantallaMapaState extends State<PantallaMapa> {
                                         '\n',
                                         ' ',
                                       ),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 15,
-                                        color: AppColores.marronOscuro,
+                                        color: colorTexto,
                                       ),
                                     ),
                                     Text(
                                       _seleccionada!['subtitulo'],
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 13,
-                                        color: AppColores.grisTexto,
+                                        color: colorTextoSecundario,
                                       ),
                                     ),
                                     const SizedBox(height: 4),
@@ -334,10 +329,10 @@ class _PantallaMapaState extends State<PantallaMapa> {
                                         const SizedBox(width: 8),
                                         Text(
                                           _seleccionada!['indice'],
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.bold,
-                                            color: AppColores.marronOscuro,
+                                            color: colorTexto,
                                           ),
                                         ),
                                       ],
@@ -345,10 +340,10 @@ class _PantallaMapaState extends State<PantallaMapa> {
                                   ],
                                 ),
                               ),
-                              const Icon(
+                              Icon(
                                 Icons.arrow_forward_ios,
                                 size: 16,
-                                color: AppColores.grisTexto,
+                                color: colorTextoSecundario,
                               ),
                             ],
                           ),

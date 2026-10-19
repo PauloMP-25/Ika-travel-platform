@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../config/tema.dart';
+import '../config/colores_tema.dart';
 
 class PantallaDetalleDia extends StatelessWidget {
   final String tituloActividad;
@@ -16,13 +17,16 @@ class PantallaDetalleDia extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorTexto = TemaApp.texto(context);
+    final colorTextoSecundario = TemaApp.textoSecundario(context);
+    final colorTarjeta = TemaApp.tarjeta(context);
+
     return Scaffold(
-      backgroundColor: AppColores.arenaFondo,
+      backgroundColor: TemaApp.fondo(context),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Imagen de la actividad con botón de atrás
             Stack(
               children: [
                 SizedBox(
@@ -36,7 +40,6 @@ class PantallaDetalleDia extends StatelessWidget {
                     },
                   ),
                 ),
-                // Degradado para que se lea el botón
                 Container(
                   height: 220,
                   decoration: BoxDecoration(
@@ -50,7 +53,6 @@ class PantallaDetalleDia extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Botón de atrás
                 SafeArea(
                   child: IconButton(
                     icon: const Icon(
@@ -63,53 +65,44 @@ class PantallaDetalleDia extends StatelessWidget {
                 ),
               ],
             ),
-
             const SizedBox(height: 20),
-
-            // 2. Título y fecha
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Detalle del Día',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: AppColores.marronOscuro,
+                      color: colorTexto,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     tituloActividad.replaceAll('\n', ' '),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: AppColores.marronOscuro,
+                      color: colorTexto,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     fecha,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColores.grisTexto,
-                    ),
+                    style: TextStyle(fontSize: 13, color: colorTextoSecundario),
                   ),
                 ],
               ),
             ),
-
             const SizedBox(height: 20),
-
-            // 3. Tarjeta "Excelente"
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: colorTarjeta,
                   borderRadius: BorderRadius.circular(15),
                   boxShadow: [
                     BoxShadow(
@@ -133,7 +126,7 @@ class PantallaDetalleDia extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 15),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -142,15 +135,15 @@ class PantallaDetalleDia extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: AppColores.marronOscuro,
+                              color: colorTexto,
                             ),
                           ),
-                          SizedBox(height: 4),
+                          const SizedBox(height: 4),
                           Text(
                             'Condiciones ideales para disfrutar esta actividad.',
                             style: TextStyle(
                               fontSize: 12,
-                              color: AppColores.grisTexto,
+                              color: colorTextoSecundario,
                             ),
                           ),
                         ],
@@ -160,28 +153,25 @@ class PantallaDetalleDia extends StatelessWidget {
                 ),
               ),
             ),
-
             const SizedBox(height: 25),
-
-            // 4. Resumen del plan
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Resumen del plan',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: AppColores.marronOscuro,
+                      color: colorTexto,
                     ),
                   ),
                   const SizedBox(height: 10),
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: colorTarjeta,
                       borderRadius: BorderRadius.circular(15),
                       boxShadow: [
                         BoxShadow(
@@ -193,26 +183,34 @@ class PantallaDetalleDia extends StatelessWidget {
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: const [
+                      children: [
                         _MiniFactor(
                           icono: Icons.thermostat,
                           valor: '28°C',
                           etiqueta: 'Temperatura',
+                          colorTexto: colorTexto,
+                          colorTextoSecundario: colorTextoSecundario,
                         ),
                         _MiniFactor(
                           icono: Icons.air,
                           valor: '15 km/h',
                           etiqueta: 'Viento',
+                          colorTexto: colorTexto,
+                          colorTextoSecundario: colorTextoSecundario,
                         ),
                         _MiniFactor(
                           icono: Icons.cloud_outlined,
                           valor: '10%',
                           etiqueta: 'Nubosidad',
+                          colorTexto: colorTexto,
+                          colorTextoSecundario: colorTextoSecundario,
                         ),
                         _MiniFactor(
                           icono: Icons.water_drop_outlined,
                           valor: '0%',
                           etiqueta: 'Lluvia',
+                          colorTexto: colorTexto,
+                          colorTextoSecundario: colorTextoSecundario,
                         ),
                       ],
                     ),
@@ -220,28 +218,25 @@ class PantallaDetalleDia extends StatelessWidget {
                 ],
               ),
             ),
-
             const SizedBox(height: 25),
-
-            // 5. Índice de condición
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Índice de condición',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: AppColores.marronOscuro,
+                      color: colorTexto,
                     ),
                   ),
                   const SizedBox(height: 10),
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: colorTarjeta,
                       borderRadius: BorderRadius.circular(15),
                       boxShadow: [
                         BoxShadow(
@@ -253,13 +248,14 @@ class PantallaDetalleDia extends StatelessWidget {
                     ),
                     child: Column(
                       children: [
-                        // Barra de progreso
                         ClipRRect(
                           borderRadius: BorderRadius.circular(10),
                           child: LinearProgressIndicator(
-                            value: 0.92, // 92%
+                            value: 0.92,
                             minHeight: 12,
-                            backgroundColor: Colors.grey[200],
+                            backgroundColor: colorTextoSecundario.withOpacity(
+                              0.2,
+                            ),
                             valueColor: const AlwaysStoppedAnimation<Color>(
                               AppColores.naranjaBoton,
                             ),
@@ -268,19 +264,19 @@ class PantallaDetalleDia extends StatelessWidget {
                         const SizedBox(height: 10),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: const [
+                          children: [
                             Text(
                               '0',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: AppColores.grisTexto,
+                                color: colorTextoSecundario,
                               ),
                             ),
                             Text(
                               '100',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: AppColores.grisTexto,
+                                color: colorTextoSecundario,
                               ),
                             ),
                           ],
@@ -288,8 +284,8 @@ class PantallaDetalleDia extends StatelessWidget {
                         const SizedBox(height: 15),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Text(
+                          children: [
+                            const Text(
                               '92',
                               style: TextStyle(
                                 fontSize: 36,
@@ -297,13 +293,13 @@ class PantallaDetalleDia extends StatelessWidget {
                                 color: AppColores.naranjaBoton,
                               ),
                             ),
-                            SizedBox(width: 10),
+                            const SizedBox(width: 10),
                             Text(
                               'Excelente',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: AppColores.marronOscuro,
+                                color: colorTexto,
                               ),
                             ),
                           ],
@@ -314,7 +310,6 @@ class PantallaDetalleDia extends StatelessWidget {
                 ],
               ),
             ),
-
             const SizedBox(height: 30),
           ],
         ),
@@ -323,16 +318,19 @@ class PantallaDetalleDia extends StatelessWidget {
   }
 }
 
-// Widget para cada mini factor del resumen
 class _MiniFactor extends StatelessWidget {
   final IconData icono;
   final String valor;
   final String etiqueta;
+  final Color colorTexto;
+  final Color colorTextoSecundario;
 
   const _MiniFactor({
     required this.icono,
     required this.valor,
     required this.etiqueta,
+    required this.colorTexto,
+    required this.colorTextoSecundario,
   });
 
   @override
@@ -343,15 +341,15 @@ class _MiniFactor extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           valor,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.bold,
-            color: AppColores.marronOscuro,
+            color: colorTexto,
           ),
         ),
         Text(
           etiqueta,
-          style: const TextStyle(fontSize: 10, color: AppColores.grisTexto),
+          style: TextStyle(fontSize: 10, color: colorTextoSecundario),
         ),
       ],
     );

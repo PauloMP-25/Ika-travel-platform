@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../config/tema.dart';
+import '../config/idioma_manager.dart'; // 👈 Nuevo
+import '../config/traducciones.dart'; // 👈 Nuevo
 import 'pantalla_inicio.dart';
 import 'pantalla_actividades.dart';
 import 'pantalla_pronostico.dart';
@@ -34,44 +36,53 @@ class _MainScaffoldState extends State<MainScaffold> {
       const PantallaFavoritos(),
     ];
 
-    return Scaffold(
-      body: IndexedStack(index: _indiceActual, children: pantallas),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: AppColores.naranjaBoton,
-        unselectedItemColor: Colors.grey,
-        currentIndex: _indiceActual,
-        onTap: _cambiarPestana,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
-            label: 'Inicio',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.grid_view_outlined),
-            activeIcon: Icon(Icons.grid_view),
-            label: 'Actividades',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.location_on_outlined),
-            activeIcon: Icon(Icons.location_on),
-            label: 'Mapa',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.wb_cloudy_outlined),
-            activeIcon: Icon(Icons.wb_cloudy),
-            label: 'Pronóstico',
-          ),
+    // 👇 Escuchamos el idioma actual para traducir los textos
+    return ValueListenableBuilder<Locale>(
+      valueListenable: idiomaActivo,
+      builder: (context, locale, child) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
 
-          BottomNavigationBarItem(
-            icon: Icon(Icons.favorite_border),
-            activeIcon: Icon(Icons.favorite),
-            label: 'Favoritos',
+        return Scaffold(
+          body: IndexedStack(index: _indiceActual, children: pantallas),
+          bottomNavigationBar: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
+            backgroundColor: isDark
+                ? const Color(0xFF2C2C2C)
+                : Colors.white, // 👈 Se adapta al modo oscuro
+            selectedItemColor: AppColores.naranjaBoton,
+            unselectedItemColor: Colors.grey,
+            currentIndex: _indiceActual,
+            onTap: _cambiarPestana,
+            items: [
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.home_outlined),
+                activeIcon: const Icon(Icons.home),
+                label: Traducciones.get('inicio', locale), // 👈 Traducido
+              ),
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.grid_view_outlined),
+                activeIcon: const Icon(Icons.grid_view),
+                label: Traducciones.get('actividades', locale), // 👈 Traducido
+              ),
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.location_on_outlined),
+                activeIcon: const Icon(Icons.location_on),
+                label: Traducciones.get('mapa', locale), // 👈 Traducido
+              ),
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.wb_cloudy_outlined),
+                activeIcon: const Icon(Icons.wb_cloudy),
+                label: Traducciones.get('pronostico', locale), // 👈 Traducido
+              ),
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.favorite_border),
+                activeIcon: const Icon(Icons.favorite),
+                label: Traducciones.get('favoritos', locale), // 👈 Traducido
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

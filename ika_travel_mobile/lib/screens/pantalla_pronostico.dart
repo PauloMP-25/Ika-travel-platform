@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../config/tema.dart';
+import '../config/colores_tema.dart';
+import '../services/weather_service.dart';
 
 class PantallaPronostico extends StatefulWidget {
   const PantallaPronostico({super.key});
@@ -10,135 +12,158 @@ class PantallaPronostico extends StatefulWidget {
 }
 
 class _PantallaPronosticoState extends State<PantallaPronostico> {
-  // Opción seleccionada (0 = Hoy, 1 = Mañana, 2 = 7 días)
   int _opcionSeleccionada = 0;
+  bool _cargando = true;
 
-  // Datos de HOY
-  final Map<String, dynamic> _datosHoy = {
-    'tempActual': '26°C',
-    'condicion': 'Soleado',
-    'tempMax': '27°C',
-    'tempMin': '16°C',
-    'iconoPrincipal': Icons.wb_sunny,
-    'viento': '12 km/h',
-    'humedad': '48%',
-    'lluvia': '8%',
-    'uv': 'Alto',
-    'porHoras': [
-      {'hora': '08:00', 'icono': Icons.wb_sunny, 'grados': '20°'},
-      {'hora': '11:00', 'icono': Icons.wb_sunny, 'grados': '25°'},
-      {'hora': '14:00', 'icono': Icons.wb_cloudy, 'grados': '25°'},
-      {'hora': '17:00', 'icono': Icons.air, 'grados': '22°'},
-      {'hora': '20:00', 'icono': Icons.nightlight_round, 'grados': '19°'},
-    ],
-  };
+  Map<String, dynamic>? _datosPronostico;
+  Map<String, dynamic>? _datosClimaActual;
 
-  // Datos de MAÑANA
-  final Map<String, dynamic> _datosManana = {
-    'tempActual': '22°C',
-    'condicion': 'Parcialmente nublado',
-    'tempMax': '24°C',
-    'tempMin': '14°C',
-    'iconoPrincipal': Icons.wb_cloudy,
-    'viento': '20 km/h',
-    'humedad': '60%',
-    'lluvia': '15%',
-    'uv': 'Moderado',
-    'porHoras': [
-      {'hora': '08:00', 'icono': Icons.cloud, 'grados': '16°'},
-      {'hora': '11:00', 'icono': Icons.wb_cloudy, 'grados': '20°'},
-      {'hora': '14:00', 'icono': Icons.wb_sunny, 'grados': '23°'},
-      {'hora': '17:00', 'icono': Icons.cloud, 'grados': '18°'},
-      {'hora': '20:00', 'icono': Icons.nightlight_round, 'grados': '15°'},
-    ],
-  };
+  @override
+  void initState() {
+    super.initState();
+    _cargarTodo();
+  }
 
-  final Map<String, dynamic> _datos7Dias = {
-    'tempActual': '24°C',
-    'condicion': 'Variable',
-    'tempMax': '27°C',
-    'tempMin': '15°C',
-    'iconoPrincipal': Icons.wb_cloudy,
-    'viento': '15 km/h',
-    'humedad': '55%',
-    'lluvia': '10%',
-    'uv': 'Moderado',
-    'porHoras': [
-      // Usamos la lista horizontal para mostrar los días de la semana
-      {'hora': 'Lunes', 'icono': Icons.wb_sunny, 'grados': '27°'},
-      {'hora': 'Martes', 'icono': Icons.wb_cloudy, 'grados': '25°'},
-      {'hora': 'Miércoles', 'icono': Icons.wb_sunny, 'grados': '28°'},
-      {'hora': 'Jueves', 'icono': Icons.air, 'grados': '22°'},
-      {'hora': 'Viernes', 'icono': Icons.cloud, 'grados': '21°'},
-      {'hora': 'Sábado', 'icono': Icons.wb_sunny, 'grados': '26°'},
-      {'hora': 'Domingo', 'icono': Icons.wb_sunny, 'grados': '29°'},
-    ],
-  };
+  Future<void> _cargarTodo() async {
+    final weather = WeatherService();
+    final pronostico = await weather.obtenerPronostico();
+    final actual = await weather.obtenerClimaActual();
+    setState(() {
+      _datosPronostico = pronostico;
+      _datosClimaActual = actual;
+      _cargando = false;
+    });
+  }
 
-  Map<String, dynamic> get _datosActuales {
-    if (_opcionSeleccionada == 0) return _datosHoy;
-    if (_opcionSeleccionada == 1) return _datosManana;
-    return _datos7Dias;
+  Map<String, dynamic> _getDatosActuales() {
+    if (_datosPronostico == null || _datosClimaActual == null) {
+      return {};
+    }
+
+    final horas = (_datosPronostico!['horas'] as List?) ?? [];
+    final dias = (_datosPronostico!['dias'] as List?) ?? [];
+
+    String tempActual = '--';
+    String condicion = '--';
+    String tempMax = '--';
+    String tempMin = '--';
+
+    if (_datosClimaActual != null) {
+      // 👇 REDONDEAMOS LA TEMPERATURA ACTUAL
+      tempActual =
+          '${(_datosClimaActual!['temperatura_actual'] as num).round()}°C';
+      condicion = _datosClimaActual!['descripcion_clima'] ?? '--';
+    }
+
+    if (dias.isNotEmpty) {
+      // 👇 REDONDEAMOS LAS MÁXIMAS Y MÍNIMAS
+      tempMax = '${(dias[0]['temp_max'] as num).round()}°C';
+      tempMin = '${(dias[0]['temp_min'] as num).round()}°C';
+    }
+
+    List<dynamic> horasFiltradas = [];
+    if (_opcionSeleccionada == 0) {
+      horasFiltradas = horas.take(8).toList();
+    } else if (_opcionSeleccionada == 1) {
+      horasFiltradas = horas.skip(8).take(8).toList();
+    } else {
+      horasFiltradas = dias.map((dia) {
+        return {
+          'time': dia['date'],
+          'temperature': dia['temp_max'],
+          'condition': dia['condition'],
+          'uv_index': dia['uv_index_max'],
+          'wind_speed': dia['wind_speed_max'],
+          'precipitation_probability': dia['precipitation_probability_max'],
+        };
+      }).toList();
+    }
+
+    return {
+      'tempActual': tempActual,
+      'condicion': condicion,
+      'tempMax': tempMax,
+      'tempMin': tempMin,
+      // 👇 REDONDEAMOS EL VIENTO, HUMEDAD Y UV
+      'viento':
+          '${(_datosClimaActual!['velocidad_viento'] as num).round()} km/h',
+      'humedad': '${(_datosClimaActual!['humedad'] as num).round()}%',
+      'uv': '${(_datosClimaActual!['indice_uv'] as num).round()}',
+      'porHoras': horasFiltradas,
+    };
   }
 
   @override
   Widget build(BuildContext context) {
-    final data = _datosActuales; // Obtenemos los datos actuales
+    if (_cargando) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final data = _getDatosActuales();
+    final colorTexto = TemaApp.texto(context);
+    final colorTextoSecundario = TemaApp.textoSecundario(context);
+    final colorTarjeta = TemaApp.tarjeta(context);
+
+    if (data.isEmpty) {
+      return Scaffold(
+        backgroundColor: TemaApp.fondo(context),
+        body: Center(
+          child: Text(
+            'Error al cargar el pronóstico',
+            style: TextStyle(color: colorTexto),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
-      backgroundColor: AppColores.arenaFondo,
+      backgroundColor: TemaApp.fondo(context),
       body: SafeArea(
         child: Column(
           children: [
-            // 1. Título
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
               child: Column(
-                children: const [
+                children: [
                   Text(
                     'Pronóstico general',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: AppColores.marronOscuro,
+                      color: colorTexto,
                     ),
                   ),
                   Text(
                     'Ica',
-                    style: TextStyle(fontSize: 14, color: AppColores.grisTexto),
+                    style: TextStyle(fontSize: 14, color: colorTextoSecundario),
                   ),
                 ],
               ),
             ),
-
-            // 2. Selector de pestañas (Hoy, Mañana, 7 días)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Container(
                 height: 45,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: colorTarjeta,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
-                    _botonToggle('Hoy', 0),
-                    _botonToggle('Mañana', 1),
-                    _botonToggle('7 días', 2),
+                    _botonToggle('Hoy', 0, colorTexto, colorTextoSecundario),
+                    _botonToggle('Mañana', 1, colorTexto, colorTextoSecundario),
+                    _botonToggle('7 días', 2, colorTexto, colorTextoSecundario),
                   ],
                 ),
               ),
             ),
-
             const SizedBox(height: 20),
-
-            // 3. Tarjeta principal del clima (DINÁMICA)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: colorTarjeta,
                   borderRadius: BorderRadius.circular(15),
                   boxShadow: [
                     BoxShadow(
@@ -153,8 +178,8 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
                   children: [
                     Row(
                       children: [
-                        Icon(
-                          data['iconoPrincipal'],
+                        const Icon(
+                          Icons.wb_sunny,
                           size: 50,
                           color: Colors.orange,
                         ),
@@ -164,17 +189,17 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
                           children: [
                             Text(
                               data['tempActual'],
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 32,
                                 fontWeight: FontWeight.bold,
-                                color: AppColores.marronOscuro,
+                                color: colorTexto,
                               ),
                             ),
                             Text(
                               data['condicion'],
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
-                                color: AppColores.grisTexto,
+                                color: colorTextoSecundario,
                               ),
                             ),
                           ],
@@ -186,17 +211,17 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
                       children: [
                         Text(
                           'Máx. ${data['tempMax']}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: AppColores.grisTexto,
+                            color: colorTextoSecundario,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           'Mín. ${data['tempMin']}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: AppColores.grisTexto,
+                            color: colorTextoSecundario,
                           ),
                         ),
                       ],
@@ -205,16 +230,13 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
                 ),
               ),
             ),
-
             const SizedBox(height: 15),
-
-            // 4. Fila de 4 íconos (DINÁMICA)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: colorTarjeta,
                   borderRadius: BorderRadius.circular(15),
                   boxShadow: [
                     BoxShadow(
@@ -231,30 +253,35 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
                       icono: Icons.air,
                       valor: data['viento'],
                       etiqueta: 'Viento',
+                      colorTexto: colorTexto,
+                      colorTextoSecundario: colorTextoSecundario,
                     ),
                     _MiniFactor(
                       icono: Icons.water_drop,
                       valor: data['humedad'],
                       etiqueta: 'Humedad',
+                      colorTexto: colorTexto,
+                      colorTextoSecundario: colorTextoSecundario,
                     ),
                     _MiniFactor(
                       icono: Icons.water_drop_outlined,
-                      valor: data['lluvia'],
+                      valor: '0%',
                       etiqueta: 'Lluvia',
+                      colorTexto: colorTexto,
+                      colorTextoSecundario: colorTextoSecundario,
                     ),
                     _MiniFactor(
                       icono: Icons.wb_sunny,
                       valor: data['uv'],
                       etiqueta: 'UV',
+                      colorTexto: colorTexto,
+                      colorTextoSecundario: colorTextoSecundario,
                     ),
                   ],
                 ),
               ),
             ),
-
             const SizedBox(height: 25),
-
-            // 5. Sección "Por horas" (DINÁMICA)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Align(
@@ -264,10 +291,10 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
                   children: [
                     Text(
                       _opcionSeleccionada == 2 ? 'Próximos días' : 'Por horas',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: AppColores.marronOscuro,
+                        color: colorTexto,
                       ),
                     ),
                     const SizedBox(height: 15),
@@ -278,10 +305,23 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
                         itemCount: (data['porHoras'] as List).length,
                         itemBuilder: (context, index) {
                           final item = data['porHoras'][index];
+                          String horaFormateada = '--';
+                          if (item['time'] != null) {
+                            final date = DateTime.parse(item['time']);
+                            if (_opcionSeleccionada == 2) {
+                              horaFormateada = '${date.day}/${date.month}';
+                            } else {
+                              horaFormateada =
+                                  '${date.hour.toString().padLeft(2, '0')}:00';
+                            }
+                          }
                           return _HoraItem(
-                            hora: item['hora'],
-                            icono: item['icono'],
-                            grados: item['grados'],
+                            hora: horaFormateada,
+                            icono: Icons.wb_sunny,
+                            // 👇 REDONDEAMOS LA TEMPERATURA POR HORAS
+                            grados: '${(item['temperature'] as num).round()}°',
+                            colorTexto: colorTexto,
+                            colorTextoSecundario: colorTextoSecundario,
                           );
                         },
                       ),
@@ -296,15 +336,16 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
     );
   }
 
-  Widget _botonToggle(String texto, int index) {
+  Widget _botonToggle(
+    String texto,
+    int index,
+    Color colorTexto,
+    Color colorTextoSecundario,
+  ) {
     final bool activo = _opcionSeleccionada == index;
     return Expanded(
       child: GestureDetector(
-        onTap: () {
-          setState(() {
-            _opcionSeleccionada = index;
-          });
-        },
+        onTap: () => setState(() => _opcionSeleccionada = index),
         child: Container(
           margin: const EdgeInsets.all(4),
           decoration: BoxDecoration(
@@ -315,7 +356,7 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
             child: Text(
               texto,
               style: TextStyle(
-                color: activo ? Colors.white : AppColores.grisTexto,
+                color: activo ? Colors.white : colorTextoSecundario,
                 fontWeight: activo ? FontWeight.bold : FontWeight.normal,
               ),
             ),
@@ -330,29 +371,33 @@ class _MiniFactor extends StatelessWidget {
   final IconData icono;
   final String valor;
   final String etiqueta;
+  final Color colorTexto;
+  final Color colorTextoSecundario;
 
   const _MiniFactor({
     required this.icono,
     required this.valor,
     required this.etiqueta,
+    required this.colorTexto,
+    required this.colorTextoSecundario,
   });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Icon(icono, color: AppColores.grisTexto, size: 22),
+        Icon(icono, color: colorTextoSecundario, size: 22),
         const SizedBox(height: 5),
         Text(
           etiqueta,
-          style: const TextStyle(fontSize: 10, color: AppColores.grisTexto),
+          style: TextStyle(fontSize: 10, color: colorTextoSecundario),
         ),
         Text(
           valor,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,
-            color: AppColores.marronOscuro,
+            color: colorTexto,
           ),
         ),
       ],
@@ -364,11 +409,15 @@ class _HoraItem extends StatelessWidget {
   final String hora;
   final IconData icono;
   final String grados;
+  final Color colorTexto;
+  final Color colorTextoSecundario;
 
   const _HoraItem({
     required this.hora,
     required this.icono,
     required this.grados,
+    required this.colorTexto,
+    required this.colorTextoSecundario,
   });
 
   @override
@@ -379,17 +428,17 @@ class _HoraItem extends StatelessWidget {
         children: [
           Text(
             hora,
-            style: const TextStyle(fontSize: 12, color: AppColores.grisTexto),
+            style: TextStyle(fontSize: 12, color: colorTextoSecundario),
           ),
           const SizedBox(height: 8),
-          Icon(icono, color: AppColores.marronOscuro, size: 20),
+          Icon(icono, color: colorTexto, size: 20),
           const SizedBox(height: 8),
           Text(
             grados,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: AppColores.marronOscuro,
+              color: colorTexto,
             ),
           ),
         ],

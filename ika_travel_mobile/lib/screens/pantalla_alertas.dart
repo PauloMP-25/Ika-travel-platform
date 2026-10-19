@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../config/tema.dart';
+import '../config/colores_tema.dart';
 import '../config/favoritos_manager.dart';
 
 class PantallaAlertas extends StatefulWidget {
@@ -13,7 +14,6 @@ class PantallaAlertas extends StatefulWidget {
 class _PantallaAlertasState extends State<PantallaAlertas> {
   int _opcionSeleccionada = 0;
 
-  // 1. Alertas activas por actividad (simulando backend)
   final Map<String, List<Map<String, dynamic>>> _alertasPorActividad = {
     'Sandboarding\nen Huacachina': [
       {
@@ -53,7 +53,6 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
     ],
   };
 
-  // 2. Historial de alertas (datos fijos de ejemplo)
   final List<Map<String, dynamic>> _historial = [
     {
       'titulo': 'Viento fuerte en Paracas',
@@ -73,37 +72,35 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
 
   @override
   Widget build(BuildContext context) {
+    final colorTexto = TemaApp.texto(context);
+    final colorTarjeta = TemaApp.tarjeta(context);
+
     return Scaffold(
-      backgroundColor: AppColores.arenaFondo,
+      backgroundColor: TemaApp.fondo(context),
       body: SafeArea(
         child: Column(
           children: [
-            // AppBar
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   IconButton(
-                    icon: const Icon(
-                      Icons.arrow_back,
-                      color: AppColores.marronOscuro,
-                      size: 28,
-                    ),
+                    icon: Icon(Icons.arrow_back, color: colorTexto, size: 28),
                     onPressed: () => Navigator.pop(context),
                   ),
-                  const Text(
+                  Text(
                     'Alertas',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: AppColores.marronOscuro,
+                      color: colorTexto,
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.settings_outlined,
-                      color: AppColores.marronOscuro,
+                      color: colorTexto,
                       size: 28,
                     ),
                     onPressed: () {},
@@ -111,28 +108,23 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
                 ],
               ),
             ),
-
-            // Selector de pestañas
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Container(
                 height: 45,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: colorTarjeta,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
-                    _botonToggle('Alertas', 0),
-                    _botonToggle('Historial', 1),
+                    _botonToggle('Alertas', 0, colorTexto),
+                    _botonToggle('Historial', 1, colorTexto),
                   ],
                 ),
               ),
             ),
-
             const SizedBox(height: 20),
-
-            // Contenido según la pestaña seleccionada
             Expanded(
               child: _opcionSeleccionada == 0
                   ? _buildAlertasActivas()
@@ -145,24 +137,26 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
   }
 
   Widget _buildAlertasActivas() {
+    final colorTextoSecundario = TemaApp.textoSecundario(context);
+
     return ValueListenableBuilder(
       valueListenable: listaFavoritos,
       builder: (context, favoritos, child) {
         if (favoritos.isEmpty) {
-          return const Center(
+          return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
+                const Icon(
                   Icons.notifications_off_outlined,
                   size: 60,
                   color: Colors.grey,
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 Text(
                   'Agrega actividades a favoritos\npara recibir sus alertas.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColores.grisTexto, fontSize: 16),
+                  style: TextStyle(color: colorTextoSecundario, fontSize: 16),
                 ),
               ],
             ),
@@ -178,10 +172,10 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
         }
 
         if (alertasAMostrar.isEmpty) {
-          return const Center(
+          return Center(
             child: Text(
               'No hay alertas activas para tus favoritos.',
-              style: TextStyle(color: AppColores.grisTexto, fontSize: 16),
+              style: TextStyle(color: colorTextoSecundario, fontSize: 16),
             ),
           );
         }
@@ -196,6 +190,10 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
   }
 
   Widget _construirLista(List<Map<String, dynamic>> lista) {
+    final colorTexto = TemaApp.texto(context);
+    final colorTextoSecundario = TemaApp.textoSecundario(context);
+    final colorTarjeta = TemaApp.tarjeta(context);
+
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       itemCount: lista.length,
@@ -205,7 +203,7 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: colorTarjeta,
             borderRadius: BorderRadius.circular(15),
             boxShadow: [
               BoxShadow(
@@ -226,26 +224,23 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
                   children: [
                     Text(
                       alerta['titulo'],
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
-                        color: AppColores.marronOscuro,
+                        color: colorTexto,
                       ),
                     ),
                     Text(
                       alerta['fecha'],
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppColores.grisTexto,
+                        color: colorTextoSecundario,
                       ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       alerta['descripcion'],
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColores.marronOscuro,
-                      ),
+                      style: TextStyle(fontSize: 13, color: colorTexto),
                     ),
                   ],
                 ),
@@ -257,8 +252,10 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
     );
   }
 
-  Widget _botonToggle(String texto, int index) {
+  Widget _botonToggle(String texto, int index, Color colorTexto) {
     final bool activo = _opcionSeleccionada == index;
+    final colorTextoSecundario = TemaApp.textoSecundario(context);
+
     return Expanded(
       child: GestureDetector(
         onTap: () {
@@ -276,7 +273,7 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
             child: Text(
               texto,
               style: TextStyle(
-                color: activo ? Colors.white : AppColores.grisTexto,
+                color: activo ? Colors.white : colorTextoSecundario,
                 fontWeight: activo ? FontWeight.bold : FontWeight.normal,
               ),
             ),
