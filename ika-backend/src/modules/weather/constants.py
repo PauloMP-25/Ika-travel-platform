@@ -6,6 +6,13 @@ from dataclasses import dataclass
 
 # Coordenadas oficiales de destinos turísticos piloto
 DESTINOS_ICA: dict[str, tuple[float, float]] = {
+    "plaza de armas de pisco": (-13.7103, -76.2053),
+    "plaza de armas de chincha": (-13.4172, -76.1325),
+    "playa la mina": (-13.9167, -76.3167),
+    "playa roja": (-13.8867, -76.2872),
+    "playa el chaco": (-13.8322, -76.2483),
+    "playa hermosa de marcona": (-15.3583, -75.1750),
+
     "huacachina": (-14.0873, -75.7637),
     "islas ballestas": (-13.8167, -76.2833),
     "reserva nacional de paracas": (-13.8333, -76.2500),
