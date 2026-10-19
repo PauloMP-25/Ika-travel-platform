@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../config/tema.dart';
+import '../widgets/dialogo_configuracion_alertas.dart';
 import 'pantalla_favoritos.dart';
 import 'pantalla_alertas.dart';
+import 'pantalla_planer.dart';
+import 'pantalla_seguimiento_destino.dart';
+import 'pantalla_sos.dart';
 
 class PantallaMas extends StatelessWidget {
   const PantallaMas({super.key});
@@ -15,7 +19,7 @@ class PantallaMas extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 👇 FILA CON FLECHA DE ATRÁS Y TÍTULO
+            // FILA CON FLECHA DE ATRÁS Y TÍTULO
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
@@ -30,7 +34,7 @@ class PantallaMas extends StatelessWidget {
                   ),
                   const Expanded(
                     child: Text(
-                      'Más',
+                      'Más Opciones',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 20,
@@ -49,6 +53,100 @@ class PantallaMas extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 children: [
+                  // Acceso a Planificador de Viajes
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF4A3B32), Color(0xFF6D5547)],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ),
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF4A3B32).withValues(alpha: 0.3),
+                          blurRadius: 6,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: ListTile(
+                      leading: const Icon(Icons.route, color: Colors.white, size: 28),
+                      title: const Text(
+                        'Planificador de Viajes',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      subtitle: const Text(
+                        'Rutas personalizadas con tiempo y distancia',
+                        style: TextStyle(fontSize: 12, color: Colors.white70),
+                      ),
+                      trailing: const Icon(
+                        Icons.arrow_forward_ios,
+                        size: 16,
+                        color: Colors.white,
+                      ),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PantallaPlaner(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  // Acceso a SOS
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFD32F2F), Color(0xFFB71C1C)],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ),
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFD32F2F).withValues(alpha: 0.3),
+                          blurRadius: 6,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: ListTile(
+                      leading: const Icon(Icons.shield, color: Colors.white, size: 28),
+                      title: const Text(
+                        'Asistencia y Emergencia SOS',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      subtitle: const Text(
+                        'Alertas con ubicación y contactos de confianza',
+                        style: TextStyle(fontSize: 12, color: Colors.white70),
+                      ),
+                      trailing: const Icon(
+                        Icons.arrow_forward_ios,
+                        size: 16,
+                        color: Colors.white,
+                      ),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PantallaSos(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                   _itemMenu(
                     context,
                     icono: Icons.favorite_border,
@@ -65,12 +163,26 @@ class PantallaMas extends StatelessWidget {
                   _itemMenu(
                     context,
                     icono: Icons.notifications_none,
-                    titulo: 'Mis Alertas',
+                    titulo: 'Mis Alertas Inteligentes',
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => const PantallaAlertas(),
+                        ),
+                      );
+                    },
+                  ),
+                  _itemMenu(
+                    context,
+                    icono: Icons.timeline,
+                    titulo: 'Seguimiento de Destinos',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const PantallaSeguimientoDestino(),
                         ),
                       );
                     },
@@ -97,14 +209,20 @@ class PantallaMas extends StatelessWidget {
                   _itemMenu(
                     context,
                     icono: Icons.info_outline,
-                    titulo: 'Sobre la app',
+                    titulo: 'Sobre la app Ika Travel',
                     onTap: () {},
                   ),
                   _itemMenu(
                     context,
                     icono: Icons.settings_outlined,
-                    titulo: 'Configuración',
-                    onTap: () {},
+                    titulo: 'Configuración de alertas',
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) =>
+                            const DialogoConfiguracionAlertas(),
+                      );
+                    },
                   ),
                   _itemMenu(
                     context,
@@ -118,6 +236,7 @@ class PantallaMas extends StatelessWidget {
                     titulo: 'Contacto o ayuda',
                     onTap: () {},
                   ),
+                  const SizedBox(height: 30),
                 ],
               ),
             ),
@@ -133,19 +252,29 @@ class PantallaMas extends StatelessWidget {
     required String titulo,
     required VoidCallback onTap,
   }) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
-      leading: Icon(icono, color: AppColores.marronOscuro),
-      title: Text(
-        titulo,
-        style: const TextStyle(fontSize: 15, color: AppColores.marronOscuro),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
       ),
-      trailing: const Icon(
-        Icons.arrow_forward_ios,
-        size: 16,
-        color: AppColores.grisTexto,
+      child: ListTile(
+        leading: Icon(icono, color: AppColores.marronOscuro),
+        title: Text(
+          titulo,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: AppColores.marronOscuro,
+          ),
+        ),
+        trailing: const Icon(
+          Icons.arrow_forward_ios,
+          size: 16,
+          color: AppColores.grisTexto,
+        ),
+        onTap: onTap,
       ),
-      onTap: onTap,
     );
   }
 }

@@ -44,7 +44,7 @@ class PantallaDetalleDia extends StatelessWidget {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Colors.black.withOpacity(0.5),
+                        Colors.black.withValues(alpha: 0.5),
                         Colors.transparent,
                       ],
                     ),
@@ -113,7 +113,7 @@ class PantallaDetalleDia extends StatelessWidget {
                   borderRadius: BorderRadius.circular(15),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 8,
                       offset: const Offset(0, 4),
                     ),
@@ -185,7 +185,7 @@ class PantallaDetalleDia extends StatelessWidget {
                       borderRadius: BorderRadius.circular(15),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withValues(alpha: 0.05),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
@@ -245,7 +245,7 @@ class PantallaDetalleDia extends StatelessWidget {
                       borderRadius: BorderRadius.circular(15),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withValues(alpha: 0.05),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),

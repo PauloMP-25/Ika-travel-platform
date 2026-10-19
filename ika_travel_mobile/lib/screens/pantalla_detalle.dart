@@ -2,7 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../config/tema.dart';
 import '../config/favoritos_manager.dart';
+import '../services/alertas_service.dart';
+import '../models/alerta_modelo.dart';
+import '../models/horario_modelo.dart';
+import '../widgets/tarjeta_horarios_atencion.dart';
 import 'pantalla_detalle_dia.dart';
+import 'pantalla_detalle_alerta.dart';
+import 'pantalla_seguimiento_destino.dart';
 
 class PantallaDetalle extends StatefulWidget {
   final String titulo;
@@ -21,8 +27,22 @@ class PantallaDetalle extends StatefulWidget {
 }
 
 class _PantallaDetalleState extends State<PantallaDetalle> {
-  // Eliminamos _esFavorito local
   int _paginaActual = 0;
+  final AlertasService _alertasService = AlertasService();
+
+  HorarioAtencion _obtenerHorarioActividad(String titulo) {
+    final t = titulo.toLowerCase();
+    if (t.contains('sand') || t.contains('huacachina') || t.contains('buggy')) {
+      return HorarioAtencion.paraHuacachina();
+    } else if (t.contains('ballesta')) {
+      return HorarioAtencion.paraIslasBallestas();
+    } else if (t.contains('reserva')) {
+      return HorarioAtencion.paraReservaParacas();
+    } else if (t.contains('vino') || t.contains('bodega')) {
+      return HorarioAtencion.paraVinedos();
+    }
+    return HorarioAtencion.noConfirmado();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -82,9 +102,9 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            Colors.black.withOpacity(0.5),
+                            Colors.black.withValues(alpha: 0.5),
                             Colors.transparent,
-                            Colors.black.withOpacity(0.7),
+                            Colors.black.withValues(alpha: 0.7),
                           ],
                           stops: const [0.0, 0.5, 1.0],
                         ),
@@ -111,31 +131,55 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                             onPressed: () => Navigator.pop(context),
                           ),
 
-                          // 👇 BOTÓN DE FAVORITO CONECTADO AL MANAGER GLOBAL
-                          ValueListenableBuilder(
-                            valueListenable: listaFavoritos,
-                            builder: (context, favoritos, child) {
-                              final esFav = favoritos.any(
-                                (e) => e['titulo'] == widget.titulo,
-                              );
-                              return IconButton(
-                                icon: Icon(
-                                  esFav
-                                      ? Icons.favorite
-                                      : Icons.favorite_border,
+                          Row(
+                            children: [
+                              // Botón rápido para seguimiento de este destino
+                              IconButton(
+                                tooltip: 'Ver seguimiento del destino',
+                                icon: const Icon(
+                                  Icons.timeline,
                                   color: Colors.white,
-                                  size: 28,
+                                  size: 26,
                                 ),
                                 onPressed: () {
-                                  toggleFavorito({
-                                    'titulo': widget.titulo,
-                                    'subtitulo': widget.subtitulo,
-                                    'imagen': widget.imagenes.first,
-                                    'imagenes_detalle': widget.imagenes,
-                                  });
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          PantallaSeguimientoDestino(
+                                        nombreDestinoInicial: widget.subtitulo,
+                                      ),
+                                    ),
+                                  );
                                 },
-                              );
-                            },
+                              ),
+                              // BOTÓN DE FAVORITO
+                              ValueListenableBuilder(
+                                valueListenable: listaFavoritos,
+                                builder: (context, favoritos, child) {
+                                  final esFav = favoritos.any(
+                                    (e) => e['titulo'] == widget.titulo,
+                                  );
+                                  return IconButton(
+                                    icon: Icon(
+                                      esFav
+                                          ? Icons.favorite
+                                          : Icons.favorite_border,
+                                      color: Colors.white,
+                                      size: 28,
+                                    ),
+                                    onPressed: () {
+                                      toggleFavorito({
+                                        'titulo': widget.titulo,
+                                        'subtitulo': widget.subtitulo,
+                                        'imagen': widget.imagenes.first,
+                                        'imagenes_detalle': widget.imagenes,
+                                      });
+                                    },
+                                  );
+                                },
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -160,12 +204,19 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          widget.subtitulo,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.white70,
-                          ),
+                        Row(
+                          children: [
+                            const Icon(Icons.location_on,
+                                size: 16, color: Colors.white70),
+                            const SizedBox(width: 4),
+                            Text(
+                              widget.subtitulo,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.white70,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -188,7 +239,7 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                           decoration: BoxDecoration(
                             color: _paginaActual == index
                                 ? Colors.white
-                                : Colors.white.withOpacity(0.5),
+                                : Colors.white.withValues(alpha: 0.5),
                             borderRadius: BorderRadius.circular(4),
                           ),
                         ),
@@ -199,7 +250,121 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
+
+            // ALERTA ACTIVA SI EXISTE PARA ESTA ACTIVIDAD
+            ValueListenableBuilder<List<AlertaClima>>(
+              valueListenable: _alertasService.alertasNotifier,
+              builder: (context, alertas, _) {
+                final activa = alertas.where((a) {
+                  final actLimpia = a.actividad.replaceAll('\n', ' ').trim().toLowerCase();
+                  final titLimpio = widget.titulo.replaceAll('\n', ' ').trim().toLowerCase();
+                  return a.activa && (actLimpia == titLimpio || titLimpio.contains(actLimpia) || actLimpia.contains(titLimpio));
+                }).toList();
+
+                if (activa.isEmpty) return const SizedBox.shrink();
+
+                final alerta = activa.first;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: alerta.nivelRiesgo.colorFondo,
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: alerta.nivelRiesgo.color, width: 1.2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 6,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(15),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(15),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PantallaDetalleAlerta(alerta: alerta),
+                            ),
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: Row(
+                            children: [
+                              Icon(alerta.nivelRiesgo.icono, color: alerta.nivelRiesgo.color, size: 28),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: alerta.nivelRiesgo.color,
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            alerta.nivelRiesgo.etiqueta.toUpperCase(),
+                                            style: const TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        const Text(
+                                          'Alerta Climática',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColores.marronOscuro,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      alerta.titulo,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: alerta.nivelRiesgo.color,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${alerta.motivoCambio.split('.').first}. Toca para ver "¿Por qué cambió?" y alternativas.',
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: AppColores.marronOscuro,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.arrow_forward_ios, size: 14, color: AppColores.grisTexto),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+
+            const SizedBox(height: 12),
 
             // 2. Tarjeta "Recomendación para hoy"
             Padding(
@@ -236,7 +401,7 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                         borderRadius: BorderRadius.circular(15),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 8,
                             offset: const Offset(0, 4),
                           ),
@@ -291,8 +456,85 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                 ],
               ),
             ),
+            const SizedBox(height: 20),
 
-            const SizedBox(height: 25),
+            // Horarios de atención y días disponibles (Req 3)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: TarjetaHorariosAtencion(
+                horario: _obtenerHorarioActividad(widget.titulo),
+                tituloDestino: widget.titulo.replaceAll('\n', ' '),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Acceso al Seguimiento del Destino
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(15),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColores.arenaFondo,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.timeline, color: AppColores.marronOscuro, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Seguimiento de ${widget.subtitulo}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: AppColores.marronOscuro,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            'Historial de cambios climáticos y aptitud de actividades.',
+                            style: TextStyle(fontSize: 11, color: AppColores.grisTexto),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.arrow_forward, color: AppColores.naranjaBoton),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PantallaSeguimientoDestino(
+                              nombreDestinoInicial: widget.subtitulo,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 20),
 
             // 3. Factores estadísticos
             Padding(
@@ -315,14 +557,14 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                       borderRadius: BorderRadius.circular(15),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withValues(alpha: 0.05),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
                       ],
                     ),
-                    child: Column(
-                      children: const [
+                    child: const Column(
+                      children: [
                         _FilaFactor(
                           icono: Icons.thermostat,
                           nombre: 'Temperatura',

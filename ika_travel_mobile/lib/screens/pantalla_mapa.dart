@@ -256,7 +256,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
                             borderRadius: BorderRadius.circular(15),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
+                                color: Colors.black.withValues(alpha: 0.1),
                                 blurRadius: 15,
                                 offset: const Offset(0, 5),
                               ),
@@ -315,8 +315,8 @@ class _PantallaMapaState extends State<PantallaMapa> {
                                             vertical: 2,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: Colors.green.withOpacity(
-                                              0.1,
+                                            color: Colors.green.withValues(
+                                              alpha: 0.1,
                                             ),
                                             borderRadius: BorderRadius.circular(
                                               4,
