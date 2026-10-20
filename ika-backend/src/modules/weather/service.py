@@ -1,3 +1,4 @@
+from src.modules.weather import rules
 """Capa de orquestación del módulo weather.
 
 Implementa el Patrón Aggregator: dispara consultas concurrentes a los
@@ -430,7 +431,7 @@ async def recomendacion_del_dia(
         narrativa_previa = rec_previa
 
     # Evaluar alertas oficiales de Ica
-    alertas_candidatas = ai_recommender.evaluar_alertas(
+    alertas_candidatas = rules.evaluar_alertas(
         temperatura=clima.temperatura_actual,
         uv=clima.indice_uv,
         viento=clima.velocidad_viento,

@@ -3,7 +3,7 @@ class ApiConfig {
   // o modificar directamente esta variable cuando actives tu túnel.
   static String baseUrl = const String.fromEnvironment(
     'API_URL',
-    defaultValue: 'http://127.0.0.1:8000',
+    defaultValue: 'https://dreary-flap-stole.ngrok-free.dev',
   );
 
   // --- CATALOG (Actividades) ---
@@ -17,6 +17,8 @@ class ApiConfig {
   static String get weatherCurrent => '$baseUrl/api/v1/weather/current';
   static String get weatherForecast => '$baseUrl/api/v1/weather/forecast';
   static String get weatherAlerts => '$baseUrl/api/v1/weather/alerts';
+  static String get recommendationOfDay => '$baseUrl/api/v1/weather/recommendation-of-the-day';
+  static String get recommendations => '$baseUrl/api/v1/weather/recommendations';
 
   // --- EMERGENCY & SOS ---
   static String get emergencyContacts => '$baseUrl/api/v1/emergency/contacts';

@@ -387,7 +387,6 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                           builder: (context) => PantallaDetalleDia(
                             tituloActividad: widget.titulo,
                             imagenActividad: widget.imagenes.first,
-                            fecha: 'Sábado, 17 de octubre de 2026',
                           ),
                         ),
                       );

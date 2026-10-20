@@ -182,21 +182,33 @@ class _PantallaActividadesState extends State<PantallaActividades> {
                               contentPadding: const EdgeInsets.all(10),
                               leading: ClipRRect(
                                 borderRadius: BorderRadius.circular(10),
-                                // 👇 Usamos Image.network porque la imagen viene del backend
-                                child: Image.network(
-                                  actividad['imagen'] ??
-                                      'https://via.placeholder.com/150',
-                                  width: 70,
-                                  height: 70,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
+                                child: Builder(
+                                  builder: (context) {
+                                    final img = actividad['imagen'] ?? '';
+                                    if (img.startsWith('assets/')) {
+                                      return Image.asset(
+                                        img,
+                                        width: 70,
+                                        height: 70,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => Container(
+                                          width: 70,
+                                          height: 70,
+                                          color: Colors.grey[300],
+                                          child: const Icon(Icons.image_not_supported, color: Colors.grey),
+                                        ),
+                                      );
+                                    }
+                                    return Image.network(
+                                      img,
                                       width: 70,
                                       height: 70,
-                                      color: Colors.grey[300],
-                                      child: const Icon(
-                                        Icons.image_not_supported,
-                                        color: Colors.grey,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => Image.asset(
+                                        'assets/images/carrusel_1_huacachina.jpg',
+                                        width: 70,
+                                        height: 70,
+                                        fit: BoxFit.cover,
                                       ),
                                     );
                                   },

@@ -21,7 +21,7 @@ class ApiClient {
     } catch (_) {
       // Entornos web o de testing donde Platform no aplica
     }
-    return 'http://127.0.0.1:8000/api/v1';
+    return 'https://dreary-flap-stole.ngrok-free.dev/api/v1';
   }
 
   final http.Client _client;
