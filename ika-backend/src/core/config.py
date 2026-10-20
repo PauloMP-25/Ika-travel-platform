@@ -1,5 +1,7 @@
+from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+_ENV_FILE = str(Path(__file__).resolve().parent.parent.parent / ".env")
 
 class Configuracion(BaseSettings):
     URL_BASE_DATOS: str
@@ -61,7 +63,7 @@ class Configuracion(BaseSettings):
     # --- DIRCETUR ---
     DIRCETUR_URL_PADRON: str = ""
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(env_file=_ENV_FILE, env_file_encoding="utf-8", extra="ignore")
 
     @property
     def origenes_cors_lista(self) -> list[str]:

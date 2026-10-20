@@ -42,4 +42,39 @@ class WeatherService {
       return null;
     }
   }
+
+  // 3. Obtener recomendación de la IA para un atractivo o la del día
+  Future<Map<String, dynamic>?> obtenerRecomendacionDelDia() async {
+    try {
+      final response = await http
+          .get(Uri.parse(ApiConfig.recommendationOfDay))
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return json.decode(utf8.decode(response.bodyBytes));
+      }
+      return null;
+    } catch (e) {
+      print('❌ Error al obtener recomendación del día: $e');
+      return null;
+    }
+  }
+
+  // 4. Obtener recomendaciones filtradas para todos los atractivos
+  Future<List<dynamic>> obtenerRecomendaciones() async {
+    try {
+      final response = await http
+          .get(Uri.parse(ApiConfig.recommendations))
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return json.decode(utf8.decode(response.bodyBytes)) as List<dynamic>;
+      }
+      return [];
+    } catch (e) {
+      print('❌ Error al obtener recomendaciones: $e');
+      return [];
+    }
+  }
+
 }

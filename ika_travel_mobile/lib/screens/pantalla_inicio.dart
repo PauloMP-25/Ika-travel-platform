@@ -73,7 +73,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
 
   @override
   Widget build(BuildContext context) {
-    final double alturaCarrusel = MediaQuery.of(context).size.height * 0.45;
+    final double alturaCarrusel = (MediaQuery.of(context).size.height * 0.48).clamp(340.0, 480.0);
 
     final colorFondoApp = TemaApp.fondo(context);
     final colorTarjeta = TemaApp.tarjeta(context);
