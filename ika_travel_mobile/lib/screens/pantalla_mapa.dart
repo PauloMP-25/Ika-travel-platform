@@ -23,8 +23,10 @@ class _PantallaMapaState extends State<PantallaMapa> {
   String _filtroActual = 'Todas';
   Map<String, dynamic>? _seleccionada;
 
+  // 👇 Agregué 'id' a cada ubicación para que la pantalla de detalle funcione
   final List<Map<String, dynamic>> _ubicaciones = [
     {
+      'id': '05cc56f2-3c08-4efa-aece-885ad4fffbac',
       'titulo': 'Sandboarding en Huacachina',
       'subtitulo': 'Ica',
       'lat': -14.0875,
@@ -40,6 +42,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
       ],
     },
     {
+      'id': '1b0ce57c-f462-46f5-8b99-bbd791e8ed17',
       'titulo': 'Laguna de Huacachina',
       'subtitulo': 'Ica',
       'lat': -14.0870,
@@ -54,6 +57,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
       ],
     },
     {
+      'id': '6ebab421-455b-47f1-b197-647133fd2483',
       'titulo': 'Islas Ballestas',
       'subtitulo': 'Paracas',
       'lat': -13.8333,
@@ -69,6 +73,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
       ],
     },
     {
+      'id': 'b8afbadd-4e7f-4532-a081-973a3f850c8e',
       'titulo': 'Reserva Nacional de Paracas',
       'subtitulo': 'Paracas',
       'lat': -13.8833,
@@ -84,6 +89,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
       ],
     },
     {
+      'id': 'cec5287f-f62e-4188-8066-855eb907fec7',
       'titulo': 'Viñedos y Bodega Tacama',
       'subtitulo': 'Ica',
       'lat': -14.0678,
@@ -99,7 +105,8 @@ class _PantallaMapaState extends State<PantallaMapa> {
       ],
     },
     {
-      'titulo': 'Plaza de Armas de Ica',
+      'id': '82dace36-4f88-462e-9167-ddd9b9845ce8',
+      'titulo': 'Museo Regional de Ica',
       'subtitulo': 'Ica',
       'lat': -14.0685,
       'lng': -75.7288,
@@ -107,49 +114,31 @@ class _PantallaMapaState extends State<PantallaMapa> {
       'indice': '92/100',
       'categoria': 'Cultura',
       'imagen': 'assets/images/carrusel_2_vinos.jpg',
-      'imagenes_detalle': [
-        'assets/images/carrusel_2_vinos.jpg',
-      ],
+      'imagenes_detalle': ['assets/images/carrusel_2_vinos.jpg'],
     },
     {
-      'titulo': 'Santuario del Señor de Luren',
-      'subtitulo': 'Ica',
+      'id': 'a63285f5-67a9-43e7-8869-26bdcb7d041e',
+      'titulo': 'Playa El Chaco',
+      'subtitulo': 'Paracas',
       'lat': -14.0722,
       'lng': -75.7258,
       'condicion': 'Excelente',
       'indice': '89/100',
-      'categoria': 'Cultura',
+      'categoria': 'Naturaleza',
       'imagen': 'assets/images/act_buggy1.jpg',
-      'imagenes_detalle': [
-        'assets/images/act_buggy1.jpg',
-      ],
+      'imagenes_detalle': ['assets/images/act_buggy1.jpg'],
     },
     {
-      'titulo': 'Cachiche (Pueblo de las Brujas)',
-      'subtitulo': 'Ica',
+      'id': 'ef71b81e-27ba-4709-b0d1-38654b344f4d',
+      'titulo': 'Paseo en buggy en las dunas',
+      'subtitulo': 'Huacachina',
       'lat': -14.0911,
       'lng': -75.7198,
       'condicion': 'Bueno',
       'indice': '82/100',
-      'categoria': 'Cultura',
-      'imagen': 'assets/images/detalle_buggy_2.jpg',
-      'imagenes_detalle': [
-        'assets/images/detalle_buggy_2.jpg',
-      ],
-    },
-    {
-      'titulo': 'Cañón de los Perdidos',
-      'subtitulo': 'Ocucaje, Ica',
-      'lat': -14.4722,
-      'lng': -75.7333,
-      'condicion': 'Bueno',
-      'indice': '86/100',
       'categoria': 'Aventura',
-      'imagen': 'assets/images/act_buggy1.jpg',
-      'imagenes_detalle': [
-        'assets/images/act_buggy1.jpg',
-        'assets/images/detalle_buggy_3.jpg',
-      ],
+      'imagen': 'assets/images/detalle_buggy_2.jpg',
+      'imagenes_detalle': ['assets/images/detalle_buggy_2.jpg'],
     },
   ];
 
@@ -170,7 +159,6 @@ class _PantallaMapaState extends State<PantallaMapa> {
     super.dispose();
   }
 
-  /// Lista de ubicaciones filtrada por categoría y por la barra de búsqueda de texto
   List<Map<String, dynamic>> get _ubicacionesFiltradas {
     return _ubicaciones.where((u) {
       final coincideCategoria =
@@ -190,7 +178,6 @@ class _PantallaMapaState extends State<PantallaMapa> {
     }).toList();
   }
 
-  /// Selecciona un lugar, cierra el teclado y mueve la cámara del mapa
   void _seleccionarLugar(Map<String, dynamic> lugar) {
     setState(() {
       _seleccionada = lugar;
@@ -199,7 +186,6 @@ class _PantallaMapaState extends State<PantallaMapa> {
     _mapController.move(LatLng(lugar['lat'], lugar['lng']), 13.0);
   }
 
-  /// Restablece la vista general panorámica de Ica
   void _centrarMapaGeneral() {
     _mapController.move(const LatLng(-14.0678, -75.7286), 9.5);
   }
@@ -267,7 +253,6 @@ class _PantallaMapaState extends State<PantallaMapa> {
     final colorTextoSecundario = TemaApp.textoSecundario(context);
     final colorTarjeta = TemaApp.tarjeta(context);
 
-    // Sugerencias rápidas cuando el usuario escribe en la barra
     final sugerencias = _textoBusqueda.trim().isNotEmpty
         ? _ubicacionesFiltradas.take(4).toList()
         : <Map<String, dynamic>>[];
@@ -277,7 +262,6 @@ class _PantallaMapaState extends State<PantallaMapa> {
       body: SafeArea(
         child: Column(
           children: [
-            // Cabecera superior
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
@@ -318,12 +302,9 @@ class _PantallaMapaState extends State<PantallaMapa> {
                 ],
               ),
             ),
-
-            // Mapa interactivo con Barra de Búsqueda flotante
             Expanded(
               child: Stack(
                 children: [
-                  // Capa del Mapa Leaflet / OpenStreetMap
                   FlutterMap(
                     mapController: _mapController,
                     options: const MapOptions(
@@ -340,15 +321,12 @@ class _PantallaMapaState extends State<PantallaMapa> {
                         markers: listaParaMostrar.map((ubicacion) {
                           final esSeleccionada =
                               _seleccionada?['titulo'] == ubicacion['titulo'];
-
                           return Marker(
                             point: LatLng(ubicacion['lat'], ubicacion['lng']),
                             width: esSeleccionada ? 52 : 42,
                             height: esSeleccionada ? 52 : 42,
                             child: GestureDetector(
-                              onTap: () {
-                                _seleccionarLugar(ubicacion);
-                              },
+                              onTap: () => _seleccionarLugar(ubicacion),
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 250),
                                 decoration: BoxDecoration(
@@ -382,8 +360,6 @@ class _PantallaMapaState extends State<PantallaMapa> {
                       ),
                     ],
                   ),
-
-                  // BARRA DE BÚSQUEDA DE LUGARES POR ESCRITO (Flotante)
                   Positioned(
                     top: 12,
                     left: 16,
@@ -392,7 +368,6 @@ class _PantallaMapaState extends State<PantallaMapa> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Caja principal de búsqueda
                         Container(
                           height: 52,
                           decoration: BoxDecoration(
@@ -411,7 +386,8 @@ class _PantallaMapaState extends State<PantallaMapa> {
                             focusNode: _focusBusqueda,
                             style: TextStyle(fontSize: 15, color: colorTexto),
                             decoration: InputDecoration(
-                              hintText: 'Buscar lugares, huacachina, viñedos...',
+                              hintText:
+                                  'Buscar lugares, huacachina, viñedos...',
                               hintStyle: TextStyle(
                                 fontSize: 14,
                                 color: colorTextoSecundario,
@@ -427,24 +403,10 @@ class _PantallaMapaState extends State<PantallaMapa> {
                                       color: colorTextoSecundario,
                                       onPressed: () {
                                         _busquedaController.clear();
-                                        setState(() {
-                                          _textoBusqueda = '';
-                                        });
+                                        setState(() => _textoBusqueda = '');
                                       },
                                     )
-                                  : (_filtroActual != 'Todas'
-                                      ? Tooltip(
-                                          message: 'Filtro: $_filtroActual',
-                                          child: IconButton(
-                                            icon: const Icon(
-                                              Icons.filter_alt,
-                                              size: 20,
-                                              color: AppColores.naranjaBoton,
-                                            ),
-                                            onPressed: _mostrarFiltros,
-                                          ),
-                                        )
-                                      : null),
+                                  : null,
                               border: InputBorder.none,
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16,
@@ -458,8 +420,6 @@ class _PantallaMapaState extends State<PantallaMapa> {
                             },
                           ),
                         ),
-
-                        // Lista desplegable de sugerencias rápidas al escribir
                         if (_focusBusqueda.hasFocus && sugerencias.isNotEmpty)
                           Container(
                             margin: const EdgeInsets.only(top: 6),
@@ -518,8 +478,6 @@ class _PantallaMapaState extends State<PantallaMapa> {
                               },
                             ),
                           ),
-
-                        // Aviso cuando no hay coincidencias con la búsqueda
                         if (_textoBusqueda.isNotEmpty &&
                             listaParaMostrar.isEmpty)
                           Container(
@@ -566,8 +524,6 @@ class _PantallaMapaState extends State<PantallaMapa> {
                       ],
                     ),
                   ),
-
-                  // Botón flotante para recentrar el mapa en Ica
                   Positioned(
                     right: 16,
                     bottom: _seleccionada != null ? 150 : 20,
@@ -581,8 +537,6 @@ class _PantallaMapaState extends State<PantallaMapa> {
                       child: const Icon(Icons.my_location),
                     ),
                   ),
-
-                  // Chip informativo de resultados activos cuando hay búsqueda o filtro
                   if (_textoBusqueda.isNotEmpty || _filtroActual != 'Todas')
                     Positioned(
                       left: 16,
@@ -624,8 +578,6 @@ class _PantallaMapaState extends State<PantallaMapa> {
                         ),
                       ),
                     ),
-
-                  // Tarjeta inferior del lugar seleccionado
                   if (_seleccionada != null)
                     Positioned(
                       bottom: 20,
@@ -637,6 +589,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
                             context,
                             MaterialPageRoute(
                               builder: (context) => PantallaDetalle(
+                                id: _seleccionada!['id'], // 👈 AQUÍ EL ID
                                 titulo: _seleccionada!['titulo'],
                                 subtitulo: _seleccionada!['subtitulo'],
                                 imagenes: List<String>.from(
@@ -670,14 +623,14 @@ class _PantallaMapaState extends State<PantallaMapa> {
                                   fit: BoxFit.cover,
                                   errorBuilder: (context, error, stackTrace) =>
                                       Container(
-                                    width: 72,
-                                    height: 72,
-                                    color: Colors.grey[300],
-                                    child: const Icon(
-                                      Icons.image,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
+                                        width: 72,
+                                        height: 72,
+                                        color: Colors.grey[300],
+                                        child: const Icon(
+                                          Icons.image,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
                                 ),
                               ),
                               const SizedBox(width: 14),
@@ -709,9 +662,12 @@ class _PantallaMapaState extends State<PantallaMapa> {
                                             vertical: 2,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: Colors.green.withOpacity(0.12),
-                                            borderRadius:
-                                                BorderRadius.circular(6),
+                                            color: Colors.green.withOpacity(
+                                              0.12,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              6,
+                                            ),
                                           ),
                                           child: Text(
                                             _seleccionada!['condicion'],
@@ -740,11 +696,8 @@ class _PantallaMapaState extends State<PantallaMapa> {
                                 tooltip: 'Cerrar tarjeta',
                                 icon: const Icon(Icons.close, size: 20),
                                 color: colorTextoSecundario,
-                                onPressed: () {
-                                  setState(() {
-                                    _seleccionada = null;
-                                  });
-                                },
+                                onPressed: () =>
+                                    setState(() => _seleccionada = null),
                               ),
                             ],
                           ),

@@ -6,7 +6,7 @@ import '../config/tema.dart';
 import '../config/colores_tema.dart';
 import '../services/alertas_service.dart';
 import '../services/weather_service.dart';
-import 'pantalla_detalle_dia.dart';
+import 'pantalla_recomendacion_general.dart'; // 👈 NUEVO: Importamos la pantalla general
 import 'pantalla_alertas.dart';
 import 'pantalla_mas.dart';
 import 'pantalla_planer.dart';
@@ -136,7 +136,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // ICONOS SUPERIORES CONECTADOS
+                            // ICONOS SUPERIORES
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -176,8 +176,9 @@ class _PantallaInicioState extends State<PantallaInicio> {
                                         ),
                                         decoration: BoxDecoration(
                                           color: const Color(0xFFD32F2F),
-                                          borderRadius:
-                                              BorderRadius.circular(20),
+                                          borderRadius: BorderRadius.circular(
+                                            20,
+                                          ),
                                           boxShadow: [
                                             BoxShadow(
                                               color: Colors.black.withValues(
@@ -209,65 +210,71 @@ class _PantallaInicioState extends State<PantallaInicio> {
                                       ),
                                     ),
                                     const SizedBox(width: 4),
-                                    // Botón de Alertas (Campana con Badge Reactivo)
                                     ValueListenableBuilder(
-                                  valueListenable:
-                                      AlertasService().alertasNotifier,
-                                  builder: (context, _, _) {
-                                    final activas =
-                                        AlertasService().alertasActivas.length;
-                                    return Stack(
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(
-                                            Icons.notifications_none,
-                                            color: Colors.white,
-                                            size: 28,
-                                          ),
-                                          onPressed: () {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) =>
-                                                    const PantallaAlertas(),
+                                      valueListenable:
+                                          AlertasService().alertasNotifier,
+                                      builder: (context, _, _) {
+                                        final activas = AlertasService()
+                                            .alertasActivas
+                                            .length;
+                                        return Stack(
+                                          children: [
+                                            IconButton(
+                                              icon: const Icon(
+                                                Icons.notifications_none,
+                                                color: Colors.white,
+                                                size: 28,
                                               ),
-                                            );
-                                          },
-                                        ),
-                                        if (activas > 0)
-                                          Positioned(
-                                            right: 8,
-                                            top: 8,
-                                            child: Container(
-                                              padding: const EdgeInsets.all(4),
-                                              decoration: const BoxDecoration(
-                                                color: Color(0xFFE53935),
-                                                shape: BoxShape.circle,
-                                              ),
-                                              constraints:
-                                                  const BoxConstraints(
-                                                minWidth: 16,
-                                                minHeight: 16,
-                                              ),
-                                              child: Text(
-                                                '$activas',
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                                textAlign: TextAlign.center,
-                                              ),
+                                              onPressed: () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        const PantallaAlertas(),
+                                                  ),
+                                                );
+                                              },
                                             ),
-                                          ),
-                                      ],
-                                    );
-                                  },
+                                            if (activas > 0)
+                                              Positioned(
+                                                right: 8,
+                                                top: 8,
+                                                child: Container(
+                                                  padding: const EdgeInsets.all(
+                                                    4,
+                                                  ),
+                                                  decoration:
+                                                      const BoxDecoration(
+                                                        color: Color(
+                                                          0xFFE53935,
+                                                        ),
+                                                        shape: BoxShape.circle,
+                                                      ),
+                                                  constraints:
+                                                      const BoxConstraints(
+                                                        minWidth: 16,
+                                                        minHeight: 16,
+                                                      ),
+                                                  child: Text(
+                                                    '$activas',
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 10,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                    textAlign: TextAlign.center,
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
+                                        );
+                                      },
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ],
-                        ),
                             const SizedBox(height: 30),
                             const Padding(
                               padding: EdgeInsets.symmetric(horizontal: 8),
@@ -339,7 +346,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
               ),
             ),
             const SizedBox(height: 20),
-            // 3. TARJETA DEL CLIMA CON MONITOREO DIRECTO
+            // 3. TARJETA DEL CLIMA
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Container(
@@ -391,7 +398,6 @@ class _PantallaInicioState extends State<PantallaInicio> {
                                 size: 55,
                                 color: Colors.orange,
                               ),
-                              // 👇 REDONDEAMOS LA TEMPERATURA
                               Text(
                                 _clima != null
                                     ? '${(_clima!['temperatura_actual'] as num).round()}°C'
@@ -433,9 +439,12 @@ class _PantallaInicioState extends State<PantallaInicio> {
                             ],
                           ),
                           const SizedBox(height: 14),
-                          Divider(height: 1, thickness: 0.5, color: colorTextoSecundario.withOpacity(0.2)),
+                          Divider(
+                            height: 1,
+                            thickness: 0.5,
+                            color: colorTextoSecundario.withOpacity(0.2),
+                          ),
                           const SizedBox(height: 10),
-                          // Acceso a Seguimiento de Destino (Req 14)
                           InkWell(
                             onTap: () {
                               Navigator.push(
@@ -480,7 +489,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
               ),
             ),
             const SizedBox(height: 20),
-            // 4. BANNER PLANIFICADOR DE VIAJES
+            // 4. BANNER PLANIFICADOR
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: InkWell(
@@ -515,11 +524,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
                       CircleAvatar(
                         radius: 22,
                         backgroundColor: Color(0xFFD98E3D),
-                        child: Icon(
-                          Icons.route,
-                          color: Colors.white,
-                          size: 22,
-                        ),
+                        child: Icon(Icons.route, color: Colors.white, size: 22),
                       ),
                       SizedBox(width: 14),
                       Expanded(
@@ -558,7 +563,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
 
             const SizedBox(height: 14),
 
-            // 5. BOTÓN RECOMENDACIÓN DEL DÍA
+            // 5. BOTÓN RECOMENDACIÓN DEL DÍA (AHORA ABRE LA PANTALLA GENERAL)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: SizedBox(
@@ -573,15 +578,12 @@ class _PantallaInicioState extends State<PantallaInicio> {
                     elevation: 2,
                   ),
                   onPressed: () {
+                    // 👇 AQUÍ CAMBIAMOS LA PANTALLA
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const PantallaDetalleDia(
-                          tituloActividad: 'Clima en Ica hoy',
-                          imagenActividad:
-                              'assets/images/carrusel_1_huacachina.jpg',
-                          fecha: 'Sábado, 17 de octubre de 2026',
-                        ),
+                        builder: (context) =>
+                            const PantallaRecomendacionGeneral(),
                       ),
                     );
                   },
@@ -599,7 +601,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
 
             const SizedBox(height: 14),
 
-            // 5. BANNER ASISTENCIA Y SOS
+            // 6. BANNER ASISTENCIA Y SOS
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: InkWell(

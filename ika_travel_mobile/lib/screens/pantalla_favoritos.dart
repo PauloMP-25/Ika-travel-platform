@@ -92,11 +92,24 @@ class PantallaFavoritos extends StatelessWidget {
                             contentPadding: const EdgeInsets.all(10),
                             leading: ClipRRect(
                               borderRadius: BorderRadius.circular(10),
-                              child: Image.asset(
-                                actividad['imagen'],
+                              // 👇 Usamos Image.network porque la imagen viene del backend
+                              child: Image.network(
+                                actividad['imagen'] ??
+                                    'https://via.placeholder.com/150',
                                 width: 70,
                                 height: 70,
                                 fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    width: 70,
+                                    height: 70,
+                                    color: Colors.grey[300],
+                                    child: const Icon(
+                                      Icons.image_not_supported,
+                                      color: Colors.grey,
+                                    ),
+                                  );
+                                },
                               ),
                             ),
                             title: Text(
@@ -140,6 +153,7 @@ class PantallaFavoritos extends StatelessWidget {
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => PantallaDetalle(
+                                    id: actividad['id'], // 👈 AGREGAMOS EL ID
                                     titulo: actividad['titulo'],
                                     subtitulo: actividad['subtitulo'],
                                     imagenes: List<String>.from(

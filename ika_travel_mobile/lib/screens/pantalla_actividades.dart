@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../config/tema.dart';
 import '../config/colores_tema.dart';
-import '../services/api_service.dart'; // 👈 NUEVO: Importamos el servicio
+import '../services/api_service.dart';
 import 'pantalla_detalle.dart';
 
 class PantallaActividades extends StatefulWidget {
@@ -17,18 +17,17 @@ class PantallaActividades extends StatefulWidget {
 class _PantallaActividadesState extends State<PantallaActividades> {
   final TextEditingController _buscadorController = TextEditingController();
   String _textoBusqueda = '';
+  String _categoriaSeleccionada = 'Todas';
 
-  // 👇 Variables para los datos del backend
   List<Map<String, dynamic>> _actividades = [];
   bool _cargando = true;
 
   @override
   void initState() {
     super.initState();
-    _cargarActividades(); // 👈 Cargamos al abrir la pantalla
+    _cargarActividades();
   }
 
-  // Función para obtener las actividades del backend
   Future<void> _cargarActividades() async {
     final api = ApiService();
     final datos = await api.obtenerActividades();
@@ -39,12 +38,19 @@ class _PantallaActividadesState extends State<PantallaActividades> {
   }
 
   List<Map<String, dynamic>> get _actividadesFiltradas {
-    if (_textoBusqueda.isEmpty) return _actividades;
     return _actividades.where((actividad) {
       final titulo = (actividad['titulo'] ?? '').toString().toLowerCase();
       final subtitulo = (actividad['subtitulo'] ?? '').toString().toLowerCase();
       final busqueda = _textoBusqueda.toLowerCase();
-      return titulo.contains(busqueda) || subtitulo.contains(busqueda);
+      final coincideTexto =
+          titulo.contains(busqueda) || subtitulo.contains(busqueda);
+
+      final categoriaActividad = actividad['categoria'] ?? 'General';
+      final coincideCategoria =
+          _categoriaSeleccionada == 'Todas' ||
+          categoriaActividad == _categoriaSeleccionada;
+
+      return coincideTexto && coincideCategoria;
     }).toList();
   }
 
@@ -74,9 +80,8 @@ class _PantallaActividadesState extends State<PantallaActividades> {
                   IconButton(
                     icon: Icon(Icons.arrow_back, color: colorTexto),
                     onPressed: () {
-                      if (widget.onVolverInicio != null) {
+                      if (widget.onVolverInicio != null)
                         widget.onVolverInicio!();
-                      }
                     },
                   ),
                   Expanded(
@@ -94,16 +99,11 @@ class _PantallaActividadesState extends State<PantallaActividades> {
                 ],
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: TextField(
                 controller: _buscadorController,
-                onChanged: (value) {
-                  setState(() {
-                    _textoBusqueda = value;
-                  });
-                },
+                onChanged: (value) => setState(() => _textoBusqueda = value),
                 style: TextStyle(color: colorTexto),
                 decoration: InputDecoration(
                   hintText: 'Buscar actividad o lugar',
@@ -126,9 +126,22 @@ class _PantallaActividadesState extends State<PantallaActividades> {
                 ),
               ),
             ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 40,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                children: [
+                  _chipCategoria('Todas'),
+                  _chipCategoria('Aventura'),
+                  _chipCategoria('Naturaleza'),
+                  _chipCategoria('Gastronomía'),
+                  _chipCategoria('Cultura'),
+                ],
+              ),
+            ),
             const SizedBox(height: 16),
-
-            // 👇 Indicador de carga mientras se conecta al backend
             Expanded(
               child: _cargando
                   ? const Center(
@@ -169,7 +182,7 @@ class _PantallaActividadesState extends State<PantallaActividades> {
                             borderRadius: BorderRadius.circular(15),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
+                                color: Colors.black.withOpacity(0.05),
                                 blurRadius: 8,
                                 offset: const Offset(0, 4),
                               ),
@@ -182,7 +195,6 @@ class _PantallaActividadesState extends State<PantallaActividades> {
                               contentPadding: const EdgeInsets.all(10),
                               leading: ClipRRect(
                                 borderRadius: BorderRadius.circular(10),
-                                // 👇 Usamos Image.network porque la imagen viene del backend
                                 child: Image.network(
                                   actividad['imagen'] ??
                                       'https://via.placeholder.com/150',
@@ -224,10 +236,12 @@ class _PantallaActividadesState extends State<PantallaActividades> {
                                 color: colorTextoSecundario,
                               ),
                               onTap: () {
+                                // 👇 AQUÍ PASAMOS EL ID
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => PantallaDetalle(
+                                      id: actividad['id'], // 👈 EL ID
                                       titulo:
                                           actividad['titulo'] ?? 'Sin título',
                                       subtitulo:
@@ -247,6 +261,35 @@ class _PantallaActividadesState extends State<PantallaActividades> {
                     ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _chipCategoria(String categoria) {
+    final bool activo = _categoriaSeleccionada == categoria;
+    final colorTexto = TemaApp.texto(context);
+    final colorTarjeta = TemaApp.tarjeta(context);
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        label: Text(categoria),
+        selected: activo,
+        onSelected: (selected) {
+          setState(() {
+            _categoriaSeleccionada = categoria;
+          });
+        },
+        backgroundColor: colorTarjeta,
+        selectedColor: AppColores.naranjaBoton,
+        labelStyle: TextStyle(
+          color: activo ? Colors.white : colorTexto,
+          fontWeight: activo ? FontWeight.bold : FontWeight.normal,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide.none,
         ),
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../config/tema.dart';
 import '../models/horario_modelo.dart';
 
@@ -15,7 +16,8 @@ class TarjetaHorariosAtencion extends StatefulWidget {
   });
 
   @override
-  State<TarjetaHorariosAtencion> createState() => _TarjetaHorariosAtencionState();
+  State<TarjetaHorariosAtencion> createState() =>
+      _TarjetaHorariosAtencionState();
 }
 
 class _TarjetaHorariosAtencionState extends State<TarjetaHorariosAtencion> {
@@ -71,31 +73,46 @@ class _TarjetaHorariosAtencionState extends State<TarjetaHorariosAtencion> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
-                  children: [
-                    Icon(
-                      Icons.schedule,
-                      color: AppColores.marronOscuro,
-                      size: 22,
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      'Horarios de Atención',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                // 👇 EXPANDED PARA QUE EL TÍTULO NO SE DESBORDE
+                const Expanded(
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.schedule,
                         color: AppColores.marronOscuro,
+                        size: 22,
                       ),
-                    ),
-                  ],
+                      SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          'Horarios de Atención',
+                          overflow: TextOverflow
+                              .ellipsis, // Corta con "..." si es muy largo
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColores.marronOscuro,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+
+                const SizedBox(width: 8),
+
+                // Badge de verificación
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: fondoBadge,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: colorBadge.withValues(alpha: 0.5)),
+                    border: Border.all(
+                      color: colorBadge.withValues(alpha: 0.5),
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -253,11 +270,13 @@ class _TarjetaHorariosAtencionState extends State<TarjetaHorariosAtencion> {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('• ',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColores.marronOscuro,
-                                )),
+                            const Text(
+                              '• ',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: AppColores.marronOscuro,
+                              ),
+                            ),
                             Expanded(
                               flex: 3,
                               child: Text(

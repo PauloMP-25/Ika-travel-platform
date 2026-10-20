@@ -2,12 +2,16 @@
 
 import enum
 from datetime import datetime
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from sqlalchemy import DateTime, Enum, Float, ForeignKey, String, Text, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
+
+
+import src.modules.users.models  # noqa: F401
 
 
 class SOSStatus(str, enum.Enum):
@@ -85,6 +89,7 @@ class SOSReport(Base):
         DateTime(timezone=True), nullable=True
     )
 
+    
     user = relationship("User", back_populates="sos_reports")
     notifications: Mapped[list["EmergencyNotification"]] = relationship(
         "EmergencyNotification",
@@ -130,6 +135,7 @@ class TouristIncidentReport(Base):
         DateTime(timezone=True), onupdate=func.now(), nullable=True
     )
 
+    
     user = relationship("User")
 
 

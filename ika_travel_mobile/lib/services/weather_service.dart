@@ -24,7 +24,7 @@ class WeatherService {
     }
   }
 
-  // 2. 👇 NUEVO: Obtener el pronóstico (por horas y días)
+  // 2. Obtener el pronóstico
   Future<Map<String, dynamic>?> obtenerPronostico() async {
     try {
       final response = await http
@@ -39,6 +39,25 @@ class WeatherService {
       }
     } catch (e) {
       print('❌ Error de conexión pronóstico: $e');
+      return null;
+    }
+  }
+
+  // 👇 NUEVO: Obtener alertas climáticas reales del backend
+  Future<List<dynamic>?> obtenerAlertasClimaticas() async {
+    try {
+      final response = await http
+          .get(Uri.parse('${ApiConfig.baseUrl}/api/v1/weather/alerts'))
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        print('❌ Error al obtener alertas: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('❌ Error de conexión alertas: $e');
       return null;
     }
   }
