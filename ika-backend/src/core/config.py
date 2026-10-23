@@ -37,7 +37,7 @@ class Configuracion(BaseSettings):
     # --- IA (Gemini) ---
     GEMINI_API_KEY: str = ""
     GEMINI_MODELO: str = "gemini-3.1-flash-lite"
-    GEMINI_TIMEOUT_SEGUNDOS: float = 8.0
+    GEMINI_TIMEOUT_SEGUNDOS: float = 15.0
     # Presupuesto de tiempo del recomendador estructurado (Sprint 4, P4).
     GEMINI_TIMEOUT_RECOMENDACION_SEGUNDOS: float = 2.5
 

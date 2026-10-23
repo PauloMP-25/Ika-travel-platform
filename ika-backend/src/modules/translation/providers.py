@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from typing import Protocol
 
 from google import genai
@@ -19,6 +20,7 @@ from src.modules.translation.exceptions import (
     TranslationProviderUnavailableException,
 )
 from src.modules.translation.schemas import Language
+from src.shared.ai_logging import registrar_consumo_tokens
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +71,7 @@ class GeminiTranslationProvider:
         return self._client
 
     async def translate(self, text: str, source: Language, target: Language) -> str:
+        t0 = time.time()
         try:
             respuesta = await asyncio.wait_for(
                 self._obtener_cliente().aio.models.generate_content(
@@ -81,6 +84,16 @@ class GeminiTranslationProvider:
                     ),
                 ),
                 timeout=self._timeout,
+            )
+            duracion = time.time() - t0
+
+            # Registro visual de consumo de tokens
+            registrar_consumo_tokens(
+                operacion=f"Traducción Bidireccional ({source.value.upper()} ➔ {target.value.upper()})",
+                modelo=self._model,
+                tiempo_segundos=duracion,
+                usage_metadata=getattr(respuesta, "usage_metadata", None),
+                detalles_extra=f"Entrada: \"{text[:40]}...\" (longitud: {len(text)} car.)",
             )
         except Exception as exc:  # noqa: BLE001 — cubre timeout, APIError y fallo de construcción
             logger.warning("Proveedor de traducción no disponible: %s", exc.__class__.__name__)
