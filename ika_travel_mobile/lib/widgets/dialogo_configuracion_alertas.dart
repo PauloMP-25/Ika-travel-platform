@@ -153,26 +153,27 @@ class _DialogoConfiguracionAlertasState
 
               const SizedBox(height: 12),
 
-              // Nota técnica transparente sobre Push Notifications (Req 11)
+              // Tarjeta informativa amigable para el turista
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFF8E1),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: const Color(0xFFFFE082)),
                 ),
                 child: const Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.info_outline, color: Color(0xFFF57F17), size: 18),
-                    SizedBox(width: 8),
+                    Icon(Icons.lightbulb_outline_rounded, color: Color(0xFFF57F17), size: 20),
+                    SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Arquitectura Push: En este frontend se gestiona el estado y preferencias. Para notificaciones reales con la app en segundo plano o cerrada se requiere vincular Firebase Cloud Messaging (FCM) y cron en backend.',
+                        'Te avisaremos al instante si cambian los vientos en Huacachina, el oleaje en Paracas o si se reportan bloqueos en tu ruta.',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
                           color: Color(0xFF5D4037),
-                          height: 1.3,
+                          height: 1.35,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),

@@ -148,7 +148,7 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                                     MaterialPageRoute(
                                       builder: (context) =>
                                           PantallaSeguimientoDestino(
-                                        nombreDestinoInicial: widget.subtitulo,
+                                        nombreDestinoInicial: widget.titulo,
                                       ),
                                     ),
                                   );
@@ -520,7 +520,7 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                           context,
                           MaterialPageRoute(
                             builder: (context) => PantallaSeguimientoDestino(
-                              nombreDestinoInicial: widget.subtitulo,
+                              nombreDestinoInicial: widget.titulo,
                             ),
                           ),
                         );
@@ -651,3 +651,4 @@ class _FilaFactor extends StatelessWidget {
     );
   }
 }
+

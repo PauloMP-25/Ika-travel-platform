@@ -165,6 +165,19 @@ class HorarioAtencion {
     );
   }
 
+  static HorarioAtencion paraLuren() {
+    return const HorarioAtencion(
+      diasSemana: 'Lunes a Domingo',
+      horarioGeneral: '07:00 - 20:00 hrs',
+      estadoVerificacion: 'Horario oficial Diócesis de Ica',
+      esVerificado: true,
+      observaciones: 'Misas diarias y atención al peregrino en el Santuario.',
+      horariosPorDia: [
+        HorarioDia(dia: 'Todos los días', horario: '07:00 - 20:00', nota: 'Templo abierto.'),
+      ],
+    );
+  }
+
   static HorarioAtencion noConfirmado() {
     return const HorarioAtencion(
       diasSemana: 'Consultar con operador local',

@@ -1,0 +1,8 @@
+# Dependencies / environment
+.env
+.DS_Store
+Thumbs.db
+*.log
+
+# Unused boilerplate / local directory
+ika_mobile/

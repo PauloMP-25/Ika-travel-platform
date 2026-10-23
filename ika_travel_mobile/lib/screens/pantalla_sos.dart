@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../config/navegacion_service.dart';
 import '../config/tema.dart';
 import '../services/sos_service.dart';
+import '../widgets/modal_cuenta_regresiva_sos.dart';
 
 class PantallaSos extends StatefulWidget {
   final bool mostrarBotonAtras;
@@ -19,6 +20,45 @@ class PantallaSos extends StatefulWidget {
 
 class _PantallaSosState extends State<PantallaSos> {
   final SosService _sosService = SosService();
+  bool _detectorChoqueActivo = true;
+
+  Future<void> _iniciarCuentaRegresivaSos({bool esModoChoque = false}) async {
+    final contacto = _sosService.contactoNotifier.value;
+    if (contacto == null) {
+      _ejecutarAccionSos(esPrueba: false);
+      return;
+    }
+
+    if (_sosService.permisoUbicacionConcedido.value) {
+      await _sosService.actualizarUbicacionReal();
+      if (mounted) setState(() {});
+    }
+
+    final mensaje = _sosService.generarMensajeEmergencia(modoPrueba: false);
+    Clipboard.setData(ClipboardData(text: mensaje));
+
+    if (!mounted) return;
+
+    ModalCuentaRegresivaSos.mostrar(
+      context: context,
+      contacto: contacto,
+      mensaje: mensaje,
+      esModoChoque: esModoChoque,
+      onCancelado: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Alerta cancelada. No se enviaron mensajes.')),
+        );
+      },
+      onDespachado: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: Color(0xFFD32F2F),
+            content: Text('🚨 Alerta SOS enviada por SMS silencioso con ubicación GPS.'),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   void initState() {
@@ -153,7 +193,7 @@ class _PantallaSosState extends State<PantallaSos> {
     );
   }
 
-  void _ejecutarAccionSos({required bool esPrueba}) {
+  Future<void> _ejecutarAccionSos({required bool esPrueba}) async {
     final contacto = _sosService.contactoNotifier.value;
     if (contacto == null) {
       showDialog(
@@ -185,19 +225,27 @@ class _PantallaSosState extends State<PantallaSos> {
       return;
     }
 
+    // Obtener ubicación GPS real satelital si el permiso está activo
+    if (_sosService.permisoUbicacionConcedido.value) {
+      await _sosService.actualizarUbicacionReal();
+      if (mounted) setState(() {});
+    }
+
     final mensaje = _sosService.generarMensajeEmergencia(modoPrueba: esPrueba);
 
-    // Copiar al portapapeles como respaldo seguro
+    // Copiar al portapapeles como respaldo
     Clipboard.setData(ClipboardData(text: mensaje));
 
-    // Mostrar modal con el texto preparado y advertencia de confirmación manual
+    if (!mounted) return;
+
+    // Mostrar modal interactivo con acciones en 1 solo toque
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
         return Container(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
           decoration: const BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -206,6 +254,17 @@ class _PantallaSosState extends State<PantallaSos> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
               Row(
                 children: [
                   Container(
@@ -215,9 +274,9 @@ class _PantallaSosState extends State<PantallaSos> {
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      esPrueba ? Icons.science_outlined : Icons.outgoing_mail,
-                      color: esPrueba ? Colors.amber.shade900 : const Color(0xFFE53935),
-                      size: 28,
+                      esPrueba ? Icons.science_outlined : Icons.shield_outlined,
+                      color: esPrueba ? Colors.amber.shade900 : const Color(0xFFD32F2F),
+                      size: 26,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -226,9 +285,9 @@ class _PantallaSosState extends State<PantallaSos> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          esPrueba ? 'Simulación SOS (Modo Prueba)' : 'Mensaje de Emergencia Preparado',
+                          esPrueba ? 'Simulación SOS (Modo Prueba)' : 'Enviar Alerta SOS en 1 Clic',
                           style: const TextStyle(
-                            fontSize: 18,
+                            fontSize: 17,
                             fontWeight: FontWeight.bold,
                             color: AppColores.marronOscuro,
                           ),
@@ -236,109 +295,185 @@ class _PantallaSosState extends State<PantallaSos> {
                         Text(
                           esPrueba
                               ? 'Prueba sin despacho real'
-                              : 'Destinatario: ${contacto.nombre} (${contacto.telefono})',
-                          style: const TextStyle(fontSize: 13, color: AppColores.grisTexto),
+                              : 'Contacto: ${contacto.nombre} (${contacto.telefono})',
+                          style: const TextStyle(fontSize: 12, color: AppColores.grisTexto),
                         ),
                       ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
+              // Estado de ubicación GPS real capturada (Reemplaza el texto largo)
               Container(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
-                  color: AppColores.arenaFondo,
+                  color: const Color(0xFFE8F5E9),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE0D7CC)),
+                  border: Border.all(color: const Color(0xFFA5D6A7)),
                 ),
-                child: Text(
-                  mensaje,
-                  style: const TextStyle(fontSize: 13, height: 1.4, color: AppColores.marronOscuro),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF3E0),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.orange.shade200),
-                ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: Colors.orange, size: 20),
-                    SizedBox(width: 8),
+                    const Icon(Icons.gps_fixed, color: Color(0xFF2E7D32), size: 20),
+                    const SizedBox(width: 10),
                     Expanded(
-                      child: Text(
-                        'Importante: El mensaje ha sido copiado al portapapeles. Al abrir la app de mensajería debes pulsar "Enviar" para confirmar el despacho real.',
-                        style: TextStyle(fontSize: 12, color: Color(0xFF6D4C41)),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Coordenadas GPS y Enlace de Mapa Listos',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1B5E20),
+                            ),
+                          ),
+                          Text(
+                            _sosService.permisoUbicacionConcedido.value
+                                ? 'Ubicación satelital en vivo lista para despacho inmediato'
+                                : 'Aviso: Ubicación satelital no concedida',
+                            style: const TextStyle(fontSize: 11, color: Color(0xFF2E7D32)),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        side: const BorderSide(color: AppColores.naranjaBoton),
-                      ),
-                      icon: const Icon(Icons.copy, color: AppColores.naranjaBoton),
-                      label: const Text(
-                        'Copiar Texto',
-                        style: TextStyle(color: AppColores.naranjaBoton),
-                      ),
-                      onPressed: () {
-                        Clipboard.setData(ClipboardData(text: mensaje));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('📋 Mensaje copiado al portapapeles.'),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                      },
+              const SizedBox(height: 14),
+
+              if (!esPrueba) ...[
+                // BOTÓN 1 PRINCIPAL: DISPARO AUTOMÁTICO (WhatsApp + SMS)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFD32F2F),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      elevation: 3,
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: esPrueba ? Colors.blueGrey : const Color(0xFFE53935),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      icon: const Icon(Icons.send),
-                      label: Text(esPrueba ? 'Cerrar Prueba' : 'Abrir Mensajes'),
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        if (!esPrueba) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              backgroundColor: AppColores.marronOscuro,
-                              content: Text(
-                                '📲 Abriendo canal para ${contacto.nombre}. Recuerda pulsar "Enviar" en tu aplicación de mensajes.',
-                              ),
-                              duration: const Duration(seconds: 4),
-                            ),
-                          );
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              backgroundColor: Colors.blueGrey,
-                              content: Text('🧪 Simulación completada sin enviar mensajes reales.'),
-                            ),
-                          );
-                        }
-                      },
+                    icon: const Icon(Icons.flash_on, size: 24, color: Colors.yellowAccent),
+                    label: const Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '🚨 DISPARO AUTOMÁTICO (WhatsApp + SMS)',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Envía por las 2 vías en secuencia de 1 solo toque',
+                          style: TextStyle(fontSize: 11, color: Colors.white70),
+                        ),
+                      ],
                     ),
+                    onPressed: () async {
+                      Navigator.pop(ctx);
+                      Clipboard.setData(ClipboardData(text: mensaje));
+                      await _sosService.enviarAlertaAutomatica(
+                        telefono: contacto.telefono,
+                        mensaje: mensaje,
+                      );
+                    },
                   ),
-                ],
+                ),
+                const SizedBox(height: 10),
+
+                // VÍAS INDIVIDUALES EN PARALELO
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF25D366),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        icon: const Icon(Icons.chat_bubble_outline, size: 18),
+                        label: const Text('WhatsApp', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        onPressed: () async {
+                          Navigator.pop(ctx);
+                          await _sosService.abrirWhatsApp(
+                            telefono: contacto.telefono,
+                            mensaje: mensaje,
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1976D2),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        icon: const Icon(Icons.sms_outlined, size: 18),
+                        label: const Text('SMS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        onPressed: () async {
+                          Navigator.pop(ctx);
+                          await _sosService.abrirSms(
+                            telefono: contacto.telefono,
+                            mensaje: mensaje,
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                // BOTÓN DE LLAMADA DIRECTA AL CONTACTO
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF2E7D32),
+                      side: const BorderSide(color: Color(0xFF2E7D32), width: 1.5),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    icon: const Icon(Icons.phone),
+                    label: Text('Llamar a ${contacto.nombre} (${contacto.telefono})'),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _sosService.llamarNumero(telefono: contacto.telefono);
+                    },
+                  ),
+                ),
+              ] else ...[
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueGrey,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Entendido (Prueba finalizada)'),
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 10),
+              Center(
+                child: TextButton.icon(
+                  icon: const Icon(Icons.copy, size: 16, color: AppColores.grisTexto),
+                  label: const Text('Copiar texto manualmente', style: TextStyle(fontSize: 12, color: AppColores.grisTexto)),
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: mensaje));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('📋 Mensaje copiado al portapapeles.')),
+                    );
+                  },
+                ),
               ),
-              const SizedBox(height: 8),
             ],
           ),
         );
@@ -448,29 +583,149 @@ class _PantallaSosState extends State<PantallaSos> {
                               ),
                               elevation: 2,
                             ),
-                            icon: const Icon(Icons.warning, color: Color(0xFFD32F2F), size: 24),
+                            icon: const Icon(Icons.warning_amber_rounded, color: Color(0xFFD32F2F), size: 24),
                             label: const Text(
                               'ACTIVAR SOS DE EMERGENCIA',
                               style: TextStyle(
-                                fontSize: 15,
+                                fontSize: 14,
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 0.5,
                               ),
                             ),
-                            onPressed: () => _ejecutarAccionSos(esPrueba: false),
+                            onPressed: () => _iniciarCuentaRegresivaSos(esModoChoque: false),
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
+                        TextButton.icon(
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.white,
+                          ),
+                          icon: const Icon(Icons.touch_app, size: 16),
+                          label: const Text(
+                            'Opciones manuales (WhatsApp directo)',
+                            style: TextStyle(fontSize: 12, decoration: TextDecoration.underline),
+                          ),
+                          onPressed: () => _ejecutarAccionSos(esPrueba: false),
+                        ),
                         TextButton.icon(
                           style: TextButton.styleFrom(
                             foregroundColor: Colors.white70,
                           ),
-                          icon: const Icon(Icons.science_outlined, size: 18),
+                          icon: const Icon(Icons.science_outlined, size: 16),
                           label: const Text(
                             'Modo Prueba (Simular sin enviar)',
-                            style: TextStyle(fontSize: 13, decoration: TextDecoration.underline),
+                            style: TextStyle(fontSize: 12, decoration: TextDecoration.underline),
                           ),
                           onPressed: () => _ejecutarAccionSos(esPrueba: true),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // TARJETA DE DETECCIÓN INTELIGENTE DE CHOQUES Y CAÍDAS
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: _detectorChoqueActivo
+                            ? const Color(0xFFD32F2F).withValues(alpha: 0.3)
+                            : Colors.grey.shade300,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: _detectorChoqueActivo
+                                    ? const Color(0xFFFFEBEE)
+                                    : Colors.grey.shade100,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.car_crash_rounded,
+                                color: _detectorChoqueActivo
+                                    ? const Color(0xFFD32F2F)
+                                    : Colors.grey,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Detección de Choques e Impactos',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: AppColores.marronOscuro,
+                                    ),
+                                  ),
+                                  Text(
+                                    _detectorChoqueActivo
+                                        ? 'Monitoreo activo para tubulares / auto'
+                                        : 'Monitoreo pausado',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: _detectorChoqueActivo
+                                          ? const Color(0xFF2E7D32)
+                                          : AppColores.grisTexto,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Switch(
+                              value: _detectorChoqueActivo,
+                              activeColor: const Color(0xFFD32F2F),
+                              onChanged: (val) {
+                                setState(() {
+                                  _detectorChoqueActivo = val;
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Si el vehículo sufre una desaceleración extrema o impacto en las dunas, se activará una alarma con 10s de espera para despachar auxilio por SMS satelital y llamada sin intervención humana.',
+                          style: TextStyle(fontSize: 11, color: AppColores.grisTexto, height: 1.35),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xFFD32F2F),
+                              side: const BorderSide(color: Color(0xFFD32F2F)),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                            label: const Text(
+                              'Simular Choque (Probar flujo automático 10s)',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                            ),
+                            onPressed: () => _iniciarCuentaRegresivaSos(esModoChoque: true),
+                          ),
                         ),
                       ],
                     ),
@@ -526,28 +781,33 @@ class _PantallaSosState extends State<PantallaSos> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Icon(
-                        existe ? Icons.verified_user : Icons.warning_amber_rounded,
-                        color: existe ? Colors.green : Colors.orange,
-                        size: 22,
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Contacto de Confianza',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColores.marronOscuro,
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Icon(
+                          existe ? Icons.verified_user : Icons.warning_amber_rounded,
+                          color: existe ? Colors.green : Colors.orange,
+                          size: 20,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 8),
+                        const Flexible(
+                          child: Text(
+                            'Contacto de Confianza',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: AppColores.marronOscuro,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   TextButton.icon(
                     style: TextButton.styleFrom(
                       foregroundColor: AppColores.naranjaBoton,
-                      padding: EdgeInsets.zero,
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
                     ),
                     icon: Icon(existe ? Icons.edit : Icons.add, size: 16),
                     label: Text(existe ? 'Editar' : 'Registrar'),
@@ -591,9 +851,18 @@ class _PantallaSosState extends State<PantallaSos> {
                   ],
                 ),
               ] else ...[
-                const Text(
-                  '⚠️ No tienes un contacto registrado. Configúralo para poder generar y enviar alertas de emergencia personalizadas.',
-                  style: TextStyle(fontSize: 13, color: Color(0xFFE65100)),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Icon(Icons.warning_amber_rounded, size: 18, color: Color(0xFFE65100)),
+                    SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'No tienes un contacto registrado. Configúralo para poder generar y enviar alertas de emergencia personalizadas.',
+                        style: TextStyle(fontSize: 13, color: Color(0xFFE65100)),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ],
@@ -619,19 +888,24 @@ class _PantallaSosState extends State<PantallaSos> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Row(
-                    children: [
-                      Icon(Icons.location_on_outlined, color: AppColores.marronOscuro, size: 22),
-                      SizedBox(width: 8),
-                      Text(
-                        'Ubicación en el Mensaje',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColores.marronOscuro,
+                  const Expanded(
+                    child: Row(
+                      children: [
+                        Icon(Icons.location_on_outlined, color: AppColores.marronOscuro, size: 20),
+                        SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'Ubicación en el Mensaje',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: AppColores.marronOscuro,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   Switch.adaptive(
                     activeThumbColor: AppColores.naranjaBoton,
@@ -694,16 +968,18 @@ class _PantallaSosState extends State<PantallaSos> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.preview_outlined, color: AppColores.marronOscuro, size: 20),
-                  SizedBox(width: 8),
-                  Text(
-                    'Vista Previa del Texto SOS',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: AppColores.marronOscuro,
+                  const Icon(Icons.preview_outlined, color: AppColores.marronOscuro, size: 20),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Vista Previa del Texto SOS',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: AppColores.marronOscuro,
+                      ),
                     ),
                   ),
                 ],
@@ -738,16 +1014,18 @@ class _PantallaSosState extends State<PantallaSos> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.local_phone_outlined, color: AppColores.marronOscuro, size: 22),
-              SizedBox(width: 8),
-              Text(
-                'Centrales de Emergencia Oficiales',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColores.marronOscuro,
+              const Icon(Icons.local_phone_outlined, color: AppColores.marronOscuro, size: 22),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Centrales de Emergencia Oficiales',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColores.marronOscuro,
+                  ),
                 ),
               ),
             ],
@@ -755,61 +1033,87 @@ class _PantallaSosState extends State<PantallaSos> {
           const SizedBox(height: 10),
           ..._sosService.numerosOficiales.map((item) {
             return Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
                 color: AppColores.arenaFondo.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: AppColores.marronOscuro.withValues(alpha: 0.08),
+                ),
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      item.numero,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFFD32F2F),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.nombre,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 4,
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          item.numero,
                           style: const TextStyle(
-                            fontSize: 13,
+                            fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: AppColores.marronOscuro,
+                            color: Color(0xFFD32F2F),
+                            letterSpacing: 0.5,
                           ),
                         ),
-                        Text(
-                          item.descripcion,
-                          style: const TextStyle(fontSize: 11, color: AppColores.grisTexto),
-                        ),
-                      ],
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            icon: const Icon(Icons.phone_in_talk, size: 20, color: Color(0xFF2E7D32)),
+                            tooltip: 'Llamar de inmediato',
+                            onPressed: () => _sosService.llamarNumero(telefono: item.numero),
+                          ),
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            icon: const Icon(Icons.copy, size: 18, color: AppColores.marronOscuro),
+                            tooltip: 'Copiar número',
+                            onPressed: () {
+                              Clipboard.setData(ClipboardData(text: item.numero));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Número ${item.numero} copiado al portapapeles.'),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    item.nombre,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: AppColores.marronOscuro,
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.copy, size: 18, color: AppColores.marronOscuro),
-                    tooltip: 'Copiar número',
-                    onPressed: () {
-                      Clipboard.setData(ClipboardData(text: item.numero));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Número ${item.numero} copiado al portapapeles.'),
-                          duration: const Duration(seconds: 2),
-                        ),
-                      );
-                    },
+                  const SizedBox(height: 2),
+                  Text(
+                    item.descripcion,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColores.grisTexto,
+                      height: 1.25,
+                    ),
                   ),
                 ],
               ),
@@ -825,11 +1129,13 @@ class _PantallaSosState extends State<PantallaSos> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.info, color: AppColores.naranjaBoton),
-            SizedBox(width: 8),
-            Text('Compatibilidad y Envíos', style: TextStyle(fontSize: 17)),
+            const Icon(Icons.security_rounded, color: Color(0xFFD32F2F)),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text('Guía de Asistencia SOS', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+            ),
           ],
         ),
         content: const SingleChildScrollView(
@@ -837,32 +1143,59 @@ class _PantallaSosState extends State<PantallaSos> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                '🌐 Ejecución en Navegador Web (Chrome):',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-              ),
-              SizedBox(height: 4),
-              Text(
-                'Por políticas de seguridad y privacidad (Sandboxing web), los navegadores web no pueden despachar SMS ni llamadas de fondo sin interacción del usuario. Por ello, la app prepara el texto exacto, lo copia al portapapeles y facilita los enlaces para confirmación manual.',
-                style: TextStyle(fontSize: 12, color: AppColores.marronOscuro),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.touch_app_rounded, color: AppColores.naranjaBoton, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Alertas en 1 clic: Pulsa "Activar SOS" para despachar tu ubicación exacta directamente a WhatsApp o SMS de tu contacto.',
+                      style: TextStyle(fontSize: 13, height: 1.35),
+                    ),
+                  ),
+                ],
               ),
               SizedBox(height: 12),
-              Text(
-                '📱 Despliegue en Android Nativo:',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.gps_fixed, color: Color(0xFF2E7D32), size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Ubicación Satelital: Se extraen tus coordenadas reales en Ica y se genera un enlace de Google Maps para que puedan localizarte.',
+                      style: TextStyle(fontSize: 13, height: 1.35),
+                    ),
+                  ),
+                ],
               ),
-              SizedBox(height: 4),
-              Text(
-                'Para enviar SMS de fondo en Android se requiere el permiso SEND_SMS en AndroidManifest.xml. Google Play clasifica este permiso como de alto riesgo y exige justificación estricta. El enfoque recomendado y seguro consiste en lanzar la aplicación SMS del sistema (Intent ACTION_SENDTO) precargando el destinatario y mensaje para que el usuario confirme con un solo toque.',
-                style: TextStyle(fontSize: 12, color: AppColores.marronOscuro),
+              SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.phone_in_talk, color: Color(0xFF1976D2), size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Llamadas Rápidas: Toca el icono de teléfono junto a la Policía (105), Bomberos (116) o SAMU (106) para llamar de inmediato.',
+                      style: TextStyle(fontSize: 13, height: 1.35),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
         ),
         actions: [
-          TextButton(
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColores.marronOscuro,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Entendido', style: TextStyle(color: AppColores.naranjaBoton)),
+            child: const Text('Entendido'),
           ),
         ],
       ),

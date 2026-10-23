@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../config/tema.dart';
@@ -22,13 +23,15 @@ class _PantallaMapaState extends State<PantallaMapa> {
   String _textoBusqueda = '';
   String _filtroActual = 'Todas';
   Map<String, dynamic>? _seleccionada;
+  LatLng? _miUbicacion;
+  bool _obteniendoGps = false;
 
   final List<Map<String, dynamic>> _ubicaciones = [
     {
       'titulo': 'Sandboarding en Huacachina',
       'subtitulo': 'Ica',
-      'lat': -14.0875,
-      'lng': -75.7628,
+      'lat': -14.08759,
+      'lng': -75.76306,
       'condicion': 'Excelente',
       'indice': '95/100',
       'categoria': 'Aventura',
@@ -42,8 +45,8 @@ class _PantallaMapaState extends State<PantallaMapa> {
     {
       'titulo': 'Laguna de Huacachina',
       'subtitulo': 'Ica',
-      'lat': -14.0870,
-      'lng': -75.7632,
+      'lat': -14.08759,
+      'lng': -75.76306,
       'condicion': 'Excelente',
       'indice': '94/100',
       'categoria': 'Naturaleza',
@@ -56,8 +59,8 @@ class _PantallaMapaState extends State<PantallaMapa> {
     {
       'titulo': 'Islas Ballestas',
       'subtitulo': 'Paracas',
-      'lat': -13.8333,
-      'lng': -76.2500,
+      'lat': -13.83330,
+      'lng': -76.25000,
       'condicion': 'Excelente',
       'indice': '88/100',
       'categoria': 'Naturaleza',
@@ -71,8 +74,8 @@ class _PantallaMapaState extends State<PantallaMapa> {
     {
       'titulo': 'Reserva Nacional de Paracas',
       'subtitulo': 'Paracas',
-      'lat': -13.8833,
-      'lng': -76.2667,
+      'lat': -13.88330,
+      'lng': -76.26670,
       'condicion': 'Bueno',
       'indice': '75/100',
       'categoria': 'Naturaleza',
@@ -86,8 +89,8 @@ class _PantallaMapaState extends State<PantallaMapa> {
     {
       'titulo': 'Viñedos y Bodega Tacama',
       'subtitulo': 'Ica',
-      'lat': -14.0678,
-      'lng': -75.7286,
+      'lat': -14.00175,
+      'lng': -75.71683,
       'condicion': 'Excelente',
       'indice': '90/100',
       'categoria': 'Gastronomía',
@@ -101,8 +104,8 @@ class _PantallaMapaState extends State<PantallaMapa> {
     {
       'titulo': 'Plaza de Armas de Ica',
       'subtitulo': 'Ica',
-      'lat': -14.0685,
-      'lng': -75.7288,
+      'lat': -14.06402,
+      'lng': -75.72907,
       'condicion': 'Excelente',
       'indice': '92/100',
       'categoria': 'Cultura',
@@ -114,8 +117,8 @@ class _PantallaMapaState extends State<PantallaMapa> {
     {
       'titulo': 'Santuario del Señor de Luren',
       'subtitulo': 'Ica',
-      'lat': -14.0722,
-      'lng': -75.7258,
+      'lat': -14.07066,
+      'lng': -75.72553,
       'condicion': 'Excelente',
       'indice': '89/100',
       'categoria': 'Cultura',
@@ -127,8 +130,8 @@ class _PantallaMapaState extends State<PantallaMapa> {
     {
       'titulo': 'Cachiche (Pueblo de las Brujas)',
       'subtitulo': 'Ica',
-      'lat': -14.0911,
-      'lng': -75.7198,
+      'lat': -14.09454,
+      'lng': -75.73643,
       'condicion': 'Bueno',
       'indice': '82/100',
       'categoria': 'Cultura',
@@ -140,8 +143,8 @@ class _PantallaMapaState extends State<PantallaMapa> {
     {
       'titulo': 'Cañón de los Perdidos',
       'subtitulo': 'Ocucaje, Ica',
-      'lat': -14.4722,
-      'lng': -75.7333,
+      'lat': -14.75527,
+      'lng': -75.51405,
       'condicion': 'Bueno',
       'indice': '86/100',
       'categoria': 'Aventura',
@@ -161,6 +164,61 @@ class _PantallaMapaState extends State<PantallaMapa> {
         _textoBusqueda = _busquedaController.text;
       });
     });
+    // Obtener ubicación GPS en segundo plano al abrir el mapa
+    _centrarEnMiUbicacion(pedirPermiso: false, autoCentrar: false);
+  }
+
+  Future<void> _centrarEnMiUbicacion({
+    bool pedirPermiso = true,
+    bool autoCentrar = true,
+  }) async {
+    setState(() => _obteniendoGps = true);
+    try {
+      final gpsHabilitado = await Geolocator.isLocationServiceEnabled();
+      if (!gpsHabilitado) {
+        if (mounted && pedirPermiso) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Por favor enciende el GPS en tu celular para ver tu ubicación en vivo.'),
+              action: SnackBarAction(
+                label: 'Ajustes',
+                onPressed: () => Geolocator.openLocationSettings(),
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
+      LocationPermission permiso = await Geolocator.checkPermission();
+      if (permiso == LocationPermission.denied && pedirPermiso) {
+        permiso = await Geolocator.requestPermission();
+      }
+
+      if (permiso == LocationPermission.whileInUse || permiso == LocationPermission.always) {
+        final pos = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+          timeLimit: const Duration(seconds: 8),
+        );
+        final nuevaUbi = LatLng(pos.latitude, pos.longitude);
+        if (mounted) {
+          setState(() {
+            _miUbicacion = nuevaUbi;
+          });
+          if (autoCentrar) {
+            _mapController.move(nuevaUbi, 15.5);
+          }
+        }
+      } else if (pedirPermiso && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Se requiere permiso de ubicación para ubicarte en el mapa.')),
+        );
+      }
+    } catch (e) {
+      debugPrint('[PantallaMapa] Error obteniendo GPS: $e');
+    } finally {
+      if (mounted) setState(() => _obteniendoGps = false);
+    }
   }
 
   @override
@@ -201,7 +259,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
 
   /// Restablece la vista general panorámica de Ica
   void _centrarMapaGeneral() {
-    _mapController.move(const LatLng(-14.0678, -75.7286), 9.5);
+    _mapController.move(const LatLng(-14.06402, -75.72907), 10.0);
   }
 
   void _mostrarFiltros() {
@@ -327,8 +385,8 @@ class _PantallaMapaState extends State<PantallaMapa> {
                   FlutterMap(
                     mapController: _mapController,
                     options: const MapOptions(
-                      initialCenter: LatLng(-14.0678, -75.7286),
-                      initialZoom: 9.5,
+                      initialCenter: LatLng(-14.06402, -75.72907),
+                      initialZoom: 10.0,
                     ),
                     children: [
                       TileLayer(
@@ -337,48 +395,88 @@ class _PantallaMapaState extends State<PantallaMapa> {
                         userAgentPackageName: 'com.example.ika_travel_mobile',
                       ),
                       MarkerLayer(
-                        markers: listaParaMostrar.map((ubicacion) {
-                          final esSeleccionada =
-                              _seleccionada?['titulo'] == ubicacion['titulo'];
-
-                          return Marker(
-                            point: LatLng(ubicacion['lat'], ubicacion['lng']),
-                            width: esSeleccionada ? 52 : 42,
-                            height: esSeleccionada ? 52 : 42,
-                            child: GestureDetector(
-                              onTap: () {
-                                _seleccionarLugar(ubicacion);
-                              },
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 250),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: esSeleccionada
-                                      ? AppColores.naranjaBoton
-                                      : Colors.teal.shade700,
-                                  border: Border.all(
-                                    color: Colors.white,
-                                    width: esSeleccionada ? 3 : 2,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.3),
-                                      blurRadius: esSeleccionada ? 10 : 4,
-                                      offset: const Offset(0, 3),
+                        markers: [
+                          if (_miUbicacion != null)
+                            Marker(
+                              point: _miUbicacion!,
+                              width: 44,
+                              height: 44,
+                              child: Tooltip(
+                                message: 'Mi ubicación GPS actual',
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    Container(
+                                      width: 40,
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: const Color(0xFF1976D2).withValues(alpha: 0.25),
+                                      ),
+                                    ),
+                                    Container(
+                                      width: 18,
+                                      height: 18,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: const Color(0xFF1976D2),
+                                        border: Border.all(color: Colors.white, width: 3),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(alpha: 0.25),
+                                            blurRadius: 4,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ],
                                 ),
-                                child: Icon(
-                                  esSeleccionada
-                                      ? Icons.star_rounded
-                                      : Icons.location_on,
-                                  color: Colors.white,
-                                  size: esSeleccionada ? 30 : 24,
-                                ),
                               ),
                             ),
-                          );
-                        }).toList(),
+                          ...listaParaMostrar.map((ubicacion) {
+                            final esSeleccionada =
+                                _seleccionada?['titulo'] == ubicacion['titulo'];
+
+                            return Marker(
+                              point: LatLng(ubicacion['lat'], ubicacion['lng']),
+                              width: esSeleccionada ? 52 : 42,
+                              height: esSeleccionada ? 52 : 42,
+                              child: GestureDetector(
+                                onTap: () {
+                                  _seleccionarLugar(ubicacion);
+                                },
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 250),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: esSeleccionada
+                                        ? AppColores.naranjaBoton
+                                        : Colors.teal.shade700,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: esSeleccionada ? 3 : 2,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.3),
+                                        blurRadius: esSeleccionada ? 10 : 4,
+                                        offset: const Offset(0, 3),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Icon(
+                                    esSeleccionada
+                                        ? Icons.star_rounded
+                                        : Icons.location_on,
+                                    color: Colors.white,
+                                    size: esSeleccionada ? 30 : 24,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
+                        ],
                       ),
                     ],
                   ),
@@ -567,18 +665,42 @@ class _PantallaMapaState extends State<PantallaMapa> {
                     ),
                   ),
 
-                  // Botón flotante para recentrar el mapa en Ica
+                  // Botones flotantes: Mi Ubicación GPS y Panorámica de Ica
                   Positioned(
                     right: 16,
                     bottom: _seleccionada != null ? 150 : 20,
-                    child: FloatingActionButton.small(
-                      heroTag: 'btn_centrar_mapa',
-                      backgroundColor: colorTarjeta,
-                      foregroundColor: AppColores.naranjaBoton,
-                      elevation: 4,
-                      tooltip: 'Centrar vista de Ica',
-                      onPressed: _centrarMapaGeneral,
-                      child: const Icon(Icons.my_location),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        FloatingActionButton(
+                          heroTag: 'btn_mi_ubicacion_gps',
+                          backgroundColor: Colors.white,
+                          foregroundColor: const Color(0xFF1976D2),
+                          elevation: 4,
+                          tooltip: 'Ir a mi ubicación GPS actual',
+                          onPressed: () => _centrarEnMiUbicacion(pedirPermiso: true, autoCentrar: true),
+                          child: _obteniendoGps
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    color: Color(0xFF1976D2),
+                                  ),
+                                )
+                              : const Icon(Icons.my_location, size: 24),
+                        ),
+                        const SizedBox(height: 10),
+                        FloatingActionButton.small(
+                          heroTag: 'btn_centrar_mapa',
+                          backgroundColor: colorTarjeta,
+                          foregroundColor: AppColores.naranjaBoton,
+                          elevation: 3,
+                          tooltip: 'Ver todo Ica (Panorámica)',
+                          onPressed: _centrarMapaGeneral,
+                          child: const Icon(Icons.map_outlined),
+                        ),
+                      ],
                     ),
                   ),
 

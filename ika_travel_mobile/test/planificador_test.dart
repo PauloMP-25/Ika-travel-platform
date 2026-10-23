@@ -32,7 +32,7 @@ void main() {
 
       expect(it.puntos.isNotEmpty, isTrue);
       expect(it.origen, isNotNull);
-      expect(it.origen!.esUbicacionSimulada, isTrue);
+      expect(it.origen!.id, equals('ica_centro'));
       expect(it.destinos, isEmpty);
       expect(it.tramos, isEmpty);
     });

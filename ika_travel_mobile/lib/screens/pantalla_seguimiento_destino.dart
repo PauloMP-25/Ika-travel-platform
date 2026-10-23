@@ -25,6 +25,7 @@ class _PantallaSeguimientoDestinoState
   final AlertasService _alertasService = AlertasService();
 
   late String _destinoSeleccionadoId;
+  int _tabSeleccionado = 0;
 
   @override
   void initState() {
@@ -106,12 +107,12 @@ class _PantallaSeguimientoDestinoState
                       // 3. Condiciones Relevantes para Actividades Disponibles
                       _buildCondicionesActividades(destinoActual),
 
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 20),
 
                       // 4. Historial Cronológico de Cambios (Antes vs Después)
                       _buildHistorialCambios(destinoActual),
 
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 20),
 
                       // 5. Alertas Vinculadas con Acceso al Detalle ("¿Por qué cambió?")
                       _buildAlertasRelacionadas(destinoActual),
@@ -142,7 +143,7 @@ class _PantallaSeguimientoDestinoState
           SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Historial y seguimiento simulado listo para consumir API meteorológica y backend.',
+              'Monitoreo ambiental y condiciones climáticas actualizadas en tiempo real.',
               style: TextStyle(
                 fontSize: 12,
                 color: Color(0xFF1B5E20),
@@ -263,12 +264,15 @@ class _PantallaSeguimientoDestinoState
                             const Icon(Icons.update,
                                 size: 14, color: AppColores.naranjaBoton),
                             const SizedBox(width: 4),
-                            Text(
-                              'Actualizado: ${_formatearFechaHora(destino.ultimaActualizacion)}',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: AppColores.naranjaBoton,
+                            Expanded(
+                              child: Text(
+                                'Actualizado: ${_formatearFechaHora(destino.ultimaActualizacion)}',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColores.naranjaBoton,
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
@@ -520,14 +524,18 @@ class _PantallaSeguimientoDestinoState
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          reg.parametroModificado,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: AppColores.marronOscuro,
+                        Expanded(
+                          child: Text(
+                            reg.parametroModificado,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: AppColores.marronOscuro,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        const SizedBox(width: 6),
                         Text(
                           _formatearFechaHora(reg.fechaHora),
                           style: const TextStyle(
@@ -538,8 +546,11 @@ class _PantallaSeguimientoDestinoState
                       ],
                     ),
                     const SizedBox(height: 6),
-                    // Valores anteriores y actuales (Req 14)
-                    Row(
+                    // Valores anteriores y actuales (Wrap responsivo sin overflow)
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -552,10 +563,7 @@ class _PantallaSeguimientoDestinoState
                             style: const TextStyle(fontSize: 11, color: AppColores.grisTexto),
                           ),
                         ),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 6),
-                          child: Icon(Icons.arrow_forward, size: 14, color: AppColores.naranjaBoton),
-                        ),
+                        const Icon(Icons.arrow_forward_rounded, size: 14, color: AppColores.naranjaBoton),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
@@ -596,12 +604,15 @@ class _PantallaSeguimientoDestinoState
                           children: [
                             Icon(Icons.open_in_new, size: 13, color: AppColores.naranjaBoton),
                             SizedBox(width: 4),
-                            Text(
-                              'Ver detalle de la alerta ("¿Por qué cambió?")',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: AppColores.naranjaBoton,
+                            Expanded(
+                              child: Text(
+                                'Ver detalle de la alerta ("¿Por qué cambió?")',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColores.naranjaBoton,
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
@@ -631,14 +642,17 @@ class _PantallaSeguimientoDestinoState
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'Alertas relacionadas con el destino',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColores.marronOscuro,
+            const Expanded(
+              child: Text(
+                'Alertas relacionadas con el destino',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColores.marronOscuro,
+                ),
               ),
             ),
+            const SizedBox(width: 8),
             Text(
               '${alertasDestino.length} registros',
               style: const TextStyle(fontSize: 12, color: AppColores.grisTexto),

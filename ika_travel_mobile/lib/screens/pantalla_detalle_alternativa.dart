@@ -436,7 +436,11 @@ class PantallaDetalleAlternativa extends StatelessWidget {
               ),
             ),
             icon: const Icon(Icons.timeline),
-            label: Text('Consultar Seguimiento de ${alternativa.destino}'),
+            label: Text(
+              'Consultar Seguimiento de ${alternativa.destino}',
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
             onPressed: () {
               Navigator.push(
                 context,

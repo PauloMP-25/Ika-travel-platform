@@ -120,7 +120,7 @@ class PantallaMas extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -173,8 +173,8 @@ class PantallaMas extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: esInvitado
-                            ? Colors.grey.withOpacity(0.15)
-                            : const Color(0xFF2E7D32).withOpacity(0.15),
+                            ? Colors.grey.withValues(alpha: 0.15)
+                            : const Color(0xFF2E7D32).withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -376,7 +376,7 @@ class PantallaMas extends StatelessWidget {
                       );
                     },
                   ),
-                  Divider(color: colorTextoSecundario.withOpacity(0.3)),
+                  Divider(color: colorTextoSecundario.withValues(alpha: 0.3)),
                   _itemMenu(
                     context,
                     icono: Icons.settings_outlined,
@@ -492,7 +492,7 @@ class PantallaMas extends StatelessWidget {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: AppColores.naranjaBoton.withOpacity(0.1),
+          color: AppColores.naranjaBoton.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(icono, color: AppColores.naranjaBoton, size: 22),
