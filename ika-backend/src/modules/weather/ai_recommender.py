@@ -232,8 +232,8 @@ async def redactar_con_gemini(
     altura_ola: float | None = None,
     narrativa_previa: str | None = None,
     atractivos_alternativos: list[str] | None = None,
-) -> str | None:
-    """Mantiene compatibilidad hacia atrás con callers que esperan un texto string."""
+) -> tuple[str | None, list[str]]:
+    """Devuelve texto narrativo y lista de consejos/precauciones estructurados por Gemini."""
     enriquecida = await generar_recomendacion_enriquecida(
         nombre_atractivo=nombre_atractivo,
         resultado=resultado,
@@ -254,5 +254,6 @@ async def redactar_con_gemini(
         atractivos_alternativos=atractivos_alternativos,
     )
     if enriquecida.source == "gemini":
-        return f"{enriquecida.summary} {enriquecida.climate_justification}"
-    return None
+        texto = f"{enriquecida.summary} {enriquecida.climate_justification}"
+        return texto, enriquecida.precautions
+    return None, []

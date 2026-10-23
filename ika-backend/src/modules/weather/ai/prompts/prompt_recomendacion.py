@@ -98,10 +98,10 @@ Tu única función es redactar la narrativa turística oficial en {idioma_nombre
 
 <tarea>
 Genera la recomendación estructurada para el turista en {idioma_nombre}:
-1. 'summary': Resumen cálido y persuasivo invitando a visitar {nombre_atractivo} según el clima actual.
-2. 'climate_justification': Justificación meteorológica detallada que explique cómo las condiciones actuales (temperatura, viento, UV) favorecen la visita, y sugiera expresamente al menos 2 destinos específicos registrados en el catálogo de Ica (por ejemplo: {', '.join(atractivos_alternativos[:2]) if atractivos_alternativos else 'Oasis de Huacachina o Bodega Tacama'}) explicando por qué son excelentes opciones para ir hoy.
+1. 'summary': Resumen cálido y persuasivo invitando a visitar {nombre_atractivo} según el clima actual de Ica.
+2. 'climate_justification': Justificación meteorológica detallada que explique cómo las condiciones actuales (temperatura, viento, UV) favorecen la visita, comparándola con los otros atractivos sugeridos.
 3. 'clothing': Lista de 2 a 4 prendas recomendadas (si la arena está caliente o el UV es alto, menciona calzado cerrado y protección).
-4. 'precautions': Lista de 1 a 4 precauciones prioritarias (franja horaria de sol extremo, arena o hidratación).
+4. 'precautions': Lista de 2 a 4 recomendaciones y precauciones prácticas. DEBES incluir aquí consejos específicos mencionando los otros lugares de alto índice calculados para visitar hoy ({', '.join(atractivos_alternativos[:2]) if atractivos_alternativos else 'Plaza de Armas de Ica, Bodega Tacama'}), explicando en qué momento del día conviene ir según el clima.
 5. 'suitability_score': Mantén el valor exacto de {score_calculado:.2f} proveniente del cálculo del sistema.
 </tarea>
 
