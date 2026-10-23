@@ -1,7 +1,5 @@
 import 'dart:convert';
-
 import 'package:http/http.dart' as http;
-
 import '../config/api_config.dart';
 
 class ApiService {
@@ -9,15 +7,17 @@ class ApiService {
     try {
       print('⏳ Conectando a: ${'${ApiConfig.attractions}?page_size=30'}');
 
-      // 👇 AUMENTAMOS EL TIMEOUT A 30 SEGUNDOS
       final response = await http
-          .get(Uri.parse('${ApiConfig.attractions}?page_size=30'))
+          .get(
+            Uri.parse('${ApiConfig.attractions}?page_size=30'),
+            headers: ApiConfig.defaultHeaders,
+          )
           .timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         print('✅ Respuesta recibida');
 
-        final data = json.decode(response.body);
+        final data = json.decode(utf8.decode(response.bodyBytes));
 
         final List<dynamic> items;
         if (data is List) {
@@ -57,12 +57,10 @@ class ApiService {
         }).toList();
       } else {
         print('❌ Error del servidor. Código: ${response.statusCode}');
-        // Si el servidor falla, devolvemos una lista vacía para no romper la app
         return [];
       }
     } catch (e) {
-      print('❌ Error de conexión: $e');
-      // Si hay timeout o error de red, devolvemos una lista vacía
+      print('❌ Error al obtener actividades: $e');
       return [];
     }
   }

@@ -74,7 +74,7 @@ class SosService {
   /// Si el servidor no responde, conserva la lista local predeterminada.
   Future<void> sincronizarContactosOficiales() async {
     try {
-      final res = await http.get(Uri.parse(ApiConfig.emergencyContacts)).timeout(const Duration(seconds: 4));
+      final res = await http.get(Uri.parse(ApiConfig.emergencyContacts), headers: ApiConfig.defaultHeaders).timeout(const Duration(seconds: 4));
       if (res.statusCode == 200) {
         final List<dynamic> data = jsonDecode(utf8.decode(res.bodyBytes));
         if (data.isNotEmpty) {

@@ -6,6 +6,15 @@ class ApiConfig {
     defaultValue: 'https://dreary-flap-stole.ngrok-free.dev',
   );
 
+  /// Cabeceras predeterminadas para todas las peticiones HTTP de la app.
+  /// Incluye 'ngrok-skip-browser-warning' para evitar que Ngrok bloquee las
+  /// peticiones cuando la aplicación corre en Web (Chrome, Edge, etc.).
+  static Map<String, String> get defaultHeaders => {
+        'Accept': 'application/json',
+        'Accept-Language': 'es-PE,es;q=0.9',
+        'ngrok-skip-browser-warning': 'true',
+      };
+
   // --- CATALOG (Actividades) ---
   static String get attractions => '$baseUrl/api/v1/catalog/attractions';
   static String get categories => '$baseUrl/api/v1/catalog/categories';

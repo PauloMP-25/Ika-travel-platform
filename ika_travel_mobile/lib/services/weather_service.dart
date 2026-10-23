@@ -1,7 +1,5 @@
 import 'dart:convert';
-
 import 'package:http/http.dart' as http;
-
 import '../config/api_config.dart';
 
 class WeatherService {
@@ -9,11 +7,14 @@ class WeatherService {
   Future<Map<String, dynamic>?> obtenerClimaActual() async {
     try {
       final response = await http
-          .get(Uri.parse(ApiConfig.weatherCurrent))
+          .get(
+            Uri.parse(ApiConfig.weatherCurrent),
+            headers: ApiConfig.defaultHeaders,
+          )
           .timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        return json.decode(utf8.decode(response.bodyBytes));
       } else {
         print('❌ Error al obtener clima: ${response.statusCode}');
         return null;
@@ -24,15 +25,18 @@ class WeatherService {
     }
   }
 
-  // 2. 👇 NUEVO: Obtener el pronóstico (por horas y días)
+  // 2. Obtener el pronóstico (por horas y días)
   Future<Map<String, dynamic>?> obtenerPronostico() async {
     try {
       final response = await http
-          .get(Uri.parse(ApiConfig.weatherForecast))
+          .get(
+            Uri.parse(ApiConfig.weatherForecast),
+            headers: ApiConfig.defaultHeaders,
+          )
           .timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        return json.decode(utf8.decode(response.bodyBytes));
       } else {
         print('❌ Error al obtener pronóstico: ${response.statusCode}');
         return null;
@@ -47,7 +51,10 @@ class WeatherService {
   Future<Map<String, dynamic>?> obtenerRecomendacionDelDia() async {
     try {
       final response = await http
-          .get(Uri.parse(ApiConfig.recommendationOfDay))
+          .get(
+            Uri.parse(ApiConfig.recommendationOfDay),
+            headers: ApiConfig.defaultHeaders,
+          )
           .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
@@ -64,7 +71,10 @@ class WeatherService {
   Future<List<dynamic>> obtenerRecomendaciones() async {
     try {
       final response = await http
-          .get(Uri.parse(ApiConfig.recommendations))
+          .get(
+            Uri.parse(ApiConfig.recommendations),
+            headers: ApiConfig.defaultHeaders,
+          )
           .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
@@ -76,5 +86,4 @@ class WeatherService {
       return [];
     }
   }
-
 }

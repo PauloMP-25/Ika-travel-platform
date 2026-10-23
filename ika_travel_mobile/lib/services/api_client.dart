@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import '../config/api_config.dart';
 
 class ApiClient {
   // En Android Emulator 10.0.2.2 es localhost de la máquina host.
-  // En dispositivo físico, Linux o Web se usa 127.0.0.1 o variable de entorno.
+  // En dispositivo físico, Linux o Web se usa el túnel o la variable de entorno.
   static String get baseUrl {
     const customHost = String.fromEnvironment('API_BASE_URL');
     if (customHost.isNotEmpty) {
@@ -14,14 +15,9 @@ class ApiClient {
     if (apiUrl.isNotEmpty) {
       return apiUrl.endsWith('/api/v1') ? apiUrl : '$apiUrl/api/v1';
     }
-    try {
-      if (Platform.isAndroid) {
-        return 'http://10.0.2.2:8000/api/v1';
-      }
-    } catch (_) {
-      // Entornos web o de testing donde Platform no aplica
-    }
-    return 'https://dreary-flap-stole.ngrok-free.dev/api/v1';
+    // Si no se sobreescribe explícitamente, siempre usamos el túnel activo
+    // para que funcione tanto en emulador como en físico o web.
+    return '${ApiConfig.baseUrl}/api/v1';
   }
 
   final http.Client _client;
@@ -33,8 +29,7 @@ class ApiClient {
     final response = await _client.get(
       uri,
       headers: {
-        'Accept': 'application/json',
-        'Accept-Language': 'es-PE,es;q=0.9',
+        ...ApiConfig.defaultHeaders,
         ...?headers,
       },
     );
@@ -59,8 +54,7 @@ class ApiClient {
       uri,
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Accept-Language': 'es-PE,es;q=0.9',
+        ...ApiConfig.defaultHeaders,
         ...?headers,
       },
       body: body != null ? jsonEncode(body) : null,
