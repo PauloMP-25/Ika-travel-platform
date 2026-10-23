@@ -26,11 +26,11 @@ class WeatherService {
   }
 
   // 2. Obtener el pronóstico (por horas y días)
-  Future<Map<String, dynamic>?> obtenerPronostico() async {
+  Future<Map<String, dynamic>?> obtenerPronostico({int days = 7}) async {
     try {
       final response = await http
           .get(
-            Uri.parse(ApiConfig.weatherForecast),
+            Uri.parse("${ApiConfig.weatherForecast}?days=$days"),
             headers: ApiConfig.defaultHeaders,
           )
           .timeout(const Duration(seconds: 15));

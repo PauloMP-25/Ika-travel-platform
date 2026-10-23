@@ -47,25 +47,63 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
     String condicion = '--';
     String tempMax = '--';
     String tempMin = '--';
+    String viento = '--';
+    String humedad = '--';
+    String uv = '--';
+    String lluvia = '0%';
 
-    if (_datosClimaActual != null) {
-      // 👇 REDONDEAMOS LA TEMPERATURA ACTUAL
-      tempActual =
-          '${(_datosClimaActual!['temperatura_actual'] as num).round()}°C';
-      condicion = _datosClimaActual!['descripcion_clima'] ?? '--';
-    }
+    final diaHoy = dias.isNotEmpty ? dias[0] : null;
+    final diaManana = dias.length > 1 ? dias[1] : diaHoy;
 
-    if (dias.isNotEmpty) {
-      // 👇 REDONDEAMOS LAS MÁXIMAS Y MÍNIMAS
-      tempMax = '${(dias[0]['temp_max'] as num).round()}°C';
-      tempMin = '${(dias[0]['temp_min'] as num).round()}°C';
+    if (_opcionSeleccionada == 0) {
+      // Pestaña: HOY
+      tempActual = '${(_datosClimaActual!['temperatura_actual'] as num).round()}°C';
+      condicion = _datosClimaActual!['descripcion_clima'] ?? (diaHoy?['condition'] ?? 'Despejado');
+      if (diaHoy != null) {
+        tempMax = '${(diaHoy['temp_max'] as num).round()}°C';
+        tempMin = '${(diaHoy['temp_min'] as num).round()}°C';
+      }
+      viento = '${(_datosClimaActual!['velocidad_viento'] as num).round()} km/h';
+      humedad = '${(_datosClimaActual!['humedad'] as num).round()}%';
+      uv = '${(_datosClimaActual!['indice_uv'] as num).round()}';
+      lluvia = '${((_datosClimaActual!['probabilidad_precipitacion'] as num?) ?? diaHoy?['precipitation_probability_max'] ?? 0).round()}%';
+    } else if (_opcionSeleccionada == 1) {
+      // Pestaña: MAÑANA (refleja el pronóstico del día siguiente)
+      if (diaManana != null) {
+        tempActual = '${(diaManana['temp_max'] as num).round()}°C';
+        condicion = diaManana['condition'] ?? 'Cielo despejado';
+        tempMax = '${(diaManana['temp_max'] as num).round()}°C';
+        tempMin = '${(diaManana['temp_min'] as num).round()}°C';
+        viento = '${(diaManana['wind_speed_max'] as num?)?.round() ?? 14} km/h';
+        humedad = '65%';
+        uv = '${(diaManana['uv_index_max'] as num?)?.round() ?? 9}';
+        lluvia = '${(diaManana['precipitation_probability_max'] as num?)?.round() ?? 5}%';
+      }
+    } else {
+      // Pestaña: 7 DÍAS (promedio y rango semanal)
+      if (dias.isNotEmpty) {
+        final double maxGlobal = dias.map<double>((d) => (d['temp_max'] as num).toDouble()).reduce((a, b) => a > b ? a : b);
+        final double minGlobal = dias.map<double>((d) => (d['temp_min'] as num).toDouble()).reduce((a, b) => a < b ? a : b);
+        final double vientoProm = dias.map<double>((d) => (d['wind_speed_max'] as num?)?.toDouble() ?? 12.0).reduce((a, b) => a + b) / dias.length;
+        final double uvMax = dias.map<double>((d) => (d['uv_index_max'] as num?)?.toDouble() ?? 8.0).reduce((a, b) => a > b ? a : b);
+
+        tempActual = '${maxGlobal.round()}°C';
+        condicion = 'Pronóstico 7 días en Ica';
+        tempMax = '${maxGlobal.round()}°C';
+        tempMin = '${minGlobal.round()}°C';
+        viento = '${vientoProm.round()} km/h';
+        humedad = '${(_datosClimaActual!['humedad'] as num).round()}%';
+        uv = '${uvMax.round()}';
+        lluvia = '${(dias[0]['precipitation_probability_max'] as num?)?.round() ?? 0}%';
+      }
     }
 
     List<dynamic> horasFiltradas = [];
     if (_opcionSeleccionada == 0) {
-      horasFiltradas = horas.take(8).toList();
+      horasFiltradas = horas.take(12).toList();
     } else if (_opcionSeleccionada == 1) {
-      horasFiltradas = horas.skip(8).take(8).toList();
+      horasFiltradas = horas.skip(12).take(12).toList();
+      if (horasFiltradas.isEmpty) horasFiltradas = horas.take(12).toList();
     } else {
       horasFiltradas = dias.map((dia) {
         return {
@@ -84,11 +122,10 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
       'condicion': condicion,
       'tempMax': tempMax,
       'tempMin': tempMin,
-      // 👇 REDONDEAMOS EL VIENTO, HUMEDAD Y UV
-      'viento':
-          '${(_datosClimaActual!['velocidad_viento'] as num).round()} km/h',
-      'humedad': '${(_datosClimaActual!['humedad'] as num).round()}%',
-      'uv': '${(_datosClimaActual!['indice_uv'] as num).round()}',
+      'viento': viento,
+      'humedad': humedad,
+      'uv': uv,
+      'lluvia': lluvia,
       'porHoras': horasFiltradas,
     };
   }
@@ -265,7 +302,7 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
                     ),
                     _MiniFactor(
                       icono: Icons.water_drop_outlined,
-                      valor: '0%',
+                      valor: data['lluvia'] ?? '0%',
                       etiqueta: 'Lluvia',
                       colorTexto: colorTexto,
                       colorTextoSecundario: colorTextoSecundario,
