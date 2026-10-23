@@ -151,6 +151,7 @@ async def generar_recomendacion_enriquecida(
     horas_sol: float | None = None,
     altura_ola: float | None = None,
     narrativa_previa: str | None = None,
+    atractivos_alternativos: list[str] | None = None,
 ) -> RecomendacionEnriquecida:
     """Genera la recomendación enriquecida utilizando Gemini (XML estructurado) o Fallback determinista."""
     motor = _obtener_motor_gemini()
@@ -176,6 +177,7 @@ async def generar_recomendacion_enriquecida(
         horas_sol=horas_sol,
         altura_ola=altura_ola,
         narrativa_previa=narrativa_previa,
+        atractivos_alternativos=atractivos_alternativos,
     )
 
     respuesta_gemini = await motor.generar_recomendacion_estructurada(prompt_xml, idioma=idioma)
@@ -229,6 +231,7 @@ async def redactar_con_gemini(
     horas_sol: float | None = None,
     altura_ola: float | None = None,
     narrativa_previa: str | None = None,
+    atractivos_alternativos: list[str] | None = None,
 ) -> str | None:
     """Mantiene compatibilidad hacia atrás con callers que esperan un texto string."""
     enriquecida = await generar_recomendacion_enriquecida(
@@ -248,6 +251,7 @@ async def redactar_con_gemini(
         horas_sol=horas_sol,
         altura_ola=altura_ola,
         narrativa_previa=narrativa_previa,
+        atractivos_alternativos=atractivos_alternativos,
     )
     if enriquecida.source == "gemini":
         return f"{enriquecida.summary} {enriquecida.climate_justification}"

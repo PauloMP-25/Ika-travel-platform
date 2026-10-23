@@ -13,6 +13,7 @@ def generar_prompt_recomendacion_turistica(
     *,
     nombre_atractivo: str,
     categoria_pertur: str,
+    atractivos_alternativos: list[str] | None = None,
     temperatura: float,
     viento: float,
     uv: float,
@@ -74,8 +75,9 @@ Tu única función es redactar la narrativa turística oficial en {idioma_nombre
 </contexto>
 {bloque_narrativa_previa}
 <datos_atractivo>
-- Atractivo: {nombre_atractivo}
+- Atractivo principal: {nombre_atractivo}
 - Categoría oficial PERTUR: {categoria_pertur}
+- Otros lugares registrados en el catálogo de Ica recomendables hoy: {', '.join(atractivos_alternativos) if atractivos_alternativos else 'Oasis de Huacachina, Bodega Tacama, Pueblo de Cachiche, Reserva Nacional de Paracas'}
 </datos_atractivo>
 
 <condiciones_meteorologicas>
@@ -96,8 +98,8 @@ Tu única función es redactar la narrativa turística oficial en {idioma_nombre
 
 <tarea>
 Genera la recomendación estructurada para el turista en {idioma_nombre}:
-1. 'summary': Resumen cálido invitando a la visita (o recomendando cautela si el nivel es bajo o hay alertas). Si existe <narrativa_previa_del_dia>, dale continuidad cronológica natural (ej: 'El clima sigue favorable...', 'El sol se ha intensificado...', 'Hacia esta tarde el viento ha cambiado...'). Máx 2 oraciones, 240 caracteres.
-2. 'climate_justification': Justificación basada en la temperatura, viento, radiación UV y temperatura de arena/superficie.
+1. 'summary': Resumen cálido y persuasivo invitando a visitar {nombre_atractivo} según el clima actual.
+2. 'climate_justification': Justificación meteorológica detallada que explique cómo las condiciones actuales (temperatura, viento, UV) favorecen la visita, y sugiera expresamente al menos 2 destinos específicos registrados en el catálogo de Ica (por ejemplo: {', '.join(atractivos_alternativos[:2]) if atractivos_alternativos else 'Oasis de Huacachina o Bodega Tacama'}) explicando por qué son excelentes opciones para ir hoy.
 3. 'clothing': Lista de 2 a 4 prendas recomendadas (si la arena está caliente o el UV es alto, menciona calzado cerrado y protección).
 4. 'precautions': Lista de 1 a 4 precauciones prioritarias (franja horaria de sol extremo, arena o hidratación).
 5. 'suitability_score': Mantén el valor exacto de {score_calculado:.2f} proveniente del cálculo del sistema.

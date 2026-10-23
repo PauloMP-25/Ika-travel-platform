@@ -580,7 +580,6 @@ class _PantallaInicioState extends State<PantallaInicio> {
                           tituloActividad: 'Clima en Ica hoy',
                           imagenActividad:
                               'assets/images/carrusel_1_huacachina.jpg',
-                          fecha: 'Sábado, 17 de octubre de 2026',
                         ),
                       ),
                     );

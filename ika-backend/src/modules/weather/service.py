@@ -442,9 +442,11 @@ async def recomendacion_del_dia(
     nombres_alertas = [a.message for a in alertas_candidatas]
     hay_peligro = any(a.severity == "high" for a in alertas_candidatas)
 
+    otros_atractivos = [a.name for a in await _atractivos_activos(db) if a.id != atractivo.id][:4]
     texto = await ai_recommender.redactar_con_gemini(
         nombre_atractivo=atractivo.name,
         resultado=resultado,
+        atractivos_alternativos=otros_atractivos,
         temperatura=clima.temperatura_actual,
         uv=clima.indice_uv,
         viento=clima.velocidad_viento,
