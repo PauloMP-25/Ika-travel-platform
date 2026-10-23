@@ -10,6 +10,7 @@ import '../models/itinerario_modelo.dart';
 import '../services/itinerario_service.dart';
 import '../services/osrm_service.dart';
 import 'pantalla_navegacion_guiada.dart';
+import '../services/destinos_service.dart';
 
 /// Pantalla principal del planificador de viajes.
 ///
@@ -1647,7 +1648,7 @@ class _BotonesMapa extends StatelessWidget {
 // Selector de destino (bottom sheet)
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _SelectorDestino extends StatelessWidget {
+class _SelectorDestino extends StatefulWidget {
   final Set<String> destinosYaAgregados;
   final Function(PuntoItinerario) onSeleccionar;
 
@@ -1657,9 +1658,22 @@ class _SelectorDestino extends StatelessWidget {
   });
 
   @override
+  State<_SelectorDestino> createState() => _SelectorDestinoState();
+}
+
+class _SelectorDestinoState extends State<_SelectorDestino> {
+  late Future<List<PuntoItinerario>> _futureDestinos;
+
+  @override
+  void initState() {
+    super.initState();
+    _futureDestinos = DestinosService().obtenerDestinos();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.55,
+      height: MediaQuery.of(context).size.height * 0.60,
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -1687,52 +1701,76 @@ class _SelectorDestino extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Selecciona un punto turístico de Ica',
+            'Selecciona un punto turístico de la base de datos',
             style: TextStyle(fontSize: 12, color: AppColores.grisTexto),
           ),
           const SizedBox(height: 12),
           const Divider(height: 1),
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              children: DestinosPredefinidos.lista.map((punto) {
-                final yaAgregado = destinosYaAgregados.contains(punto.id);
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: yaAgregado
-                        ? Colors.grey[200]
-                        : AppColores.naranjaBoton.withValues(alpha: 0.12),
-                    child: Icon(
-                      Icons.place_outlined,
-                      color: yaAgregado
-                          ? Colors.grey
-                          : AppColores.naranjaBoton,
-                      size: 20,
+            child: FutureBuilder<List<PuntoItinerario>>(
+              future: _futureDestinos,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(
+                      color: AppColores.naranjaBoton,
                     ),
-                  ),
-                  title: Text(
-                    punto.nombre,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: yaAgregado
-                          ? Colors.grey
-                          : AppColores.marronOscuro,
-                      fontSize: 14,
-                    ),
-                  ),
-                  subtitle: Text(
-                    punto.descripcion,
-                    style: const TextStyle(
-                        fontSize: 11, color: AppColores.grisTexto),
-                  ),
-                  trailing: yaAgregado
-                      ? const Icon(Icons.check,
-                          color: AppColores.naranjaBoton, size: 18)
-                      : null,
-                  enabled: !yaAgregado,
-                  onTap: yaAgregado ? null : () => onSeleccionar(punto),
+                  );
+                }
+
+                final destinos = snapshot.data ?? DestinosPredefinidos.lista;
+
+                if (destinos.isEmpty) {
+                  return const Center(
+                    child: Text('No hay destinos disponibles'),
+                  );
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  itemCount: destinos.length,
+                  itemBuilder: (context, index) {
+                    final punto = destinos[index];
+                    final yaAgregado = widget.destinosYaAgregados.contains(punto.id);
+
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: yaAgregado
+                            ? Colors.grey[200]
+                            : AppColores.naranjaBoton.withValues(alpha: 0.12),
+                        child: Icon(
+                          Icons.place_outlined,
+                          color: yaAgregado
+                              ? Colors.grey
+                              : AppColores.naranjaBoton,
+                          size: 20,
+                        ),
+                      ),
+                      title: Text(
+                        punto.nombre,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: yaAgregado
+                              ? Colors.grey
+                              : AppColores.marronOscuro,
+                          fontSize: 14,
+                        ),
+                      ),
+                      subtitle: Text(
+                        punto.descripcion,
+                        style: const TextStyle(
+                            fontSize: 11, color: AppColores.grisTexto),
+                      ),
+                      trailing: yaAgregado
+                          ? const Icon(Icons.check,
+                              color: AppColores.naranjaBoton, size: 18)
+                          : null,
+                      enabled: !yaAgregado,
+                      onTap: yaAgregado ? null : () => widget.onSeleccionar(punto),
+                    );
+                  },
                 );
-              }).toList(),
+              },
             ),
           ),
         ],
@@ -1760,6 +1798,13 @@ class _SelectorOrigen extends StatefulWidget {
 
 class _SelectorOrigenState extends State<_SelectorOrigen> {
   bool _obteniendoGps = false;
+  late Future<List<PuntoItinerario>> _futureDestinos;
+
+  @override
+  void initState() {
+    super.initState();
+    _futureDestinos = DestinosService().obtenerDestinos();
+  }
 
   Future<void> _usarUbicacionGpsReal() async {
     setState(() => _obteniendoGps = true);
@@ -1817,12 +1862,6 @@ class _SelectorOrigenState extends State<_SelectorOrigen> {
 
   @override
   Widget build(BuildContext context) {
-    // Opciones de origen: el predeterminado + los destinos predefinidos
-    final opciones = [
-      DestinosPredefinidos.origenPredeterminado,
-      ...DestinosPredefinidos.lista,
-    ];
-
     return Container(
       height: MediaQuery.of(context).size.height * 0.65,
       decoration: const BoxDecoration(
@@ -1889,45 +1928,66 @@ class _SelectorOrigenState extends State<_SelectorOrigen> {
           ),
           const Divider(height: 1, indent: 16, endIndent: 16),
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              children: opciones.map((punto) {
-                final esActual = punto.id == widget.origenActualId;
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: esActual
-                        ? AppColores.naranjaBoton
-                        : const Color(0xFFFFF3E0),
-                    child: Icon(
-                      Icons.trip_origin,
-                      color: esActual
-                          ? Colors.white
-                          : AppColores.naranjaBoton,
-                      size: 18,
+            child: FutureBuilder<List<PuntoItinerario>>(
+              future: _futureDestinos,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(
+                      color: AppColores.naranjaBoton,
                     ),
-                  ),
-                  title: Text(
-                    punto.nombre,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: AppColores.marronOscuro,
-                      fontSize: 14,
-                    ),
-                  ),
-                  subtitle: Text(
-                    punto.descripcion,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppColores.grisTexto,
-                    ),
-                  ),
-                  trailing: esActual
-                      ? const Icon(Icons.check,
-                          color: AppColores.naranjaBoton, size: 18)
-                      : null,
-                  onTap: () => widget.onSeleccionar(punto),
+                  );
+                }
+
+                final lista = snapshot.data ?? DestinosPredefinidos.lista;
+                final opciones = [
+                  DestinosPredefinidos.origenPredeterminado,
+                  ...lista,
+                ];
+
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  itemCount: opciones.length,
+                  itemBuilder: (context, index) {
+                    final punto = opciones[index];
+                    final esActual = punto.id == widget.origenActualId;
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: esActual
+                            ? AppColores.naranjaBoton
+                            : const Color(0xFFFFF3E0),
+                        child: Icon(
+                          Icons.trip_origin,
+                          color: esActual
+                              ? Colors.white
+                              : AppColores.naranjaBoton,
+                          size: 18,
+                        ),
+                      ),
+                      title: Text(
+                        punto.nombre,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: AppColores.marronOscuro,
+                          fontSize: 14,
+                        ),
+                      ),
+                      subtitle: Text(
+                        punto.descripcion,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColores.grisTexto,
+                        ),
+                      ),
+                      trailing: esActual
+                          ? const Icon(Icons.check,
+                              color: AppColores.naranjaBoton, size: 18)
+                          : null,
+                      onTap: () => widget.onSeleccionar(punto),
+                    );
+                  },
                 );
-              }).toList(),
+              },
             ),
           ),
         ],

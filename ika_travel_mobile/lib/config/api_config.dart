@@ -15,6 +15,10 @@ class ApiConfig {
         'ngrok-skip-browser-warning': 'true',
       };
 
+  // --- GEO & ATRACTIVOS CERCANOS ---
+  static String geoNearby({double lat = -14.0685, double lon = -75.7288, int radiusM = 100000}) =>
+      '$baseUrl/api/v1/geo/nearby?lat=$lat&lon=$lon&radius_m=$radiusM';
+
   // --- CATALOG (Actividades) ---
   static String get attractions => '$baseUrl/api/v1/catalog/attractions';
   static String get categories => '$baseUrl/api/v1/catalog/categories';
