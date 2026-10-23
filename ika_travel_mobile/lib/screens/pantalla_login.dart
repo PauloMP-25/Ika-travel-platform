@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../config/colores_tema.dart';
 import '../config/tema.dart';
@@ -60,14 +61,7 @@ class _PantallaLoginState extends State<PantallaLogin> {
         ),
       );
 
-      if (widget.abrirComoModal) {
-        Navigator.pop(context, true);
-      } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const MainScaffold()),
-        );
-      }
+      await _verificarPermisosYEntrar();
     } else {
       setState(() => _mensajeError = resultado.mensaje);
     }
@@ -85,6 +79,60 @@ class _PantallaLoginState extends State<PantallaLogin> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
+
+    await _verificarPermisosYEntrar();
+  }
+
+  Future<void> _verificarPermisosYEntrar() async {
+    // 1. Validar si el sensor de GPS está encendido
+    bool gpsActivo = await Geolocator.isLocationServiceEnabled();
+    if (!gpsActivo && mounted) {
+      await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          title: const Row(
+            children: [
+              Icon(Icons.location_on_rounded, color: AppColores.naranjaBoton, size: 26),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text('Activar Ubicación GPS', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+          content: const Text(
+            'Para que Ika Travel te guíe en tiempo real por Ica, calcule rutas exactas y envíe tu auxilio SOS en 1 clic, por favor activa el GPS de tu celular.',
+            style: TextStyle(fontSize: 13, height: 1.35),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Continuar sin GPS'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColores.naranjaBoton,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () async {
+                Navigator.pop(ctx, true);
+                await Geolocator.openLocationSettings();
+              },
+              child: const Text('Activar GPS'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // 2. Solicitar permiso de ubicación
+    LocationPermission permiso = await Geolocator.checkPermission();
+    if (permiso == LocationPermission.denied) {
+      permiso = await Geolocator.requestPermission();
+    }
+
+    if (!mounted) return;
 
     if (widget.abrirComoModal) {
       Navigator.pop(context, true);
@@ -322,11 +370,13 @@ class _PantallaLoginState extends State<PantallaLogin> {
                             ),
                             const SizedBox(height: 8),
 
-                            // Recordarme y Olvidé Contraseña
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            // Recordarme y Olvidé Contraseña (sin overflow)
+                            Wrap(
+                              alignment: WrapAlignment.spaceBetween,
+                              crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
                                 Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     SizedBox(
                                       height: 24,
@@ -342,7 +392,7 @@ class _PantallaLoginState extends State<PantallaLogin> {
                                         },
                                       ),
                                     ),
-                                    const SizedBox(width: 8),
+                                    const SizedBox(width: 6),
                                     Text(
                                       'Recordarme',
                                       style: TextStyle(
@@ -353,6 +403,11 @@ class _PantallaLoginState extends State<PantallaLogin> {
                                   ],
                                 ),
                                 TextButton(
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
                                   onPressed: _mostrarDialogoRecuperarPassword,
                                   child: const Text(
                                     '¿Olvidaste tu contraseña?',

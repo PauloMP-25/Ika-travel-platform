@@ -7,7 +7,7 @@ plugins {
 android {
     namespace = "com.example.ika_travel_mobile"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = "30.0.16248370" // versión instalada localmente
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

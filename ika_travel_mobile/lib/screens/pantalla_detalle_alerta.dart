@@ -126,11 +126,11 @@ class PantallaDetalleAlerta extends StatelessWidget {
           SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Modo Demostración: Los datos climáticos corresponden a simulación representativa de Ica y Paracas.',
+              'Pronóstico Inteligente: Monitoreo en tiempo real de condiciones para actividades turísticas en Ica.',
               style: TextStyle(
                 fontSize: 12,
                 color: Color(0xFF0D47A1),
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -444,12 +444,15 @@ class PantallaDetalleAlerta extends StatelessWidget {
               style: const TextStyle(fontSize: 11, color: AppColores.grisTexto),
             ),
           ),
-          Text(
-            valor,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: esActual ? FontWeight.bold : FontWeight.w500,
-              color: AppColores.marronOscuro,
+          Flexible(
+            child: Text(
+              valor,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: esActual ? FontWeight.bold : FontWeight.w500,
+                color: AppColores.marronOscuro,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],

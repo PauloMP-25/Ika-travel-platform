@@ -151,7 +151,7 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 14,
                             offset: const Offset(0, 6),
                           ),
@@ -169,7 +169,7 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                               hintText: 'Ej. Juan Pérez',
                               prefixIcon: const Icon(Icons.person_outline),
                               filled: true,
-                              fillColor: colorFondo.withOpacity(0.5),
+                              fillColor: colorFondo.withValues(alpha: 0.5),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
                                 borderSide: BorderSide.none,
@@ -193,7 +193,7 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                               hintText: 'ejemplo@correo.com',
                               prefixIcon: const Icon(Icons.email_outlined),
                               filled: true,
-                              fillColor: colorFondo.withOpacity(0.5),
+                              fillColor: colorFondo.withValues(alpha: 0.5),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
                                 borderSide: BorderSide.none,
@@ -220,7 +220,7 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                               hintText: '+51 987 654 321',
                               prefixIcon: const Icon(Icons.phone_outlined),
                               filled: true,
-                              fillColor: colorFondo.withOpacity(0.5),
+                              fillColor: colorFondo.withValues(alpha: 0.5),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
                                 borderSide: BorderSide.none,
@@ -231,12 +231,12 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
 
                           // Idioma preferido
                           DropdownButtonFormField<String>(
-                            value: _idiomaSeleccionado,
+                            initialValue: _idiomaSeleccionado,
                             decoration: InputDecoration(
                               labelText: 'Idioma preferido',
                               prefixIcon: const Icon(Icons.language),
                               filled: true,
-                              fillColor: colorFondo.withOpacity(0.5),
+                              fillColor: colorFondo.withValues(alpha: 0.5),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
                                 borderSide: BorderSide.none,
@@ -275,7 +275,7 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                                 },
                               ),
                               filled: true,
-                              fillColor: colorFondo.withOpacity(0.5),
+                              fillColor: colorFondo.withValues(alpha: 0.5),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
                                 borderSide: BorderSide.none,
@@ -314,7 +314,7 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                                 },
                               ),
                               filled: true,
-                              fillColor: colorFondo.withOpacity(0.5),
+                              fillColor: colorFondo.withValues(alpha: 0.5),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
                                 borderSide: BorderSide.none,

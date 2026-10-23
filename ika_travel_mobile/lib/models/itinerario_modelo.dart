@@ -8,59 +8,74 @@ class DestinosPredefinidos {
       id: 'huacachina',
       nombre: 'Huacachina',
       descripcion: 'Oasis en las dunas — sandboarding y tubulares',
-      coordenadas: LatLng(-14.0878, -75.7544),
+      coordenadas: LatLng(-14.08759, -75.76306),
+      tiempoVisitaMinutos: 120, // 2 horas de actividades en dunas
+    ),
+    PuntoItinerario(
+      id: 'luren',
+      nombre: 'Santuario del Señor de Luren',
+      descripcion: 'Templo histórico y patrón religioso de Ica',
+      coordenadas: LatLng(-14.07066, -75.72553), // Ubicación exacta del atrio y templo
+      tiempoVisitaMinutos: 45, // 45 min para visita y devoción
     ),
     PuntoItinerario(
       id: 'paracas_reserva',
       nombre: 'Reserva Nacional Paracas',
       descripcion: 'Biodiversidad marina y miradores de la Pacífico',
-      coordenadas: LatLng(-13.9056, -76.2500),
+      coordenadas: LatLng(-13.88330, -76.26670),
+      tiempoVisitaMinutos: 180, // 3 horas de recorrido
     ),
     PuntoItinerario(
       id: 'islas_ballestas',
       nombre: 'Islas Ballestas',
       descripcion: 'Fauna marina — lobos de mar y pingüinos Humboldt',
-      coordenadas: LatLng(-13.7459, -76.3878),
+      coordenadas: LatLng(-13.83410, -76.24886),
+      tiempoVisitaMinutos: 120, // 2 horas tour en lancha
     ),
     PuntoItinerario(
       id: 'vinedos_ica',
-      nombre: 'Viñedos y Bodegas de Ica',
-      descripcion: 'Ruta del pisco — catas y recorridos por bodegas',
-      coordenadas: LatLng(-14.0750, -75.7250),
+      nombre: 'Viñedos y Bodega Tacama',
+      descripcion: 'Ruta del pisco — viñedos más antiguos de Sudamérica y catas',
+      coordenadas: LatLng(-14.00175, -75.71683),
+      tiempoVisitaMinutos: 90, // 1h 30 min de cata y recorrido
     ),
     PuntoItinerario(
       id: 'nazca_lineas',
       nombre: 'Líneas de Nazca',
       descripcion: 'Geoglifos patrimonio UNESCO — sobrevuelo en avioneta',
-      coordenadas: LatLng(-14.7299, -75.1148),
+      coordenadas: LatLng(-14.72990, -75.11480),
+      tiempoVisitaMinutos: 120, // 2 horas (espera y sobrevuelo)
     ),
     PuntoItinerario(
       id: 'plaza_ica',
       nombre: 'Plaza de Armas de Ica',
-      descripcion: 'Centro histórico y gastronomía local',
-      coordenadas: LatLng(-14.0685, -75.7288),
+      descripcion: 'Centro histórico, catedral y gastronomía local',
+      coordenadas: LatLng(-14.06402, -75.72907),
+      tiempoVisitaMinutos: 40,
     ),
     PuntoItinerario(
       id: 'cachiche',
       nombre: 'Cachiche',
-      descripcion: 'Pueblo de brujas — historia y pisco artesanal',
-      coordenadas: LatLng(-14.1167, -75.7333),
+      descripcion: 'Pueblo de brujas — palmera de 7 cabezas y pisco artesanal',
+      coordenadas: LatLng(-14.09454, -75.73643),
+      tiempoVisitaMinutos: 60, // 1 hora
     ),
     PuntoItinerario(
       id: 'pisco_ciudad',
       nombre: 'Ciudad de Pisco',
       descripcion: 'Puerto y punto de partida a las Islas Ballestas',
-      coordenadas: LatLng(-13.7097, -76.2022),
+      coordenadas: LatLng(-13.70970, -76.20220),
+      tiempoVisitaMinutos: 60,
     ),
   ];
 
-  /// Punto de origen predeterminado: centro de Ica
+  /// Punto de origen predeterminado: Plaza de Armas de Ica
   static const PuntoItinerario origenPredeterminado = PuntoItinerario(
     id: 'ica_centro',
-    nombre: 'Centro de Ica (Simulado)',
-    descripcion: 'Ubicación GPS no disponible — usando centro de Ica como referencia',
-    coordenadas: LatLng(-14.0685, -75.7288),
-    esUbicacionSimulada: true,
+    nombre: 'Plaza de Armas de Ica',
+    descripcion: 'Punto de partida cívico en el centro de Ica',
+    coordenadas: LatLng(-14.06402, -75.72907),
+    esUbicacionSimulada: false,
   );
 }
 
@@ -74,13 +89,25 @@ class PuntoItinerario {
   /// true cuando se usó la ubicación por defecto en lugar de GPS real
   final bool esUbicacionSimulada;
 
+  /// Tiempo sugerido de estadía/visita en este punto (en minutos)
+  final int tiempoVisitaMinutos;
+
   const PuntoItinerario({
     required this.id,
     required this.nombre,
     required this.descripcion,
     required this.coordenadas,
     this.esUbicacionSimulada = false,
+    this.tiempoVisitaMinutos = 45,
   });
+
+  String get tiempoVisitaFormateado {
+    if (tiempoVisitaMinutos <= 0) return '';
+    if (tiempoVisitaMinutos < 60) return '$tiempoVisitaMinutos min';
+    final h = tiempoVisitaMinutos ~/ 60;
+    final m = tiempoVisitaMinutos % 60;
+    return m == 0 ? '${h}h' : '${h}h ${m}m';
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -89,6 +116,7 @@ class PuntoItinerario {
         'lat': coordenadas.latitude,
         'lon': coordenadas.longitude,
         'esUbicacionSimulada': esUbicacionSimulada,
+        'tiempoVisitaMinutos': tiempoVisitaMinutos,
       };
 
   factory PuntoItinerario.fromJson(Map<String, dynamic> json) =>
@@ -101,6 +129,7 @@ class PuntoItinerario {
           (json['lon'] as num).toDouble(),
         ),
         esUbicacionSimulada: json['esUbicacionSimulada'] as bool? ?? false,
+        tiempoVisitaMinutos: json['tiempoVisitaMinutos'] as int? ?? 45,
       );
 
   @override
@@ -261,6 +290,32 @@ class ItinerarioViaje {
 
   String get duracionTotalFormateada {
     final min = duracionTotalMinutos;
+    if (min == 0) return '--';
+    if (min < 60) return '$min min';
+    final h = min ~/ 60;
+    final m = min % 60;
+    return m == 0 ? '${h}h' : '${h}h ${m}min';
+  }
+
+  /// Tiempo sugerido total en todas las atracciones del itinerario
+  int get tiempoEstadiaTotalMinutos =>
+      destinos.fold(0, (suma, d) => suma + d.tiempoVisitaMinutos);
+
+  /// Tiempo estimado total del tour completo (viaje en ruta + estadía en lugares)
+  int get tiempoTotalTourMinutos =>
+      duracionTotalMinutos + tiempoEstadiaTotalMinutos;
+
+  String get tiempoEstadiaTotalFormateada {
+    final min = tiempoEstadiaTotalMinutos;
+    if (min == 0) return '--';
+    if (min < 60) return '$min min';
+    final h = min ~/ 60;
+    final m = min % 60;
+    return m == 0 ? '${h}h' : '${h}h ${m}min';
+  }
+
+  String get tiempoTotalTourFormateado {
+    final min = tiempoTotalTourMinutos;
     if (min == 0) return '--';
     if (min < 60) return '$min min';
     final h = min ~/ 60;

@@ -199,6 +199,45 @@ class SeguimientoService {
         alertasActivasIds: [],
         esMock: true,
       ),
+      // 4. SANTUARIO DEL SEÑOR DE LUREN
+      DestinoSeguimiento(
+        id: 'luren',
+        nombre: 'Santuario del Señor de Luren',
+        region: 'Ica, Centro Histórico',
+        imagen: 'assets/images/act_buggy1.jpg',
+        ultimaActualizacion: DateTime.now().subtract(const Duration(minutes: 10)),
+        estadoGeneral: 'Condiciones excelentes para turismo religioso y cultural',
+        temperaturaActual: '24°C',
+        vientoActual: '12 km/h',
+        humedadActual: '42%',
+        uvActual: 'Moderado (5)',
+        horarioAtencion: HorarioAtencion.paraLuren(),
+        actividadesAptitud: const [
+          AptitudActividad(
+            actividadTitulo: 'Visita devocional al Señor de Luren',
+            estado: EstadoAptitud.optima,
+            detalleClimatico: 'Ambiente interior protegido y templado.',
+          ),
+          AptitudActividad(
+            actividadTitulo: 'Paseo por el Paseo de Luren y alrededores',
+            estado: EstadoAptitud.optima,
+            detalleClimatico: 'Cielo despejado con brisa suave.',
+          ),
+        ],
+        historialCambios: [
+          RegistroCambioHistorial(
+            id: 'hist_lu_01',
+            fechaHora: DateTime.now().subtract(const Duration(hours: 2)),
+            parametroModificado: 'Temperatura urbana',
+            valorAnterior: '21°C',
+            valorActual: '24°C',
+            alertaIdAsociada: '',
+            resumenImpacto: 'Clima agradable para visitas patrimoniales.',
+          ),
+        ],
+        alertasActivasIds: [],
+        esMock: true,
+      ),
     ];
 
     destinosNotifier.value = mock;
@@ -216,12 +255,47 @@ class SeguimientoService {
 
   DestinoSeguimiento? obtenerPorNombre(String nombre) {
     try {
-      final buscado = nombre.toLowerCase();
-      return destinosNotifier.value.firstWhere(
-        (d) =>
-            d.nombre.toLowerCase().contains(buscado) ||
-            buscado.contains(d.nombre.toLowerCase()),
+      final buscado = nombre.trim().toLowerCase();
+      // Búsqueda inteligente por palabras clave (luren, huacachina, paracas, etc.)
+      for (final d in destinosNotifier.value) {
+        final nomD = d.nombre.toLowerCase();
+        if (nomD == buscado || nomD.contains(buscado) || buscado.contains(nomD)) {
+          return d;
+        }
+        // Coincidencia por palabra clave distintiva (ej. 'luren')
+        if (buscado.contains('luren') && nomD.contains('luren')) return d;
+        if (buscado.contains('huacachina') && nomD.contains('huacachina')) return d;
+        if (buscado.contains('paracas') && nomD.contains('paracas')) return d;
+      }
+
+      // Si no existe, crear dinámicamente el seguimiento para el destino solicitado
+      final idDinamico = nombre.toLowerCase().replaceAll(RegExp(r'\s+'), '_');
+      final nuevo = DestinoSeguimiento(
+        id: idDinamico,
+        nombre: nombre,
+        region: 'Ica, Perú',
+        imagen: 'assets/images/carrusel_1_huacachina.jpg',
+        ultimaActualizacion: DateTime.now(),
+        estadoGeneral: 'Condiciones climáticas favorables en la zona',
+        temperaturaActual: '24°C',
+        vientoActual: '14 km/h',
+        humedadActual: '45%',
+        uvActual: 'Moderado (5)',
+        horarioAtencion: HorarioAtencion.noConfirmado(),
+        actividadesAptitud: [
+          AptitudActividad(
+            actividadTitulo: 'Recorrido turístico en $nombre',
+            estado: EstadoAptitud.optima,
+            detalleClimatico: 'Temperatura templada y buena visibilidad.',
+          ),
+        ],
+        historialCambios: const [],
+        alertasActivasIds: const [],
+        esMock: true,
       );
+
+      destinosNotifier.value = [...destinosNotifier.value, nuevo];
+      return nuevo;
     } catch (_) {
       return destinosNotifier.value.isNotEmpty ? destinosNotifier.value.first : null;
     }
