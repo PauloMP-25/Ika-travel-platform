@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import '../config/tema.dart';
 import '../config/tema_manager.dart';
 import '../config/colores_tema.dart';
-import '../config/idioma_manager.dart'; // 👈 Nuevo
-import '../config/traducciones.dart'; // 👈 Nuevo
+import '../config/idioma_manager.dart';
+import '../config/traducciones.dart';
+import '../services/auth_service.dart';
+import '../widgets/dialogo_preferencias_turista.dart';
+import 'pantalla_login.dart';
 
 class PantallaConfiguracion extends StatefulWidget {
   const PantallaConfiguracion({super.key});
@@ -241,16 +244,89 @@ class _PantallaConfiguracionState extends State<PantallaConfiguracion> {
                   color: colorFondoTarjeta,
                   borderRadius: BorderRadius.circular(15),
                 ),
-                child: ListTile(
-                  leading: const Icon(Icons.logout, color: Colors.redAccent),
-                  title: Text(
-                    Traducciones.get('cerrar_sesion', locale), // 👈 Traducido
-                    style: const TextStyle(
-                      color: Colors.redAccent,
-                      fontWeight: FontWeight.bold,
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.tune_rounded, color: AppColores.naranjaBoton),
+                      title: Text(
+                        'Preferencias del turista',
+                        style: TextStyle(color: colorTexto, fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text(
+                        'Dunas, pisco, naturaleza o playas',
+                        style: TextStyle(fontSize: 12, color: colorTextoSecundario),
+                      ),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+                      onTap: () {
+                        final usuario = AuthService().usuarioActual;
+                        if (usuario != null && !usuario.esInvitado) {
+                          DialogoPreferenciasTurista.mostrar(context, usuario);
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text('Inicia sesión para personalizar tus preferencias.'),
+                              action: SnackBarAction(
+                                label: 'Ingresar',
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => const PantallaLogin(abrirComoModal: true)),
+                                  );
+                                },
+                              ),
+                            ),
+                          );
+                        }
+                      },
                     ),
-                  ),
-                  onTap: () {},
+                    Divider(height: 1, color: colorTextoSecundario.withValues(alpha: 0.15)),
+                    ListTile(
+                      leading: const Icon(Icons.logout, color: Colors.redAccent),
+                      title: Text(
+                        Traducciones.get('cerrar_sesion', locale),
+                        style: const TextStyle(
+                          color: Colors.redAccent,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      onTap: () async {
+                        final confirmar = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            backgroundColor: colorFondoTarjeta,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            title: Text('¿Cerrar sesión?', style: TextStyle(color: colorTexto, fontWeight: FontWeight.bold)),
+                            content: Text('Se cerrará tu sesión activa en este dispositivo.', style: TextStyle(color: colorTextoSecundario)),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: const Text('Cancelar'),
+                              ),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.redAccent,
+                                  foregroundColor: Colors.white,
+                                ),
+                                onPressed: () => Navigator.pop(ctx, true),
+                                child: const Text('Cerrar sesión'),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirmar == true && context.mounted) {
+                          await AuthService().cerrarSesion();
+                          if (context.mounted) {
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(builder: (_) => const PantallaLogin()),
+                              (route) => false,
+                            );
+                          }
+                        }
+                      },
+                    ),
+                  ],
                 ),
               ),
             ],

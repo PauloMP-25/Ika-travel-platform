@@ -25,7 +25,6 @@ class _PantallaSeguimientoDestinoState
   final AlertasService _alertasService = AlertasService();
 
   late String _destinoSeleccionadoId;
-  int _tabSeleccionado = 0;
 
   @override
   void initState() {

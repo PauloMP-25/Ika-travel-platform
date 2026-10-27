@@ -10,6 +10,7 @@ import 'pantalla_detalle_dia.dart';
 import 'pantalla_alertas.dart';
 import 'pantalla_mas.dart';
 import 'pantalla_planer.dart';
+import 'pantalla_prestadores.dart';
 import 'pantalla_seguimiento_destino.dart';
 import 'pantalla_sos.dart';
 
@@ -591,6 +592,87 @@ class _PantallaInicioState extends State<PantallaInicio> {
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                     ),
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 14),
+
+            // BANNER PRESTADORES FORMALES DIRCETUR (RF-03 / RN-01)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PantallaPrestadores(),
+                    ),
+                  );
+                },
+                borderRadius: BorderRadius.circular(15),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF2C2C2C)
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(
+                      color: const Color(0xFF2E7D32).withValues(alpha: 0.35),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      const CircleAvatar(
+                        radius: 18,
+                        backgroundColor: Color(0xFFE8F5E9),
+                        child: Icon(
+                          Icons.verified_user_rounded,
+                          color: Color(0xFF2E7D32),
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Servicios Turísticos Formalizados',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: colorTexto,
+                              ),
+                            ),
+                            Text(
+                              'Agencias y guías empadronados por DIRCETUR Ica',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: colorTextoSecundario,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.arrow_forward_ios,
+                        size: 14,
+                        color: Color(0xFF2E7D32),
+                      ),
+                    ],
                   ),
                 ),
               ),

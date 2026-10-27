@@ -18,6 +18,16 @@ class _PantallaActividadesState extends State<PantallaActividades> {
   final TextEditingController _buscadorController = TextEditingController();
   String _textoBusqueda = '';
 
+  String _categoriaSeleccionada = 'Todas';
+
+  final List<String> _categorias = [
+    'Todas',
+    'Aventura',
+    'Naturaleza',
+    'Cultura',
+    'Gastronomía',
+  ];
+
   // 👇 Variables para los datos del backend
   List<Map<String, dynamic>> _actividades = [];
   bool _cargando = true;
@@ -39,12 +49,29 @@ class _PantallaActividadesState extends State<PantallaActividades> {
   }
 
   List<Map<String, dynamic>> get _actividadesFiltradas {
-    if (_textoBusqueda.isEmpty) return _actividades;
     return _actividades.where((actividad) {
-      final titulo = (actividad['titulo'] ?? '').toString().toLowerCase();
-      final subtitulo = (actividad['subtitulo'] ?? '').toString().toLowerCase();
-      final busqueda = _textoBusqueda.toLowerCase();
-      return titulo.contains(busqueda) || subtitulo.contains(busqueda);
+      // 1. Filtro por categoría
+      if (_categoriaSeleccionada != 'Todas') {
+        final cat = (actividad['categoria'] ?? '').toString().toLowerCase();
+        final cats = (actividad['categorias'] as List<dynamic>?)
+                ?.map((c) => c.toString().toLowerCase())
+                .toList() ??
+            [];
+        final filtro = _categoriaSeleccionada.toLowerCase();
+        final coincide = cat.contains(filtro) || cats.any((c) => c.contains(filtro));
+        if (!coincide) return false;
+      }
+
+      // 2. Filtro por texto de búsqueda
+      if (_textoBusqueda.isNotEmpty) {
+        final titulo = (actividad['titulo'] ?? '').toString().toLowerCase();
+        final subtitulo = (actividad['subtitulo'] ?? '').toString().toLowerCase();
+        final desc = (actividad['descripcion'] ?? '').toString().toLowerCase();
+        final busqueda = _textoBusqueda.toLowerCase();
+        return titulo.contains(busqueda) || subtitulo.contains(busqueda) || desc.contains(busqueda);
+      }
+
+      return true;
     }).toList();
   }
 
@@ -126,7 +153,40 @@ class _PantallaActividadesState extends State<PantallaActividades> {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
+
+            // Chips de categorías turísticas (RF-02)
+            SizedBox(
+              height: 38,
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                scrollDirection: Axis.horizontal,
+                itemCount: _categorias.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final cat = _categorias[index];
+                  final seleccionada = _categoriaSeleccionada == cat;
+                  return ChoiceChip(
+                    label: Text(cat),
+                    selected: seleccionada,
+                    onSelected: (val) {
+                      if (val) {
+                        setState(() => _categoriaSeleccionada = cat);
+                      }
+                    },
+                    selectedColor: AppColores.naranjaBoton,
+                    labelStyle: TextStyle(
+                      fontSize: 12,
+                      fontWeight: seleccionada ? FontWeight.bold : FontWeight.normal,
+                      color: seleccionada ? Colors.white : colorTexto,
+                    ),
+                    backgroundColor: colorTarjeta,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 14),
 
             // 👇 Indicador de carga mientras se conecta al backend
             Expanded(
@@ -223,12 +283,34 @@ class _PantallaActividadesState extends State<PantallaActividades> {
                                   height: 1.2,
                                 ),
                               ),
-                              subtitle: Text(
-                                actividad['subtitulo'] ?? 'Ica',
-                                style: TextStyle(
-                                  color: colorTextoSecundario,
-                                  fontSize: 13,
-                                ),
+                              subtitle: Row(
+                                children: [
+                                  Text(
+                                    actividad['subtitulo'] ?? 'Ica',
+                                    style: TextStyle(
+                                      color: colorTextoSecundario,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  if (actividad['categoria'] != null) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: AppColores.naranjaBoton.withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        actividad['categoria'].toString(),
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColores.naranjaBoton,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
                               trailing: Icon(
                                 Icons.arrow_forward_ios,

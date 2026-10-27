@@ -10,6 +10,7 @@ class ClimaActualModel {
   final double visibilidad;
   final String destino;
   final bool isCached;
+  final DateTime? fechaHoraPronostico;
 
   const ClimaActualModel({
     required this.temperaturaActual,
@@ -23,9 +24,17 @@ class ClimaActualModel {
     required this.visibilidad,
     required this.destino,
     this.isCached = false,
+    this.fechaHoraPronostico,
   });
 
   factory ClimaActualModel.fromJson(Map<String, dynamic> json) {
+    DateTime? fecha;
+    if (json['fecha_hora_pronostico'] != null) {
+      fecha = DateTime.tryParse(json['fecha_hora_pronostico'].toString());
+    } else if (json['updated_at'] != null) {
+      fecha = DateTime.tryParse(json['updated_at'].toString());
+    }
+
     return ClimaActualModel(
       temperaturaActual: (json['temperatura_actual'] as num?)?.toDouble() ?? 26.0,
       sensacionTermica: (json['sensacion_termica'] as num?)?.toDouble() ?? 26.0,
@@ -38,7 +47,16 @@ class ClimaActualModel {
       visibilidad: (json['visibilidad'] as num?)?.toDouble() ?? 10.0,
       destino: json['destino'] as String? ?? 'Ica',
       isCached: json['is_cached'] as bool? ?? false,
+      fechaHoraPronostico: fecha,
     );
+  }
+
+  /// Regla RN-03: La información meteorológica debe tener una actualización que no supere
+  /// las seis horas de antigüedad. Si no se puede verificar la vigencia, no se considera actual.
+  bool get esVigente {
+    if (fechaHoraPronostico == null) return false;
+    final horasAntiguedad = DateTime.now().difference(fechaHoraPronostico!).inHours.abs();
+    return horasAntiguedad < 6;
   }
 
   String get nivelUv {

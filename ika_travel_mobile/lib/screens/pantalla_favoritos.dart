@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import '../config/tema.dart';
 import '../config/colores_tema.dart';
 import '../config/favoritos_manager.dart';
+import '../services/auth_service.dart';
+import '../models/usuario_modelo.dart';
 import 'pantalla_detalle.dart';
 import 'pantalla_alertas.dart';
+import 'pantalla_login.dart';
 
 class PantallaFavoritos extends StatelessWidget {
   const PantallaFavoritos({super.key});
@@ -52,20 +55,95 @@ class PantallaFavoritos extends StatelessWidget {
             ),
 
             Expanded(
-              child: ValueListenableBuilder(
-                valueListenable: listaFavoritos,
-                builder: (context, favoritos, child) {
-                  if (favoritos.isEmpty) {
+              child: ValueListenableBuilder<UsuarioModelo?>(
+                valueListenable: AuthService().usuarioNotifier,
+                builder: (context, usuario, _) {
+                  final esInvitado = usuario == null || usuario.esInvitado;
+                  if (esInvitado) {
                     return Center(
-                      child: Text(
-                        'Aún no tienes favoritos ❤️',
-                        style: TextStyle(
-                          color: colorTextoSecundario,
-                          fontSize: 16,
+                      child: Padding(
+                        padding: const EdgeInsets.all(28),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(18),
+                              decoration: BoxDecoration(
+                                color: AppColores.naranjaBoton.withValues(alpha: 0.12),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.favorite_border,
+                                size: 50,
+                                color: AppColores.naranjaBoton,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Guarda tus favoritos',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: colorTexto,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Inicia sesión con tu cuenta de viajero para guardar y sincronizar los mejores atractivos turísticos de Ica.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: colorTextoSecundario,
+                                height: 1.35,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColores.naranjaBoton,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 22,
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              icon: const Icon(Icons.login, size: 18),
+                              label: const Text(
+                                'Iniciar sesión',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const PantallaLogin(abrirComoModal: true),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
                         ),
                       ),
                     );
                   }
+
+                  return ValueListenableBuilder(
+                    valueListenable: listaFavoritos,
+                    builder: (context, favoritos, child) {
+                      if (favoritos.isEmpty) {
+                        return Center(
+                          child: Text(
+                            'Aún no tienes favoritos ❤️',
+                            style: TextStyle(
+                              color: colorTextoSecundario,
+                              fontSize: 16,
+                            ),
+                          ),
+                        );
+                      }
 
                   return ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -155,42 +233,52 @@ class PantallaFavoritos extends StatelessWidget {
                     },
                   );
                 },
-              ),
-            ),
+              );
+            },
+          ),
+        ),
 
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColores.marronOscuro,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const PantallaAlertas(),
+            ValueListenableBuilder<UsuarioModelo?>(
+              valueListenable: AuthService().usuarioNotifier,
+              builder: (context, usuario, _) {
+                if (usuario == null || usuario.esInvitado) {
+                  return const SizedBox.shrink();
+                }
+                return Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColores.marronOscuro,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
-                    );
-                  },
-                  icon: const Icon(
-                    Icons.notifications_none,
-                    color: Colors.white,
-                  ),
-                  label: const Text(
-                    'Recibir alertas para favoritos',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PantallaAlertas(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(
+                        Icons.notifications_none,
+                        color: Colors.white,
+                      ),
+                      label: const Text(
+                        'Recibir alertas para favoritos',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
           ],
         ),

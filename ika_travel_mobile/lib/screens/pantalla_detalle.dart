@@ -4,11 +4,13 @@ import '../config/tema.dart';
 import '../config/colores_tema.dart';
 import '../config/favoritos_manager.dart';
 import '../services/alertas_service.dart';
+import '../services/auth_service.dart';
 import '../models/alerta_modelo.dart';
 import '../models/horario_modelo.dart';
 import '../widgets/tarjeta_horarios_atencion.dart';
 import 'pantalla_detalle_dia.dart';
 import 'pantalla_detalle_alerta.dart';
+import 'pantalla_login.dart';
 import 'pantalla_seguimiento_destino.dart';
 
 class PantallaDetalle extends StatefulWidget {
@@ -170,6 +172,27 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                                       size: 28,
                                     ),
                                     onPressed: () {
+                                      final usuario = AuthService().usuarioActual;
+                                      if (usuario == null || usuario.esInvitado) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: const Text('Inicia sesión para guardar atractivos en tus favoritos.'),
+                                            action: SnackBarAction(
+                                              label: 'Ingresar',
+                                              textColor: AppColores.naranjaBoton,
+                                              onPressed: () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (_) => const PantallaLogin(abrirComoModal: true),
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                        );
+                                        return;
+                                      }
                                       toggleFavorito({
                                         'titulo': widget.titulo,
                                         'subtitulo': widget.subtitulo,

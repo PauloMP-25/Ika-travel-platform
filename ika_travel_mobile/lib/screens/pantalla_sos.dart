@@ -3,8 +3,12 @@ import 'package:flutter/services.dart';
 
 import '../config/navegacion_service.dart';
 import '../config/tema.dart';
+import '../models/usuario_modelo.dart';
+import '../services/auth_service.dart';
 import '../services/sos_service.dart';
 import '../widgets/modal_cuenta_regresiva_sos.dart';
+import 'pantalla_login.dart';
+import 'pantalla_reporte_incidencia.dart';
 
 class PantallaSos extends StatefulWidget {
   final bool mostrarBotonAtras;
@@ -22,7 +26,97 @@ class _PantallaSosState extends State<PantallaSos> {
   final SosService _sosService = SosService();
   bool _detectorChoqueActivo = true;
 
+  String _motivoSeleccionado = 'accidente en el recorrido turístico';
+  final TextEditingController _motivoDetalleCtrl = TextEditingController();
+
+  final List<String> _opcionesAccidentes = const [
+    'accidente en tubular / buggy en dunas',
+    'accidente vehicular en carretera',
+    'caída o lesión física grave',
+    'emergencia médica / deshidratación',
+    'varado / extraviado en zona desértica',
+    'emergencia general y auxilio',
+  ];
+
+  @override
+  void dispose() {
+    _motivoDetalleCtrl.dispose();
+    super.dispose();
+  }
+
+  String _obtenerMensajeSos({bool esPrueba = false, bool esModoChoque = false}) {
+    final usuario = AuthService().usuarioActual;
+    final nombre = usuario != null && !usuario.esInvitado && usuario.fullName.trim().isNotEmpty
+        ? usuario.fullName.trim()
+        : 'el usuario registrado';
+    final telefono = usuario?.phone;
+
+    String motivo;
+    if (esModoChoque) {
+      motivo = 'un fuerte impacto vehicular o frenado brusco en las dunas de Ica';
+    } else if (_motivoDetalleCtrl.text.trim().isNotEmpty) {
+      motivo = '$_motivoSeleccionado (${_motivoDetalleCtrl.text.trim()})';
+    } else {
+      motivo = _motivoSeleccionado;
+    }
+
+    return _sosService.generarMensajeEmergencia(
+      modoPrueba: esPrueba,
+      nombreUsuario: nombre,
+      telefonoUsuario: telefono,
+      motivoAccidente: motivo,
+    );
+  }
+
+  bool _verificarAutenticacionOpcion() {
+    final usuario = AuthService().usuarioActual;
+    if (usuario == null || usuario.esInvitado) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.lock_outline_rounded, color: Color(0xFFD32F2F)),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text('Identificación Requerida', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+          content: const Text(
+            'Para emitir alertas SOS y reportes oficiales con tus datos de identidad ante las autoridades de Ica, debes identificarte con tu cuenta de viajero.',
+            style: TextStyle(fontSize: 13, height: 1.35),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColores.naranjaBoton,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                Navigator.pop(ctx);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PantallaLogin(abrirComoModal: true)),
+                );
+              },
+              child: const Text('Iniciar sesión'),
+            ),
+          ],
+        ),
+      );
+      return false;
+    }
+    return true;
+  }
+
   Future<void> _iniciarCuentaRegresivaSos({bool esModoChoque = false}) async {
+    if (!esModoChoque && !_verificarAutenticacionOpcion()) return;
     final contacto = _sosService.contactoNotifier.value;
     if (contacto == null) {
       _ejecutarAccionSos(esPrueba: false);
@@ -34,7 +128,7 @@ class _PantallaSosState extends State<PantallaSos> {
       if (mounted) setState(() {});
     }
 
-    final mensaje = _sosService.generarMensajeEmergencia(modoPrueba: false);
+    final mensaje = _obtenerMensajeSos(esPrueba: false, esModoChoque: esModoChoque);
     Clipboard.setData(ClipboardData(text: mensaje));
 
     if (!mounted) return;
@@ -193,7 +287,132 @@ class _PantallaSosState extends State<PantallaSos> {
     );
   }
 
+  void _abrirDialogoMiTelefono(BuildContext context) {
+    final usuario = AuthService().usuarioActual;
+    final telCtrl = TextEditingController(text: usuario?.phone ?? '');
+    final nombreCtrl = TextEditingController(
+      text: (usuario != null && !usuario.esInvitado) ? usuario.fullName : '',
+    );
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColores.naranjaBoton.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.phone_android_rounded, color: AppColores.naranjaBoton),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Mi Teléfono Propio',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColores.marronOscuro,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Registra tu número de celular propio para que tu contacto y rescatistas sepan a qué número llamarte.',
+                    style: TextStyle(fontSize: 13, color: AppColores.grisTexto, height: 1.3),
+                  ),
+                  const SizedBox(height: 16),
+                  if (usuario == null || usuario.esInvitado) ...[
+                    TextFormField(
+                      controller: nombreCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Tu nombre completo',
+                        prefixIcon: const Icon(Icons.person_outline),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      validator: (v) =>
+                          (v == null || v.trim().isEmpty) ? 'Ingresa tu nombre' : null,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  TextFormField(
+                    controller: telCtrl,
+                    keyboardType: TextInputType.phone,
+                    decoration: InputDecoration(
+                      labelText: 'Tu número de teléfono celular',
+                      hintText: '+51 987 654 321',
+                      prefixIcon: const Icon(Icons.phone_outlined),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) {
+                        return 'Ingresa tu número celular';
+                      }
+                      if (v.trim().length < 6) {
+                        return 'Número telefónico inválido';
+                      }
+                      return null;
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar', style: TextStyle(color: AppColores.grisTexto)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColores.naranjaBoton,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: () async {
+                if (formKey.currentState?.validate() ?? false) {
+                  await AuthService().actualizarPerfil(
+                    fullName: (usuario == null || usuario.esInvitado) && nombreCtrl.text.trim().isNotEmpty
+                        ? nombreCtrl.text.trim()
+                        : null,
+                    phone: telCtrl.text.trim(),
+                  );
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  if (context.mounted) {
+                    setState(() {});
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('✅ Número propio registrado en tu perfil de viajero.'),
+                        backgroundColor: Color(0xFF2E7D32),
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Guardar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _ejecutarAccionSos({required bool esPrueba}) async {
+    if (!esPrueba && !_verificarAutenticacionOpcion()) return;
     final contacto = _sosService.contactoNotifier.value;
     if (contacto == null) {
       showDialog(
@@ -231,7 +450,7 @@ class _PantallaSosState extends State<PantallaSos> {
       if (mounted) setState(() {});
     }
 
-    final mensaje = _sosService.generarMensajeEmergencia(modoPrueba: esPrueba);
+    final mensaje = _obtenerMensajeSos(esPrueba: esPrueba, esModoChoque: false);
 
     // Copiar al portapapeles como respaldo
     Clipboard.setData(ClipboardData(text: mensaje));
@@ -622,6 +841,74 @@ class _PantallaSosState extends State<PantallaSos> {
                     ),
                   ),
 
+                  const SizedBox(height: 14),
+
+                  // TARJETA DE REPORTE DE INCIDENCIAS Y FISCALIZACIÓN DIRCETUR (RF-05)
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFC62828).withValues(alpha: 0.2)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(16),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const PantallaReporteIncidencia()),
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFC62828).withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(Icons.campaign_outlined, color: Color(0xFFC62828), size: 26),
+                              ),
+                              const SizedBox(width: 12),
+                              const Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Reportar Incidencia o Informalidad',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColores.marronOscuro,
+                                      ),
+                                    ),
+                                    SizedBox(height: 2),
+                                    Text(
+                                      'Formulario formal para DIRCETUR Ica (RN-04 / RF-05)',
+                                      style: TextStyle(fontSize: 11, color: AppColores.grisTexto),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.arrow_forward_ios, size: 16, color: Color(0xFFC62828)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
                   const SizedBox(height: 16),
 
                   // TARJETA DE DETECCIÓN INTELIGENTE DE CHOQUES Y CAÍDAS
@@ -733,7 +1020,7 @@ class _PantallaSosState extends State<PantallaSos> {
 
                   const SizedBox(height: 16),
 
-                  // Sección Contacto de Confianza
+                  // Sección Contacto de Confianza y Remitente Propio
                   _seccionContacto(context),
 
                   const SizedBox(height: 16),
@@ -865,6 +1152,70 @@ class _PantallaSosState extends State<PantallaSos> {
                   ],
                 ),
               ],
+
+              const Divider(height: 20),
+
+              // 2. Mi Número Propio (Remitente Registrado)
+              ValueListenableBuilder<UsuarioModelo?>(
+                valueListenable: AuthService().usuarioNotifier,
+                builder: (context, usuario, _) {
+                  final tieneNombre = usuario != null && !usuario.esInvitado && usuario.fullName.trim().isNotEmpty;
+                  final tieneTelefono = usuario?.phone != null && usuario!.phone!.trim().isNotEmpty;
+
+                  return Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: tieneTelefono ? const Color(0xFFE8F5E9) : Colors.orange.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          tieneTelefono ? Icons.phone_android : Icons.phone_android_outlined,
+                          color: tieneTelefono ? const Color(0xFF2E7D32) : Colors.deepOrange,
+                          size: 16,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              tieneNombre ? 'Remitente: ${usuario.fullName}' : 'Mi Número Propio (Remitente)',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: AppColores.marronOscuro,
+                              ),
+                            ),
+                            Text(
+                              tieneTelefono
+                                  ? '📱 Mi número: ${usuario.phone}'
+                                  : '⚠️ Sin número propio registrado',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: tieneTelefono ? const Color(0xFF2E7D32) : const Color(0xFFE65100),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColores.naranjaBoton,
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                        ),
+                        onPressed: () => _abrirDialogoMiTelefono(context),
+                        child: Text(
+                          tieneTelefono ? 'Cambiar' : 'Registrar',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ],
           ),
         );
@@ -956,9 +1307,10 @@ class _PantallaSosState extends State<PantallaSos> {
       animation: Listenable.merge([
         _sosService.contactoNotifier,
         _sosService.permisoUbicacionConcedido,
+        AuthService().usuarioNotifier,
       ]),
       builder: (context, _) {
-        final mensaje = _sosService.generarMensajeEmergencia(modoPrueba: false);
+        final mensaje = _obtenerMensajeSos(esPrueba: false);
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -969,17 +1321,53 @@ class _PantallaSosState extends State<PantallaSos> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Icon(Icons.preview_outlined, color: AppColores.marronOscuro, size: 20),
-                  const SizedBox(width: 8),
                   const Expanded(
+                    child: Row(
+                      children: [
+                        Icon(Icons.preview_outlined, color: AppColores.marronOscuro, size: 20),
+                        SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'Vista Previa del Texto SOS',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: AppColores.marronOscuro,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  PopupMenuButton<String>(
+                    tooltip: 'Cambiar motivo de accidente',
+                    icon: const Icon(Icons.tune, size: 18, color: AppColores.naranjaBoton),
+                    onSelected: (val) {
+                      setState(() {
+                        _motivoSeleccionado = val;
+                      });
+                    },
+                    itemBuilder: (ctx) => _opcionesAccidentes.map((opcion) {
+                      return PopupMenuItem<String>(
+                        value: opcion,
+                        child: Text(opcion, style: const TextStyle(fontSize: 12)),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  const Icon(Icons.warning_amber, size: 13, color: Color(0xFFD32F2F)),
+                  const SizedBox(width: 4),
+                  Expanded(
                     child: Text(
-                      'Vista Previa del Texto SOS',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: AppColores.marronOscuro,
-                      ),
+                      'Motivo: $_motivoSeleccionado',
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFFD32F2F)),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],

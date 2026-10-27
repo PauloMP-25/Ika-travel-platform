@@ -33,9 +33,14 @@ class ApiConfig {
   static String get recommendationOfDay => '$baseUrl/api/v1/weather/recommendation-of-the-day';
   static String get recommendations => '$baseUrl/api/v1/weather/recommendations';
 
-  // --- EMERGENCY & SOS ---
+  // --- AGENCIES & PRESTADORES FORMALES (RF-03 / RN-01) ---
+  static String get agencies => '$baseUrl/api/v1/catalog/agencies';
+  static String agencyDetail(String id) => '$baseUrl/api/v1/catalog/agencies/$id';
+
+  // --- EMERGENCY & SOS & REPORTES DIRCETUR (RF-05) ---
   static String get emergencyContacts => '$baseUrl/api/v1/emergency/contacts';
   static String get emergencySos => '$baseUrl/api/v1/emergency/sos';
+  static String get emergencyReports => '$baseUrl/api/v1/emergency/reports';
 
   // --- FAVORITES ---
   static String toggleFavorite(int id) =>
@@ -45,6 +50,14 @@ class ApiConfig {
   static String get authLogin => '$baseUrl/api/v1/auth/login';
   static String get authRegister => '$baseUrl/api/v1/auth/register';
   static String get usersMe => '$baseUrl/api/v1/users/me';
+
+  // --- IA & GEMINI ---
+  /// Clave API configurable para Gemini (Google Generative AI).
+  /// Permite consultar Gemini directamente en frontend o pruebas (--dart-define=GEMINI_API_KEY=tu_clave).
+  static const String geminiApiKey = String.fromEnvironment(
+    'GEMINI_API_KEY',
+    defaultValue: '',
+  );
 
   // --- TRAFFIC & INCIDENTS (Tráfico e Incidentes Viales) ---
   /// Clave API configurable para tráfico real (TomTom Developer).

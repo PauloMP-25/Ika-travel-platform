@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'persistencia_service.dart';
 
 class ContactoEmergencia {
   final String nombre;
@@ -16,6 +17,19 @@ class ContactoEmergencia {
     required this.telefono,
     required this.relacion,
   });
+
+  Map<String, dynamic> toJson() => {
+        'nombre': nombre,
+        'telefono': telefono,
+        'relacion': relacion,
+      };
+
+  factory ContactoEmergencia.fromJson(Map<String, dynamic> json) =>
+      ContactoEmergencia(
+        nombre: json['nombre']?.toString() ?? '',
+        telefono: json['telefono']?.toString() ?? '',
+        relacion: json['relacion']?.toString() ?? 'Familiar directo',
+      );
 
   ContactoEmergencia copyWith({
     String? nombre,
@@ -50,14 +64,28 @@ class SosService {
   static final SosService _instance = SosService._internal();
   factory SosService() => _instance;
 
+  final PersistenciaService _persistencia = PersistenciaService();
+
   SosService._internal() {
     contactoNotifier.value = const ContactoEmergencia(
       nombre: 'Contacto de Emergencia',
       telefono: '+51 956 789 123',
       relacion: 'Familiar directo',
     );
+    _cargarContactoPersistido();
     // Intentar obtener ubicación satelital en segundo plano
     actualizarUbicacionReal();
+  }
+
+  Future<void> _cargarContactoPersistido() async {
+    try {
+      final json = await _persistencia.leerJson('contacto_emergencia_sos');
+      if (json != null) {
+        contactoNotifier.value = ContactoEmergencia.fromJson(json);
+      }
+    } catch (e) {
+      debugPrint('[SosService] Error al cargar contacto guardado: $e');
+    }
   }
 
   /// Notificador del contacto de confianza registrado
@@ -179,17 +207,20 @@ class SosService {
     required String telefono,
     required String relacion,
   }) {
-    contactoNotifier.value = ContactoEmergencia(
+    final contacto = ContactoEmergencia(
       nombre: nombre.trim(),
       telefono: telefono.trim(),
       relacion:
           relacion.trim().isEmpty ? 'Contacto de confianza' : relacion.trim(),
     );
+    contactoNotifier.value = contacto;
+    _persistencia.guardarJson('contacto_emergencia_sos', contacto.toJson());
   }
 
   /// Eliminar contacto registrado
   void eliminarContacto() {
     contactoNotifier.value = null;
+    _persistencia.eliminar('contacto_emergencia_sos');
   }
 
   /// Conceder o revocar permiso de geolocalización
@@ -200,17 +231,37 @@ class SosService {
     }
   }
 
-  /// Generar el texto del mensaje de emergencia con coordenadas reales
+  /// Generar el texto del mensaje de emergencia con coordenadas reales y remitente
   String generarMensajeEmergencia({
     bool modoPrueba = false,
+    String? nombreUsuario,
+    String? telefonoUsuario,
+    String? motivoAccidente,
   }) {
     final buffer = StringBuffer();
 
     if (modoPrueba) {
       buffer.writeln('[MODO PRUEBA IKA TRAVEL - NO ES UNA EMERGENCIA REAL]');
+      buffer.writeln();
     }
 
+    final nombre = (nombreUsuario != null && nombreUsuario.trim().isNotEmpty)
+        ? nombreUsuario.trim()
+        : 'el usuario registrado';
+
+    final accidente = (motivoAccidente != null && motivoAccidente.trim().isNotEmpty)
+        ? motivoAccidente.trim()
+        : 'un accidente en mi recorrido';
+
+    buffer.writeln('Hola soy $nombre y te envio este mensaje porque he tenido este accidente: $accidente.');
+    buffer.writeln();
     buffer.writeln('🚨 ¡ALERTA SOS! ¡NECESITO AYUDA! Necesito asistencia urgente.');
+    buffer.writeln();
+
+    if (telefonoUsuario != null && telefonoUsuario.trim().isNotEmpty) {
+      buffer.writeln('📱 Mi número de contacto es: ${telefonoUsuario.trim()}');
+      buffer.writeln();
+    }
 
     if (permisoUbicacionConcedido.value) {
       buffer.writeln(
@@ -224,6 +275,7 @@ class SosService {
       );
     }
 
+    buffer.writeln();
     buffer.write(
       'Mensaje emitido con la app Ika Travel. Por favor comunícate de inmediato conmigo o avisa a las autoridades.',
     );

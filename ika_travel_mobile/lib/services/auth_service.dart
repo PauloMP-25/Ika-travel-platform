@@ -280,6 +280,34 @@ class AuthService {
     }
   }
 
+  /// Actualiza las preferencias turísticas del usuario actual (RF-01)
+  Future<bool> actualizarPreferencias(List<String> nuevasPreferencias) async {
+    final usuario = usuarioActual;
+    if (usuario == null) return false;
+
+    final actualizado = usuario.copyWith(preferences: nuevasPreferencias);
+    await _guardarSesion(actualizado);
+    return true;
+  }
+
+  /// Actualiza datos de perfil del usuario (nombre, teléfono, idioma)
+  Future<bool> actualizarPerfil({
+    String? fullName,
+    String? phone,
+    String? preferredLanguage,
+  }) async {
+    final usuario = usuarioActual;
+    if (usuario == null) return false;
+
+    final actualizado = usuario.copyWith(
+      fullName: fullName ?? usuario.fullName,
+      phone: phone ?? usuario.phone,
+      preferredLanguage: preferredLanguage ?? usuario.preferredLanguage,
+    );
+    await _guardarSesion(actualizado);
+    return true;
+  }
+
   Future<void> _guardarSesion(UsuarioModelo usuario) async {
     usuarioNotifier.value = usuario;
     try {

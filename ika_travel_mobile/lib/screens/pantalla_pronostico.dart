@@ -35,6 +35,15 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
     });
   }
 
+  bool get _climaEsVigente {
+    if (_datosClimaActual == null) return false;
+    final fechaRaw = _datosClimaActual!['fecha_hora_pronostico'] ?? _datosClimaActual!['updated_at'];
+    if (fechaRaw == null) return false;
+    final dt = DateTime.tryParse(fechaRaw.toString());
+    if (dt == null) return false;
+    return DateTime.now().difference(dt).inHours.abs() < 6;
+  }
+
   Map<String, dynamic> _getDatosActuales() {
     if (_datosPronostico == null || _datosClimaActual == null) {
       return {};
@@ -194,7 +203,50 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
+
+            // Badge de vigencia según RN-03
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: _climaEsVigente
+                      ? const Color(0xFF2E7D32).withValues(alpha: 0.12)
+                      : Colors.amber.shade100,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: _climaEsVigente
+                        ? const Color(0xFF2E7D32).withValues(alpha: 0.3)
+                        : Colors.amber.shade400,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _climaEsVigente ? Icons.verified_outlined : Icons.history_rounded,
+                      size: 15,
+                      color: _climaEsVigente ? const Color(0xFF1B5E20) : Colors.brown.shade800,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        _climaEsVigente
+                            ? 'Datos meteorológicos vigentes (< 6 horas) — RN-03'
+                            : 'Datos no confirmados en las últimas 6h (Modo referencial) — RN-03',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: _climaEsVigente ? const Color(0xFF1B5E20) : Colors.brown.shade900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Container(

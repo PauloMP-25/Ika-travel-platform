@@ -10,9 +10,12 @@ import 'pantalla_configuracion.dart';
 import 'pantalla_configurar_alertas.dart';
 import 'pantalla_login.dart';
 import 'pantalla_planer.dart';
+import 'pantalla_prestadores.dart';
+import 'pantalla_reporte_incidencia.dart';
 import 'pantalla_seguimiento_destino.dart';
 import 'pantalla_sos.dart';
 import 'pantalla_traduccion.dart';
+import '../widgets/dialogo_preferencias_turista.dart';
 
 
 class PantallaMas extends StatelessWidget {
@@ -102,6 +105,97 @@ class PantallaMas extends StatelessWidget {
     );
   }
 
+  void _mostrarDialogoEditarTelefono(BuildContext context, UsuarioModelo usuario) {
+    final telCtrl = TextEditingController(text: usuario.phone ?? '');
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: TemaApp.tarjeta(ctx),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              const Icon(Icons.phone_android_rounded, color: AppColores.naranjaBoton),
+              const SizedBox(width: 10),
+              Text(
+                'Mi Número Telefónico',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 17,
+                  color: TemaApp.texto(ctx),
+                ),
+              ),
+            ],
+          ),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Este número se usará para identificarte y enviar auxilio en caso de emergencia SOS.',
+                  style: TextStyle(fontSize: 13, color: TemaApp.textoSecundario(ctx)),
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: telCtrl,
+                  keyboardType: TextInputType.phone,
+                  style: TextStyle(color: TemaApp.texto(ctx)),
+                  decoration: InputDecoration(
+                    labelText: 'Número celular',
+                    hintText: '+51 987 654 321',
+                    prefixIcon: const Icon(Icons.phone),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) {
+                      return 'Ingresa tu número celular';
+                    }
+                    if (v.trim().length < 6) {
+                      return 'Número inválido';
+                    }
+                    return null;
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColores.naranjaBoton,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: () async {
+                if (formKey.currentState?.validate() ?? false) {
+                  await AuthService().actualizarPerfil(phone: telCtrl.text.trim());
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('✅ Número de teléfono actualizado.'),
+                        backgroundColor: Color(0xFF2E7D32),
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Guardar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildTarjetaPerfil(BuildContext context) {
     final colorTarjeta = TemaApp.tarjeta(context);
     final colorTexto = TemaApp.texto(context);
@@ -165,6 +259,17 @@ class PantallaMas extends StatelessWidget {
                         color: colorTextoSec,
                       ),
                     ),
+                    if (!esInvitado && usuario.phone != null && usuario.phone!.trim().isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        '📱 ${usuario.phone}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF2E7D32),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -219,14 +324,37 @@ class PantallaMas extends StatelessWidget {
                   ),
                 )
               else
-                IconButton(
-                  tooltip: 'Cerrar sesión',
-                  icon: const Icon(
-                    Icons.logout_rounded,
-                    color: Color(0xFFD32F2F),
-                    size: 22,
-                  ),
-                  onPressed: () => _confirmarCerrarSesion(context),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      tooltip: 'Mi Teléfono Celular',
+                      icon: const Icon(
+                        Icons.phone_android_rounded,
+                        color: Color(0xFF2E7D32),
+                        size: 22,
+                      ),
+                      onPressed: () => _mostrarDialogoEditarTelefono(context, usuario),
+                    ),
+                    IconButton(
+                      tooltip: 'Mis Preferencias',
+                      icon: const Icon(
+                        Icons.tune_rounded,
+                        color: AppColores.naranjaBoton,
+                        size: 22,
+                      ),
+                      onPressed: () => DialogoPreferenciasTurista.mostrar(context, usuario),
+                    ),
+                    IconButton(
+                      tooltip: 'Cerrar sesión',
+                      icon: const Icon(
+                        Icons.logout_rounded,
+                        color: Color(0xFFD32F2F),
+                        size: 22,
+                      ),
+                      onPressed: () => _confirmarCerrarSesion(context),
+                    ),
+                  ],
                 ),
             ],
           ),
@@ -329,6 +457,34 @@ class PantallaMas extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (context) => const PantallaSos(),
+                        ),
+                      );
+                    },
+                  ),
+                  _itemMenu(
+                    context,
+                    icono: Icons.verified_user_outlined,
+                    titulo: 'Servicios Formalizados',
+                    subtitulo: 'Agencias y prestadores validados por DIRCETUR (RN-01)',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PantallaPrestadores(),
+                        ),
+                      );
+                    },
+                  ),
+                  _itemMenu(
+                    context,
+                    icono: Icons.campaign_outlined,
+                    titulo: 'Reporte de incidencias DIRCETUR',
+                    subtitulo: 'Denuncias de informalidad e incidentes (RF-05)',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PantallaReporteIncidencia(),
                         ),
                       );
                     },
