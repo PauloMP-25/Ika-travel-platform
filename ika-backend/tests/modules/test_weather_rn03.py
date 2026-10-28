@@ -7,7 +7,6 @@ sustituyen por dobles de prueba.
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
-import httpx
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -159,36 +158,44 @@ def test_sin_condiciones_extremas_no_hay_alertas():
 
 @pytest.mark.anyio
 async def test_gemini_caido_devuelve_none_y_no_rompe(monkeypatch):
-    """Si Gemini falla, la recomendación sigue funcionando con el texto por reglas."""
-    monkeypatch.setattr(ai_recommender.configuracion, "GEMINI_API_KEY", "clave-falsa")
+    """Si Gemini falla, la recomendación sigue funcionando con el texto por reglas.
 
-    class ClienteRoto:
-        def __init__(self, *a, **k): ...
-        async def __aenter__(self): return self
-        async def __aexit__(self, *a): return False
-        async def post(self, *a, **k): raise httpx.ConnectTimeout("caído")
+    El motor (`weather/ai/engine.py`) traga la excepción y devuelve `None`, que
+    `redactar_con_gemini` traduce en `(None, [])`; el llamante usa el texto por
+    reglas. Se mockea el motor para no depender de la red ni de una API key.
+    """
+    motor_falso = MagicMock()
+    motor_falso.generar_recomendacion_estructurada = AsyncMock(return_value=None)
+    monkeypatch.setattr(ai_recommender, "_obtener_motor_gemini", lambda: motor_falso)
 
-    monkeypatch.setattr(ai_recommender.httpx, "AsyncClient", ClienteRoto)
     resultado = ai_recommender.generar_recomendacion(
         nombre_atractivo="Huacachina", slugs_categorias=[], temperatura=25, uv=5, viento=10, precipitacion=0
     )
-    texto = await ai_recommender.redactar_con_gemini(
+    texto, consejos = await ai_recommender.redactar_con_gemini(
         nombre_atractivo="Huacachina", resultado=resultado, temperatura=25, uv=5, viento=10,
         condicion="Despejado",
     )
     assert texto is None
+    assert consejos == []
     assert resultado.texto  # el texto por reglas siempre existe
 
 
 @pytest.mark.anyio
 async def test_gemini_sin_api_key_no_hace_llamadas(monkeypatch):
+    """Sin `GEMINI_API_KEY` el motor ni siquiera crea el cliente de Gemini."""
     monkeypatch.setattr(ai_recommender.configuracion, "GEMINI_API_KEY", "")
+    monkeypatch.setattr(ai_recommender, "_motor_gemini", None)  # motor nuevo, clave vacía
+
     resultado = ai_recommender.generar_recomendacion(
         nombre_atractivo="X", slugs_categorias=[], temperatura=25, uv=5, viento=10, precipitacion=0
     )
-    assert await ai_recommender.redactar_con_gemini(
+    texto, consejos = await ai_recommender.redactar_con_gemini(
         nombre_atractivo="X", resultado=resultado, temperatura=25, uv=5, viento=10, condicion="-"
-    ) is None
+    )
+
+    assert texto is None
+    assert consejos == []
+    assert ai_recommender._obtener_motor_gemini()._client is None  # cero llamadas
 
 
 # ----------------------------------------------------------------------
