@@ -19,7 +19,8 @@ from sqlalchemy.orm import selectinload
 
 from src.core.config import configuracion
 from src.modules.catalog.models import Attraction
-from src.modules.weather import ai_recommender, provider
+from src.modules.ai_engine import recommender as ai_engine
+from src.modules.weather import provider, scoring
 from src.modules.weather.adapters import (
     AdaptadorClimaBase,
     AdaptadorOpenMeteo,
@@ -365,8 +366,8 @@ async def _atractivos_activos(db: AsyncSession) -> list[Attraction]:
 
 def _recomendar(
     atractivo: Attraction, clima: ClimaActualResponse, preferencias: list[str] | None = None
-) -> ai_recommender.ResultadoRecomendacion:
-    return ai_recommender.generar_recomendacion(
+) -> scoring.ResultadoRecomendacion:
+    return scoring.generar_recomendacion(
         nombre_atractivo=atractivo.name,
         slugs_categorias=[c.slug for c in atractivo.categories],
         temperatura=clima.temperatura_actual,
@@ -378,7 +379,7 @@ def _recomendar(
 
 
 def _a_recomendacion_response(
-    atractivo: Attraction, resultado: ai_recommender.ResultadoRecomendacion, texto: str | None = None, consejos: list[str] | None = None
+    atractivo: Attraction, resultado: scoring.ResultadoRecomendacion, texto: str | None = None, consejos: list[str] | None = None
 ) -> RecomendacionResponse:
     return RecomendacionResponse(
         atractivo_id=atractivo.id,
@@ -444,7 +445,7 @@ async def recomendacion_del_dia(
 
     # Extraer los 2 mejores lugares siguientes según el índice estadístico PERTUR
     top_alternativos_nombres = [r.atractivo_nombre for r in ranking if r.atractivo_id != atractivo.id][:2]
-    texto, consejos_gemini = await ai_recommender.redactar_con_gemini(
+    texto, consejos_gemini = await ai_engine.redactar_con_gemini(
         nombre_atractivo=atractivo.name,
         resultado=resultado,
         atractivos_alternativos=top_alternativos_nombres,
@@ -496,7 +497,7 @@ async def regenerar_alertas_region(db: AsyncSession, clima: ClimaActualResponse)
     region = ubicacion_region().nombre
     await db.execute(delete(WeatherAlert).where(WeatherAlert.zone == region))
     ahora = datetime.now(tz=timezone.utc)
-    detectadas = ai_recommender.detectar_alertas(
+    detectadas = scoring.detectar_alertas(
         temperatura=clima.temperatura_actual,
         uv=clima.indice_uv,
         viento=clima.velocidad_viento,
@@ -526,7 +527,7 @@ async def refrescar_todo(db: AsyncSession) -> dict[str, int]:
     for atractivo in await _atractivos_activos(db):
         clima = await get_fresh_snapshot(db, ubicacion_de_atractivo(atractivo), forzar_refresco=True)
         resultado = _recomendar(atractivo, clima)
-        texto, _ = await ai_recommender.redactar_con_gemini(
+        texto, _ = await ai_engine.redactar_con_gemini(
             nombre_atractivo=atractivo.name,
             resultado=resultado,
             temperatura=clima.temperatura_actual,

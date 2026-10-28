@@ -12,6 +12,7 @@ from src.modules.reviews.router import reviews_router
 from src.modules.analytics.router import router as analytics_router
 from src.modules.translation.router import router as translation_router
 from src.modules.weather.router import router as weather_router
+from src.modules.ai_engine.router import router as ai_engine_router
 from src.modules.users.router import users_router
 from src.modules.users.exceptions import register_users_exception_handlers
 from src.redis_client import cerrar_redis
@@ -47,6 +48,7 @@ aplicacion.include_router(users_router, prefix=PREFIJO_API)
 aplicacion.include_router(catalog_router, prefix=PREFIJO_API)
 aplicacion.include_router(catalog_admin_router, prefix=PREFIJO_API)
 aplicacion.include_router(weather_router, prefix=PREFIJO_API)
+aplicacion.include_router(ai_engine_router, prefix=PREFIJO_API)
 aplicacion.include_router(geo_router, prefix=PREFIJO_API)
 aplicacion.include_router(emergency_router, prefix=PREFIJO_API)
 aplicacion.include_router(reviews_router, prefix=PREFIJO_API)
