@@ -27,13 +27,13 @@ def test_hay_un_solo_head_de_alembic() -> None:
 
 
 def test_la_ultima_revision_es_la_del_sprint_4() -> None:
-    """La migración de idempotencia/oauth cierra la cadena del sprint."""
+    """La cadena del sprint cierra en la última revisión de alertas (P2)."""
     config = Config(str(RAIZ_BACKEND / "alembic.ini"))
     scripts = ScriptDirectory.from_config(config)
 
     head = scripts.get_current_head()
 
-    assert head == "8db9ab3bcce4", (
+    assert head == "c7d8e9f0a1b2", (
         f"El head cambió ({head}); actualiza este test y documenta la nueva "
         "revisión en docs/sprint_4.md."
     )

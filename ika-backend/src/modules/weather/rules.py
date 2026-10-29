@@ -232,6 +232,8 @@ def evaluar_alertas(
         alertas.append(AlertaCandidata("rain_hazard", "high", f"Lluvias Torrenciales ({precipitacion:.1f} mm): riesgo de huaycos en quebradas y carreteras.", zona))
     elif precipitacion >= u_lluvia.warning:
         alertas.append(AlertaCandidata("rain_hazard", "medium", f"Lluvias Fuertes ({precipitacion:.1f} mm): precaución en rutas terrestres.", zona))
+    elif precipitacion >= u_lluvia.advisory:
+        alertas.append(AlertaCandidata("rain_hazard", "low", f"Llovizna registrada ({precipitacion:.1f} mm): pavimento resbaladizo en miradores y quebradas.", zona))
 
     # 5. Temperatura de la Arena en Dunas
     if temperatura_arena is not None:

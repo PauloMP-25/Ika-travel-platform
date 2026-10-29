@@ -13,7 +13,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, Float, ForeignKey, Index, String, Text, func
+from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, Index, String, Text, func, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -69,12 +69,36 @@ class SeveridadAlerta(str, enum.Enum):
 
 
 class WeatherAlert(Base):
-    """Alerta meteorológica activa mientras `ends_at > now()`."""
+    """Alerta meteorológica activa mientras `ends_at > now()` e `is_active`.
+
+    Sprint 4 (P2): las alertas pueden ser de región (`attraction_id` nulo, el
+    comportamiento original) o de un atractivo concreto. El alta/baja es un
+    **upsert** por (`attraction_id`, `code`): si la severidad cambia se
+    actualiza la fila, y si la condición cesa pasa a `is_active=False` en vez
+    de borrar (conserva el rastro para auditoría y `purgar_antiguos`).
+    """
 
     __tablename__ = "weather_alert"
-    __table_args__ = (Index("ix_weather_alert_ends_at", "ends_at"),)
+    __table_args__ = (
+        Index("ix_weather_alert_ends_at", "ends_at"),
+        # P2: una sola alerta activa por (atractivo, tipo). Participa
+        # `is_active` como filtro del índice para poder guardar histórico
+        # inactivo sin chocar con la unicidad de la activa.
+        Index(
+            "uq_weather_alert_active_attraction_code",
+            "attraction_id",
+            "code",
+            unique=True,
+            postgresql_where=text("is_active AND attraction_id IS NOT NULL"),
+        ),
+        Index("ix_weather_alert_attraction_active", "attraction_id", "is_active"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    # P2: nulo = alerta de región (comportamiento heredado).
+    attraction_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("attraction.id", ondelete="CASCADE"), nullable=True
+    )
     zone: Mapped[str] = mapped_column(String(120), nullable=False)
     code: Mapped[str] = mapped_column(String(50), nullable=False)
     severity: Mapped[SeveridadAlerta] = mapped_column(
@@ -83,6 +107,10 @@ class WeatherAlert(Base):
     message: Mapped[str] = mapped_column(Text, nullable=False)
     starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     ends_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    # P2: baja lógica; la región sigue usando el borrado físico tradicional.
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=text("true")
+    )
 
 
 class AIRecommendation(Base):

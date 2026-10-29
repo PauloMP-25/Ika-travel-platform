@@ -1,4 +1,3 @@
-from src.modules.weather import rules
 """Capa de orquestación del módulo weather.
 
 Implementa el Patrón Aggregator: dispara consultas concurrentes a los
@@ -28,6 +27,7 @@ from src.modules.weather.adapters import (
     AdaptadorWeatherAPI,
 )
 from src.modules.weather.constants import DESTINOS_ICA, normalizar_nombre_destino
+from src.modules.weather import rules
 from src.modules.weather.exceptions import (
     AtractivoSinClimaException,
     DatosClimaDesactualizadosException,
@@ -572,9 +572,82 @@ async def recomendacion_del_dia(
 async def listar_alertas_activas(db: AsyncSession) -> list[WeatherAlert]:
     ahora = datetime.now(tz=timezone.utc)
     resultado = await db.execute(
-        select(WeatherAlert).where(WeatherAlert.ends_at > ahora).order_by(WeatherAlert.starts_at.desc())
+        select(WeatherAlert).where(
+            WeatherAlert.ends_at > ahora,
+            WeatherAlert.is_active.is_(True),
+        ).order_by(WeatherAlert.starts_at.desc())
     )
     return list(resultado.scalars().all())
+
+
+async def sincronizar_alertas_atractivo(
+    db: AsyncSession, atractivo: Attraction, clima: ClimaActualResponse
+) -> int:
+    """P2: evalúa y persiste las alertas de un atractivo con **upsert**.
+
+    Reglas del plan:
+    - clave de upsert: (`attraction_id`, `code`); si la severidad cambia se
+      actualiza la fila existente (no se duplica);
+    - si una condición deja de cumplirse, su alerta pasa a `is_active=False`
+      (baja lógica) en vez de borrarse;
+    - `ends_at = capturado + vigencia` (6 h, la misma que el snapshot RN-03).
+
+    Devuelve cuántas alertas quedaron activas para el atractivo.
+    """
+    ahora = datetime.now(tz=timezone.utc)
+    vigente = _vigencia()
+    # La zona determina qué reglas aplican (p. ej. `paracas_wind` solo en la
+    # costa de Paracas): nombre + distrito cubren ambos casos.
+    zona = f"{atractivo.name} {atractivo.district}"
+    candidatas = rules.evaluar_alertas(
+        temperatura=clima.temperatura_actual,
+        uv=clima.indice_uv,
+        viento=clima.velocidad_viento,
+        precipitacion=clima.probabilidad_precipitacion / 100.0 * 3.0,
+        temperatura_arena=clima.temperatura_suelo_arena,
+        zona=zona,
+    )
+
+    existentes = {
+        alerta.code: alerta
+        for alerta in (
+            await db.execute(
+                select(WeatherAlert).where(
+                    WeatherAlert.attraction_id == atractivo.id,
+                    WeatherAlert.is_active.is_(True),
+                )
+            )
+        ).scalars()
+    }
+    tipos_activos = {candidata.alert_type for candidata in candidatas}
+
+    # Condiciones que cesaron: baja lógica.
+    for code, alerta in existentes.items():
+        if code not in tipos_activos:
+            alerta.is_active = False
+
+    # Upsert de las vigentes.
+    for candidata in candidatas:
+        existente = existentes.get(candidata.alert_type)
+        if existente is None:
+            db.add(
+                WeatherAlert(
+                    attraction_id=atractivo.id,
+                    zone=zona[:120],
+                    code=candidata.alert_type,
+                    severity=SeveridadAlerta(candidata.severity),
+                    message=candidata.message,
+                    starts_at=ahora,
+                    ends_at=ahora + vigente,
+                )
+            )
+        else:
+            existente.severity = SeveridadAlerta(candidata.severity)
+            existente.message = candidata.message
+            existente.ends_at = ahora + vigente  # RN-03: retrasa el vencimiento
+
+    await db.flush()
+    return len(tipos_activos)
 
 
 async def regenerar_alertas_region(db: AsyncSession, clima: ClimaActualResponse) -> int:
@@ -609,8 +682,10 @@ async def refrescar_todo(db: AsyncSession) -> dict[str, int]:
     alertas = await regenerar_alertas_region(db, clima_region)
 
     generadas = 0
+    alertas_atractivo = 0
     for atractivo in await _atractivos_activos(db):
         clima = await get_fresh_snapshot(db, ubicacion_de_atractivo(atractivo), forzar_refresco=True)
+        alertas_atractivo += await sincronizar_alertas_atractivo(db, atractivo, clima)
         resultado = _recomendar(atractivo, clima)
         texto, _ = await ai_recommender.redactar_con_gemini(
             nombre_atractivo=atractivo.name,
@@ -639,7 +714,7 @@ async def refrescar_todo(db: AsyncSession) -> dict[str, int]:
         )
         generadas += 1
     await db.commit()
-    return {"alertas": alertas, "recomendaciones": generadas}
+    return {"alertas": alertas + alertas_atractivo, "recomendaciones": generadas}
 
 
 async def purgar_antiguos(db: AsyncSession, *, dias: int = 7) -> int:
