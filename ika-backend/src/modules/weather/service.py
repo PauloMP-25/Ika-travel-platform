@@ -9,6 +9,7 @@ preciso y resiliente.
 
 import asyncio
 import logging
+import statistics
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
@@ -31,6 +32,9 @@ from src.modules.weather.exceptions import (
     AtractivoSinClimaException,
     DatosClimaDesactualizadosException,
     DestinoNoEncontradoException,
+    ErrorProveedorClimaBase,
+    ProveedorClimaNoDisponibleException,
+    ProveedorClimaTimeoutException,
     TodosLosProveedoresFallaronException,
 )
 from src.modules.weather.models import (
@@ -49,21 +53,84 @@ from src.redis_client import cache_guardar_json, cache_obtener_json
 
 logger = logging.getLogger(__name__)
 
+# Sprint 4, P1: rangos físicamente plausibles de cada magnitud. Un proveedor
+# que entregue un valor fuera de rango está roto, no "hace un día raro".
+RANGOS_FISICOS_CLIMA: dict[str, tuple[float, float]] = {
+    "temperatura_actual": (-50.0, 60.0),         # °C
+    "sensacion_termica": (-60.0, 70.0),          # °C
+    "probabilidad_precipitacion": (0.0, 100.0),  # %
+    "humedad": (0.0, 100.0),                     # %
+    "velocidad_viento": (0.0, 300.0),            # km/h
+    "rafagas_viento": (0.0, 350.0),              # km/h
+    "indice_uv": (0.0, 25.0),                    # índice OMS
+    "visibilidad": (0.0, 100.0),                 # km
+}
+
+
+def _mediana_con_outliers(campo: str, valores: list[float]) -> float:
+    """Mediana robusta: descarta fuera de rango físico y más allá de 3 σ.
+
+    Con menos de 3 muestras la desviación típica no dice nada, así que solo se
+    aplica el filtro físico. Nunca se vacía la lista: si todos los valores son
+    absurdos se conservan tal cual (mejor un dato dudoso que una excepción).
+    """
+    if not valores:
+        return 0.0
+
+    rango = RANGOS_FISICOS_CLIMA.get(campo)
+    if rango is not None:
+        minimo, maximo = rango
+        dentro = [v for v in valores if minimo <= v <= maximo]
+        valores = dentro or valores
+
+    if len(valores) >= 3:
+        media = statistics.fmean(valores)
+        sigma = statistics.pstdev(valores)
+        if sigma > 0:
+            limite = 3 * sigma
+            dentro = [v for v in valores if abs(v - media) <= limite]
+            valores = dentro or valores
+
+    return float(statistics.median(valores))
+
 
 class AgregadorClima:
-    """Orquestador que implementa el Patrón Aggregator.
+    """Orquestador que implementa el Patrón Aggregator (Sprint 4, P1).
 
-    Recibe una lista de adaptadores por inyección de dependencias,
-    los llama en paralelo y promedia los resultados válidos.
+    Recibe una lista de adaptadores por inyección de dependencias, los llama en
+    paralelo con **timeout individual configurable (3 s)** y consolida lo válido:
+
+    - quórum ≥ 1: con un solo proveedor sano se responde;
+    - **mediana** para temperatura, viento y el resto de magnitudes (robusta
+      ante un proveedor equivocado);
+    - **máximo** de UV (criterio conservador de seguridad: ante la duda, el
+      índice más alto; el 0.0 de OpenWeatherMap significa "sin dato");
+    - descarte de valores fuera de rangos físicos o a más de 3 σ;
+    - `origen_api` = proveedores usados unidos con `+` (p. ej.
+      ``open-meteo+weatherapi``).
+
+    Los adaptadores normalizan las unidades en su interior (°C, km/h, %, km de
+    visibilidad e índice UV), así que el agregador solo consolida.
     """
 
     def __init__(self, adaptadores: list[AdaptadorClimaBase]):
         self.adaptadores = adaptadores
 
+    async def _consultar_con_timeout(
+        self, adaptador: AdaptadorClimaBase, latitud: float, longitud: float
+    ) -> ClimaActual:
+        """Una petición por proveedor con techo de tiempo configurable (3 s)."""
+        segundos = configuracion.TIMEOUT_PROVEEDOR_CLIMA_SEGUNDOS
+        try:
+            async with asyncio.timeout(segundos):
+                return await adaptador.obtener_clima_actual(latitud, longitud)
+        except TimeoutError as exc:  # asyncio.timeout cancela la tarea interna
+            raise ProveedorClimaTimeoutException(adaptador.nombre_proveedor) from exc
+
     async def obtener_consenso(self, latitud: float, longitud: float) -> ClimaActual:
-        """Lanza todas las peticiones en paralelo y devuelve el promedio."""
+        """Lanza todas las peticiones en paralelo y consolida los éxitos."""
         tareas = [
-            adaptador.obtener_clima_actual(latitud, longitud)
+            self._consultar_con_timeout(adaptador, latitud, longitud)
             for adaptador in self.adaptadores
         ]
 
@@ -71,67 +138,86 @@ class AgregadorClima:
         resultados = await asyncio.gather(*tareas, return_exceptions=True)
 
         exitosos: list[ClimaActual] = []
-        nombres_fallidos: list[str] = []
         nombres_exitosos: list[str] = []
+        errores: list[ErrorProveedorClimaBase] = []
 
         for i, resultado in enumerate(resultados):
             nombre_api = self.adaptadores[i].nombre_proveedor
             if isinstance(resultado, Exception):
                 logger.warning("Fallo en proveedor %s: %s", nombre_api, resultado)
-                nombres_fallidos.append(nombre_api)
+                if isinstance(resultado, ErrorProveedorClimaBase):
+                    errores.append(resultado)
+                else:
+                    # Defensa: un adaptador siempre debe lanzar excepciones del
+                    # módulo; si escapa otra, se normaliza para el detalle 502.
+                    errores.append(
+                        ProveedorClimaNoDisponibleException(nombre_api, str(resultado))
+                    )
             else:
                 exitosos.append(resultado)
                 nombres_exitosos.append(nombre_api)
 
         if not exitosos:
-            raise TodosLosProveedoresFallaronException([])
+            raise TodosLosProveedoresFallaronException(errores)
 
         logger.info(
             "Consenso de clima obtenido de %d proveedor(es): %s",
             len(exitosos),
-            ", ".join(nombres_exitosos),
+            "+".join(nombres_exitosos),
         )
-        return self._promediar_resultados(exitosos, nombres_exitosos)
+        return self._consolidar_resultados(exitosos, nombres_exitosos)
 
-    def _promediar_resultados(
+    def _consolidar_resultados(
         self, resultados: list[ClimaActual], nombres: list[str]
     ) -> ClimaActual:
-        n = len(resultados)
+        def mediana(campo: str) -> float:
+            valores = [float(getattr(muestra, campo)) for muestra in resultados]
+            return _mediana_con_outliers(campo, valores)
 
-        def prom(lista: list[float]) -> float:
-            return sum(lista) / n
-
-        # Para las ráfagas que pueden ser None en algunas APIs, filtramos los Nones
-        rafagas_validas = [r.rafagas_viento for r in resultados if r.rafagas_viento is not None]
-        promedio_rafagas = sum(rafagas_validas) / len(rafagas_validas) if rafagas_validas else None
-
-        # Para el UV, filtramos los 0.0 que vienen de OWM (no tienen el dato, no es UV real de 0)
-        uvs_validos = [r.indice_uv for r in resultados if r.indice_uv > 0]
-        promedio_uv = sum(uvs_validos) / len(uvs_validos) if uvs_validos else 0.0
+        # Ráfagas: pueden ser None en algunas APIs (no es un outlier, es ausencia).
+        rafagas = [
+            muestra.rafagas_viento
+            for muestra in resultados
+            if muestra.rafagas_viento is not None
+        ]
+        # UV: el 0.0 de OpenWeatherMap significa "sin dato", no UV real de 0.
+        # El máximo es conservador (seguridad), pero un valor fuera de rango
+        # OMS (0-25) es un proveedor roto, no un día extremo.
+        rango_uv = RANGOS_FISICOS_CLIMA["indice_uv"]
+        uvs = [
+            muestra.indice_uv
+            for muestra in resultados
+            if rango_uv[0] < muestra.indice_uv <= rango_uv[1]
+        ]
 
         def primer_valido(attr):
-            for r in resultados:
-                val = getattr(r, attr, None)
-                if val is not None:
-                    return val
+            # Variables ampliadas (Sprint 4, main): casi ningún proveedor las
+            # trae, así que se toma la primera que exista.
+            for muestra in resultados:
+                valor = getattr(muestra, attr, None)
+                if valor is not None:
+                    return valor
             return None
 
         return ClimaActual(
-            temperatura_actual=round(prom([r.temperatura_actual for r in resultados]), 1),
-            sensacion_termica=round(prom([r.sensacion_termica for r in resultados]), 1),
-            probabilidad_precipitacion=round(
-                prom([r.probabilidad_precipitacion for r in resultados]), 1
+            temperatura_actual=round(mediana("temperatura_actual"), 1),
+            sensacion_termica=round(mediana("sensacion_termica"), 1),
+            probabilidad_precipitacion=round(mediana("probabilidad_precipitacion"), 1),
+            humedad=round(mediana("humedad"), 1),
+            velocidad_viento=round(mediana("velocidad_viento"), 1),
+            rafagas_viento=(
+                round(_mediana_con_outliers("rafagas_viento", rafagas), 1)
+                if rafagas
+                else None
             ),
-            humedad=round(prom([r.humedad for r in resultados]), 1),
-            velocidad_viento=round(prom([r.velocidad_viento for r in resultados]), 1),
-            rafagas_viento=round(promedio_rafagas, 1) if promedio_rafagas is not None else None,
-            indice_uv=round(promedio_uv, 1),
+            indice_uv=round(max(uvs), 1) if uvs else 0.0,
             descripcion_clima=resultados[0].descripcion_clima,
-            visibilidad=round(prom([r.visibilidad for r in resultados]), 1),
+            visibilidad=round(mediana("visibilidad"), 1),
             hora_amanecer=resultados[0].hora_amanecer,
             hora_atardecer=resultados[0].hora_atardecer,
             fecha_hora_pronostico=datetime.now(tz=timezone.utc),
-            origen_api=f"Consenso ({n} APIs): {', '.join(nombres)}",
+            # P1: quiénes aportaron al consenso (p. ej. "open-meteo+weatherapi").
+            origen_api="+".join(nombres),
             presion_atmosferica=primer_valido("presion_atmosferica"),
             precipitacion_mm=primer_valido("precipitacion_mm"),
             temperatura_suelo_arena=primer_valido("temperatura_suelo_arena"),

@@ -104,8 +104,8 @@ def test_clima_actual_rafagas_puede_ser_none():
 
 
 @pytest.mark.anyio
-async def test_agregador_retorna_promedio_de_dos_proveedores():
-    """Si dos proveedores responden, el promedio se calcula correctamente."""
+async def test_agregador_retorna_mediana_y_maximo_uv_de_dos_proveedores():
+    """Consolidación P1: mediana para magnitudes, máximo para UV (conservador)."""
     adaptador_a = MagicMock()
     adaptador_a.nombre_proveedor = "api_a"
     adaptador_a.obtener_clima_actual = AsyncMock(return_value=make_clima(temperatura=20.0, uv=4.0))
@@ -117,10 +117,9 @@ async def test_agregador_retorna_promedio_de_dos_proveedores():
     agregador = AgregadorClima(adaptadores=[adaptador_a, adaptador_b])
     resultado = await agregador.obtener_consenso(-14.0873, -75.7637)
 
-    assert resultado.temperatura_actual == 25.0  # promedio de 20 y 30
-    assert resultado.indice_uv == 5.0            # promedio de 4 y 6
-    assert "api_a" in resultado.origen_api
-    assert "api_b" in resultado.origen_api
+    assert resultado.temperatura_actual == 25.0  # mediana de 20 y 30
+    assert resultado.indice_uv == 6.0            # máximo de 4 y 6 (UV conservador)
+    assert resultado.origen_api == "api_a+api_b"
 
 
 @pytest.mark.anyio
