@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 
-// Guarda el idioma actual (por defecto español)
+import 'traducciones.dart';
+
 final ValueNotifier<Locale> idiomaActivo = ValueNotifier(const Locale('es'));
 
-// Función para cambiar el idioma
 void cambiarIdioma(String codigoIdioma) {
-  idiomaActivo.value = Locale(codigoIdioma);
+  if (Traducciones.supportedLocales.any(
+    (l) => l.languageCode == codigoIdioma,
+  )) {
+    idiomaActivo.value = Locale(codigoIdioma);
+  }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../config/tema.dart';
 import '../config/colores_tema.dart';
+import '../config/traducciones_scope.dart';
 import '../models/usuario_modelo.dart';
 import '../services/auth_service.dart';
 import 'pantalla_favoritos.dart';
@@ -16,7 +17,6 @@ import 'pantalla_seguimiento_destino.dart';
 import 'pantalla_sos.dart';
 import 'pantalla_traduccion.dart';
 import '../widgets/dialogo_preferencias_turista.dart';
-
 
 class PantallaMas extends StatelessWidget {
   const PantallaMas({super.key});
@@ -41,9 +41,9 @@ class PantallaMas extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Entendido',
-                style: TextStyle(
+              child: Text(
+                context.tr('entendido'),
+                style: const TextStyle(
                   color: AppColores.naranjaBoton,
                   fontWeight: FontWeight.bold,
                 ),
@@ -61,22 +61,24 @@ class PantallaMas extends StatelessWidget {
       builder: (ctx) {
         return AlertDialog(
           backgroundColor: TemaApp.tarjeta(ctx),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: Text(
-            '¿Cerrar sesión?',
+            context.tr('confirmar_cerrar_sesion'),
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: TemaApp.texto(ctx),
             ),
           ),
           content: Text(
-            'Se cerrará tu sesión actual en este dispositivo.',
+            context.tr('confirmar_cerrar_sesion_msg'),
             style: TextStyle(color: TemaApp.textoSecundario(ctx)),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancelar'),
+              child: Text(context.tr('cancelar')),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -97,7 +99,7 @@ class PantallaMas extends StatelessWidget {
                   );
                 }
               },
-              child: const Text('Cerrar sesión'),
+              child: Text(context.tr('cerrar_sesion')),
             ),
           ],
         );
@@ -105,7 +107,10 @@ class PantallaMas extends StatelessWidget {
     );
   }
 
-  void _mostrarDialogoEditarTelefono(BuildContext context, UsuarioModelo usuario) {
+  void _mostrarDialogoEditarTelefono(
+    BuildContext context,
+    UsuarioModelo usuario,
+  ) {
     final telCtrl = TextEditingController(text: usuario.phone ?? '');
     final formKey = GlobalKey<FormState>();
 
@@ -114,13 +119,18 @@ class PantallaMas extends StatelessWidget {
       builder: (ctx) {
         return AlertDialog(
           backgroundColor: TemaApp.tarjeta(ctx),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: Row(
             children: [
-              const Icon(Icons.phone_android_rounded, color: AppColores.naranjaBoton),
+              const Icon(
+                Icons.phone_android_rounded,
+                color: AppColores.naranjaBoton,
+              ),
               const SizedBox(width: 10),
               Text(
-                'Mi Número Telefónico',
+                context.tr('mi_telefono'),
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 17,
@@ -136,8 +146,11 @@ class PantallaMas extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Este número se usará para identificarte y enviar auxilio en caso de emergencia SOS.',
-                  style: TextStyle(fontSize: 13, color: TemaApp.textoSecundario(ctx)),
+                  context.tr('telefono_msg'),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: TemaApp.textoSecundario(ctx),
+                  ),
                 ),
                 const SizedBox(height: 14),
                 TextFormField(
@@ -145,17 +158,19 @@ class PantallaMas extends StatelessWidget {
                   keyboardType: TextInputType.phone,
                   style: TextStyle(color: TemaApp.texto(ctx)),
                   decoration: InputDecoration(
-                    labelText: 'Número celular',
+                    labelText: context.tr('numero_celular'),
                     hintText: '+51 987 654 321',
                     prefixIcon: const Icon(Icons.phone),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) {
-                      return 'Ingresa tu número celular';
+                      return context.tr('error_numero_vacio');
                     }
                     if (v.trim().length < 6) {
-                      return 'Número inválido';
+                      return context.tr('error_numero_invalido');
                     }
                     return null;
                   },
@@ -166,29 +181,33 @@ class PantallaMas extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancelar'),
+              child: Text(context.tr('cancelar')),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColores.naranjaBoton,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
               onPressed: () async {
                 if (formKey.currentState?.validate() ?? false) {
-                  await AuthService().actualizarPerfil(phone: telCtrl.text.trim());
+                  await AuthService().actualizarPerfil(
+                    phone: telCtrl.text.trim(),
+                  );
                   if (ctx.mounted) Navigator.pop(ctx);
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('✅ Número de teléfono actualizado.'),
-                        backgroundColor: Color(0xFF2E7D32),
+                      SnackBar(
+                        content: Text(context.tr('telefono_actualizado')),
+                        backgroundColor: const Color(0xFF2E7D32),
                       ),
                     );
                   }
                 }
               },
-              child: const Text('Guardar'),
+              child: Text(context.tr('guardar')),
             ),
           ],
         );
@@ -242,7 +261,9 @@ class PantallaMas extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      esInvitado ? 'Modo Invitado' : usuario.fullName,
+                      esInvitado
+                          ? context.tr('modo_invitado')
+                          : usuario.fullName,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -252,21 +273,20 @@ class PantallaMas extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       esInvitado
-                          ? 'Inicia sesión para sincronizar datos'
+                          ? context.tr('inicia_sesion_sincronizar')
                           : usuario.email,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: colorTextoSec,
-                      ),
+                      style: TextStyle(fontSize: 12, color: colorTextoSec),
                     ),
-                    if (!esInvitado && usuario.phone != null && usuario.phone!.trim().isNotEmpty) ...[
+                    if (!esInvitado &&
+                        usuario.phone != null &&
+                        usuario.phone!.trim().isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Text(
-                        '📱 ${usuario.phone}',
-                        style: TextStyle(
+                        usuario.phone!,
+                        style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF2E7D32),
+                          color: Color(0xFF2E7D32),
                         ),
                       ),
                     ],
@@ -283,7 +303,9 @@ class PantallaMas extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        esInvitado ? 'Sin cuenta' : 'Turista verificado',
+                        esInvitado
+                            ? context.tr('sin_cuenta')
+                            : context.tr('turista_verificado'),
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -314,13 +336,17 @@ class PantallaMas extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const PantallaLogin(abrirComoModal: true),
+                        builder: (_) =>
+                            const PantallaLogin(abrirComoModal: true),
                       ),
                     );
                   },
-                  child: const Text(
-                    'Ingresar',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  child: Text(
+                    context.tr('ingresar'),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 )
               else
@@ -328,25 +354,27 @@ class PantallaMas extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      tooltip: 'Mi Teléfono Celular',
+                      tooltip: context.tr('mi_telefono'),
                       icon: const Icon(
                         Icons.phone_android_rounded,
                         color: Color(0xFF2E7D32),
                         size: 22,
                       ),
-                      onPressed: () => _mostrarDialogoEditarTelefono(context, usuario),
+                      onPressed: () =>
+                          _mostrarDialogoEditarTelefono(context, usuario),
                     ),
                     IconButton(
-                      tooltip: 'Mis Preferencias',
+                      tooltip: context.tr('mis_preferencias'),
                       icon: const Icon(
                         Icons.tune_rounded,
                         color: AppColores.naranjaBoton,
                         size: 22,
                       ),
-                      onPressed: () => DialogoPreferenciasTurista.mostrar(context, usuario),
+                      onPressed: () =>
+                          DialogoPreferenciasTurista.mostrar(context, usuario),
                     ),
                     IconButton(
-                      tooltip: 'Cerrar sesión',
+                      tooltip: context.tr('cerrar_sesion'),
                       icon: const Icon(
                         Icons.logout_rounded,
                         color: Color(0xFFD32F2F),
@@ -384,7 +412,7 @@ class PantallaMas extends StatelessWidget {
                   ),
                   Expanded(
                     child: Text(
-                      'Más opciones',
+                      context.tr('mas_opciones'),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 20,
@@ -401,14 +429,13 @@ class PantallaMas extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 children: [
-                  // Tarjeta de perfil de usuario
                   _buildTarjetaPerfil(context),
 
                   _itemMenu(
                     context,
                     icono: Icons.route,
-                    titulo: 'Planificador de viajes',
-                    subtitulo: 'Rutas por destinos, distancia y tiempos',
+                    titulo: context.tr('planificador_viajes'),
+                    subtitulo: context.tr('planificador_viajes_sub'),
                     onTap: () {
                       Navigator.push(
                         context,
@@ -421,8 +448,8 @@ class PantallaMas extends StatelessWidget {
                   _itemMenu(
                     context,
                     icono: Icons.notifications_active_outlined,
-                    titulo: 'Alertas inteligentes',
-                    subtitulo: 'Avisos en tiempo real y alternativas',
+                    titulo: context.tr('alertas_inteligentes'),
+                    subtitulo: context.tr('alertas_inteligentes_sub'),
                     onTap: () {
                       Navigator.push(
                         context,
@@ -435,8 +462,8 @@ class PantallaMas extends StatelessWidget {
                   _itemMenu(
                     context,
                     icono: Icons.timeline,
-                    titulo: 'Seguimiento de destinos',
-                    subtitulo: 'Historial y evolución de condiciones',
+                    titulo: context.tr('seguimiento_destinos'),
+                    subtitulo: context.tr('seguimiento_destinos_sub'),
                     onTap: () {
                       Navigator.push(
                         context,
@@ -450,8 +477,8 @@ class PantallaMas extends StatelessWidget {
                   _itemMenu(
                     context,
                     icono: Icons.shield_outlined,
-                    titulo: 'Asistencia y SOS',
-                    subtitulo: 'Contactos y números de emergencia',
+                    titulo: context.tr('asistencia_sos'),
+                    subtitulo: context.tr('asistencia_sos_sub'),
                     onTap: () {
                       Navigator.push(
                         context,
@@ -464,8 +491,8 @@ class PantallaMas extends StatelessWidget {
                   _itemMenu(
                     context,
                     icono: Icons.verified_user_outlined,
-                    titulo: 'Servicios Formalizados',
-                    subtitulo: 'Agencias y prestadores validados por DIRCETUR (RN-01)',
+                    titulo: context.tr('servicios_formalizados'),
+                    subtitulo: context.tr('servicios_formalizados_sub'),
                     onTap: () {
                       Navigator.push(
                         context,
@@ -478,13 +505,14 @@ class PantallaMas extends StatelessWidget {
                   _itemMenu(
                     context,
                     icono: Icons.campaign_outlined,
-                    titulo: 'Reporte de incidencias DIRCETUR',
-                    subtitulo: 'Denuncias de informalidad e incidentes (RF-05)',
+                    titulo: context.tr('reporte_incidencias'),
+                    subtitulo: context.tr('reporte_incidencias_sub'),
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const PantallaReporteIncidencia(),
+                          builder: (context) =>
+                              const PantallaReporteIncidencia(),
                         ),
                       );
                     },
@@ -492,8 +520,8 @@ class PantallaMas extends StatelessWidget {
                   _itemMenu(
                     context,
                     icono: Icons.tune,
-                    titulo: 'Configuración de alertas',
-                    subtitulo: 'Canales y tipos de notificación',
+                    titulo: context.tr('configuracion_alertas'),
+                    subtitulo: context.tr('configuracion_alertas_sub'),
                     onTap: () {
                       Navigator.push(
                         context,
@@ -507,8 +535,8 @@ class PantallaMas extends StatelessWidget {
                   _itemMenu(
                     context,
                     icono: Icons.translate,
-                    titulo: 'Traducción y Frasebook',
-                    subtitulo: 'Traductor turístico con IA y frases útiles',
+                    titulo: context.tr('traduccion_frasebook'),
+                    subtitulo: context.tr('traduccion_frasebook_sub'),
                     onTap: () {
                       Navigator.push(
                         context,
@@ -521,8 +549,8 @@ class PantallaMas extends StatelessWidget {
                   _itemMenu(
                     context,
                     icono: Icons.favorite_border,
-                    titulo: 'Lugares favoritos',
-                    subtitulo: 'Tus actividades guardadas',
+                    titulo: context.tr('lugares_favoritos'),
+                    subtitulo: context.tr('lugares_favoritos_sub'),
                     onTap: () {
                       Navigator.push(
                         context,
@@ -536,8 +564,8 @@ class PantallaMas extends StatelessWidget {
                   _itemMenu(
                     context,
                     icono: Icons.settings_outlined,
-                    titulo: 'Configuración general',
-                    subtitulo: 'Idioma y tema visual',
+                    titulo: context.tr('configuracion_general'),
+                    subtitulo: context.tr('configuracion_general_sub'),
                     onTap: () {
                       Navigator.push(
                         context,
@@ -550,56 +578,55 @@ class PantallaMas extends StatelessWidget {
                   _itemMenu(
                     context,
                     icono: Icons.schedule,
-                    titulo: 'Mejor hora para visitar',
+                    titulo: context.tr('mejor_hora'),
                     onTap: () => _mostrarInfo(
                       context,
-                      'Mejor hora para visitar',
-                      'La mejor época para visitar Ica es entre los meses de mayo y octubre, ya que el clima es más fresco y agradable para realizar actividades al aire libre.',
+                      context.tr('mejor_hora'),
+                      context.tr('mejor_hora_msg'),
                     ),
                   ),
                   _itemMenu(
                     context,
                     icono: Icons.lightbulb_outline,
-                    titulo: 'Consejos para el turista',
+                    titulo: context.tr('consejos'),
                     onTap: () => _mostrarInfo(
                       context,
-                      'Consejos para el turista',
-                      '• Lleva protector solar y gafas de sol.\n• Hidrátate constantemente.\n• Usa ropa cómoda y calzado adecuado para arena.\n• Lleva efectivo para los locales.\n• Respeta la flora y fauna local.',
+                      context.tr('consejos'),
+                      context.tr('consejos_msg'),
                     ),
                   ),
                   _itemMenu(
                     context,
                     icono: Icons.info_outline,
-                    titulo: 'Sobre la app',
+                    titulo: context.tr('sobre_app'),
                     onTap: () => _mostrarInfo(
                       context,
-                      'Sobre Ika Travel',
-                      'Ika Travel es tu compañero ideal para descubrir lo mejor de Ica. Te ayudamos a planificar tus actividades basándonos en el clima en tiempo real.\n\nVersión 1.0.0',
+                      context.tr('sobre_app_titulo'),
+                      context.tr('sobre_app_msg'),
                     ),
                   ),
                   _itemMenu(
                     context,
                     icono: Icons.share_outlined,
-                    titulo: 'Compartir app',
+                    titulo: context.tr('compartir_app'),
                     onTap: () => _mostrarInfo(
                       context,
-                      'Compartir app',
-                      '¡Comparte Ika Travel con tus amigos y familiares para que también disfruten de la mejor experiencia en Ica!',
+                      context.tr('compartir_app'),
+                      context.tr('compartir_app_msg'),
                     ),
                   ),
                   _itemMenu(
                     context,
                     icono: Icons.contact_support_outlined,
-                    titulo: 'Contacto o ayuda',
+                    titulo: context.tr('contacto'),
                     onTap: () => _mostrarInfo(
                       context,
-                      'Contacto o ayuda',
-                      '¿Tienes alguna duda o problema?\n\nEscríbenos a:\nsoporte@ikatravel.com\n\nO llámanos al:\n+51 987 654 321',
+                      context.tr('contacto'),
+                      context.tr('contacto_msg'),
                     ),
                   ),
 
                   const SizedBox(height: 10),
-                  // Botón Cerrar Sesión al final
                   ValueListenableBuilder<UsuarioModelo?>(
                     valueListenable: AuthService().usuarioNotifier,
                     builder: (context, usuario, _) {
@@ -612,9 +639,9 @@ class PantallaMas extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                         icon: const Icon(Icons.logout, size: 20),
-                        label: const Text(
-                          'Cerrar sesión',
-                          style: TextStyle(
+                        label: Text(
+                          context.tr('cerrar_sesion'),
+                          style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
                           ),
@@ -664,10 +691,7 @@ class PantallaMas extends StatelessWidget {
       subtitle: subtitulo != null
           ? Text(
               subtitulo,
-              style: TextStyle(
-                fontSize: 12,
-                color: colorTextoSecundario,
-              ),
+              style: TextStyle(fontSize: 12, color: colorTextoSecundario),
             )
           : null,
       trailing: Icon(

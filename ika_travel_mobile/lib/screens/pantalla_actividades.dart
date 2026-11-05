@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../config/tema.dart';
 import '../config/colores_tema.dart';
-import '../services/api_service.dart'; // 👈 NUEVO: Importamos el servicio
+import '../config/traducciones_scope.dart';
+import '../services/api_service.dart';
 import 'pantalla_detalle.dart';
 
 class PantallaActividades extends StatefulWidget {
@@ -28,17 +29,15 @@ class _PantallaActividadesState extends State<PantallaActividades> {
     'Gastronomía',
   ];
 
-  // 👇 Variables para los datos del backend
   List<Map<String, dynamic>> _actividades = [];
   bool _cargando = true;
 
   @override
   void initState() {
     super.initState();
-    _cargarActividades(); // 👈 Cargamos al abrir la pantalla
+    _cargarActividades();
   }
 
-  // Función para obtener las actividades del backend
   Future<void> _cargarActividades() async {
     final api = ApiService();
     final datos = await api.obtenerActividades();
@@ -50,25 +49,29 @@ class _PantallaActividadesState extends State<PantallaActividades> {
 
   List<Map<String, dynamic>> get _actividadesFiltradas {
     return _actividades.where((actividad) {
-      // 1. Filtro por categoría
       if (_categoriaSeleccionada != 'Todas') {
         final cat = (actividad['categoria'] ?? '').toString().toLowerCase();
-        final cats = (actividad['categorias'] as List<dynamic>?)
+        final cats =
+            (actividad['categorias'] as List<dynamic>?)
                 ?.map((c) => c.toString().toLowerCase())
                 .toList() ??
             [];
         final filtro = _categoriaSeleccionada.toLowerCase();
-        final coincide = cat.contains(filtro) || cats.any((c) => c.contains(filtro));
+        final coincide =
+            cat.contains(filtro) || cats.any((c) => c.contains(filtro));
         if (!coincide) return false;
       }
 
-      // 2. Filtro por texto de búsqueda
       if (_textoBusqueda.isNotEmpty) {
         final titulo = (actividad['titulo'] ?? '').toString().toLowerCase();
-        final subtitulo = (actividad['subtitulo'] ?? '').toString().toLowerCase();
+        final subtitulo = (actividad['subtitulo'] ?? '')
+            .toString()
+            .toLowerCase();
         final desc = (actividad['descripcion'] ?? '').toString().toLowerCase();
         final busqueda = _textoBusqueda.toLowerCase();
-        return titulo.contains(busqueda) || subtitulo.contains(busqueda) || desc.contains(busqueda);
+        return titulo.contains(busqueda) ||
+            subtitulo.contains(busqueda) ||
+            desc.contains(busqueda);
       }
 
       return true;
@@ -108,7 +111,7 @@ class _PantallaActividadesState extends State<PantallaActividades> {
                   ),
                   Expanded(
                     child: Text(
-                      'Actividades',
+                      context.tr('actividades'),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 20,
@@ -133,7 +136,7 @@ class _PantallaActividadesState extends State<PantallaActividades> {
                 },
                 style: TextStyle(color: colorTexto),
                 decoration: InputDecoration(
-                  hintText: 'Buscar actividad o lugar',
+                  hintText: context.tr('buscar_actividad'),
                   hintStyle: TextStyle(
                     color: colorTextoSecundario,
                     fontSize: 14,
@@ -155,7 +158,6 @@ class _PantallaActividadesState extends State<PantallaActividades> {
             ),
             const SizedBox(height: 12),
 
-            // Chips de categorías turísticas (RF-02)
             SizedBox(
               height: 38,
               child: ListView.separated(
@@ -166,8 +168,21 @@ class _PantallaActividadesState extends State<PantallaActividades> {
                 itemBuilder: (context, index) {
                   final cat = _categorias[index];
                   final seleccionada = _categoriaSeleccionada == cat;
+
+                  String catTraducida = cat;
+                  if (cat == 'Todas')
+                    catTraducida = context.tr('categoria_todas');
+                  if (cat == 'Aventura')
+                    catTraducida = context.tr('categoria_aventura');
+                  if (cat == 'Naturaleza')
+                    catTraducida = context.tr('categoria_naturaleza');
+                  if (cat == 'Cultura')
+                    catTraducida = context.tr('categoria_cultura');
+                  if (cat == 'Gastronomía')
+                    catTraducida = context.tr('categoria_gastronomia');
+
                   return ChoiceChip(
-                    label: Text(cat),
+                    label: Text(catTraducida),
                     selected: seleccionada,
                     onSelected: (val) {
                       if (val) {
@@ -177,18 +192,21 @@ class _PantallaActividadesState extends State<PantallaActividades> {
                     selectedColor: AppColores.naranjaBoton,
                     labelStyle: TextStyle(
                       fontSize: 12,
-                      fontWeight: seleccionada ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: seleccionada
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                       color: seleccionada ? Colors.white : colorTexto,
                     ),
                     backgroundColor: colorTarjeta,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
                   );
                 },
               ),
             ),
             const SizedBox(height: 14),
 
-            // 👇 Indicador de carga mientras se conecta al backend
             Expanded(
               child: _cargando
                   ? const Center(
@@ -208,7 +226,7 @@ class _PantallaActividadesState extends State<PantallaActividades> {
                           ),
                           const SizedBox(height: 10),
                           Text(
-                            'No se encontraron actividades',
+                            context.tr('no_actividades'),
                             style: TextStyle(
                               color: colorTextoSecundario,
                               fontSize: 16,
@@ -255,7 +273,10 @@ class _PantallaActividadesState extends State<PantallaActividades> {
                                           width: 70,
                                           height: 70,
                                           color: Colors.grey[300],
-                                          child: const Icon(Icons.image_not_supported, color: Colors.grey),
+                                          child: const Icon(
+                                            Icons.image_not_supported,
+                                            color: Colors.grey,
+                                          ),
                                         ),
                                       );
                                     }
@@ -295,9 +316,13 @@ class _PantallaActividadesState extends State<PantallaActividades> {
                                   if (actividad['categoria'] != null) ...[
                                     const SizedBox(width: 8),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 2,
+                                      ),
                                       decoration: BoxDecoration(
-                                        color: AppColores.naranjaBoton.withValues(alpha: 0.12),
+                                        color: AppColores.naranjaBoton
+                                            .withValues(alpha: 0.12),
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: Text(

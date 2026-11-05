@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../config/tema.dart';
 import '../config/colores_tema.dart';
+import '../config/traducciones_scope.dart';
 import '../services/weather_service.dart';
 
 class PantallaPronostico extends StatefulWidget {
@@ -37,7 +38,9 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
 
   bool get _climaEsVigente {
     if (_datosClimaActual == null) return false;
-    final fechaRaw = _datosClimaActual!['fecha_hora_pronostico'] ?? _datosClimaActual!['updated_at'];
+    final fechaRaw =
+        _datosClimaActual!['fecha_hora_pronostico'] ??
+        _datosClimaActual!['updated_at'];
     if (fechaRaw == null) return false;
     final dt = DateTime.tryParse(fechaRaw.toString());
     if (dt == null) return false;
@@ -65,19 +68,22 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
     final diaManana = dias.length > 1 ? dias[1] : diaHoy;
 
     if (_opcionSeleccionada == 0) {
-      // Pestaña: HOY
-      tempActual = '${(_datosClimaActual!['temperatura_actual'] as num).round()}°C';
-      condicion = _datosClimaActual!['descripcion_clima'] ?? (diaHoy?['condition'] ?? 'Despejado');
+      tempActual =
+          '${(_datosClimaActual!['temperatura_actual'] as num).round()}°C';
+      condicion =
+          _datosClimaActual!['descripcion_clima'] ??
+          (diaHoy?['condition'] ?? 'Despejado');
       if (diaHoy != null) {
         tempMax = '${(diaHoy['temp_max'] as num).round()}°C';
         tempMin = '${(diaHoy['temp_min'] as num).round()}°C';
       }
-      viento = '${(_datosClimaActual!['velocidad_viento'] as num).round()} km/h';
+      viento =
+          '${(_datosClimaActual!['velocidad_viento'] as num).round()} km/h';
       humedad = '${(_datosClimaActual!['humedad'] as num).round()}%';
       uv = '${(_datosClimaActual!['indice_uv'] as num).round()}';
-      lluvia = '${((_datosClimaActual!['probabilidad_precipitacion'] as num?) ?? diaHoy?['precipitation_probability_max'] ?? 0).round()}%';
+      lluvia =
+          '${((_datosClimaActual!['probabilidad_precipitacion'] as num?) ?? diaHoy?['precipitation_probability_max'] ?? 0).round()}%';
     } else if (_opcionSeleccionada == 1) {
-      // Pestaña: MAÑANA (refleja el pronóstico del día siguiente)
       if (diaManana != null) {
         tempActual = '${(diaManana['temp_max'] as num).round()}°C';
         condicion = diaManana['condition'] ?? 'Cielo despejado';
@@ -86,15 +92,27 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
         viento = '${(diaManana['wind_speed_max'] as num?)?.round() ?? 14} km/h';
         humedad = '65%';
         uv = '${(diaManana['uv_index_max'] as num?)?.round() ?? 9}';
-        lluvia = '${(diaManana['precipitation_probability_max'] as num?)?.round() ?? 5}%';
+        lluvia =
+            '${(diaManana['precipitation_probability_max'] as num?)?.round() ?? 5}%';
       }
     } else {
-      // Pestaña: 7 DÍAS (promedio y rango semanal)
       if (dias.isNotEmpty) {
-        final double maxGlobal = dias.map<double>((d) => (d['temp_max'] as num).toDouble()).reduce((a, b) => a > b ? a : b);
-        final double minGlobal = dias.map<double>((d) => (d['temp_min'] as num).toDouble()).reduce((a, b) => a < b ? a : b);
-        final double vientoProm = dias.map<double>((d) => (d['wind_speed_max'] as num?)?.toDouble() ?? 12.0).reduce((a, b) => a + b) / dias.length;
-        final double uvMax = dias.map<double>((d) => (d['uv_index_max'] as num?)?.toDouble() ?? 8.0).reduce((a, b) => a > b ? a : b);
+        final double maxGlobal = dias
+            .map<double>((d) => (d['temp_max'] as num).toDouble())
+            .reduce((a, b) => a > b ? a : b);
+        final double minGlobal = dias
+            .map<double>((d) => (d['temp_min'] as num).toDouble())
+            .reduce((a, b) => a < b ? a : b);
+        final double vientoProm =
+            dias
+                .map<double>(
+                  (d) => (d['wind_speed_max'] as num?)?.toDouble() ?? 12.0,
+                )
+                .reduce((a, b) => a + b) /
+            dias.length;
+        final double uvMax = dias
+            .map<double>((d) => (d['uv_index_max'] as num?)?.toDouble() ?? 8.0)
+            .reduce((a, b) => a > b ? a : b);
 
         tempActual = '${maxGlobal.round()}°C';
         condicion = 'Pronóstico 7 días en Ica';
@@ -103,7 +121,8 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
         viento = '${vientoProm.round()} km/h';
         humedad = '${(_datosClimaActual!['humedad'] as num).round()}%';
         uv = '${uvMax.round()}';
-        lluvia = '${(dias[0]['precipitation_probability_max'] as num?)?.round() ?? 0}%';
+        lluvia =
+            '${(dias[0]['precipitation_probability_max'] as num?)?.round() ?? 0}%';
       }
     }
 
@@ -142,7 +161,7 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
   @override
   Widget build(BuildContext context) {
     if (_cargando) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     final data = _getDatosActuales();
@@ -155,7 +174,7 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
         backgroundColor: TemaApp.fondo(context),
         body: Center(
           child: Text(
-            'Error al cargar el pronóstico',
+            context.tr('error_pronostico'),
             style: TextStyle(color: colorTexto),
           ),
         ),
@@ -172,7 +191,7 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
               child: Column(
                 children: [
                   Text(
-                    'Pronóstico general',
+                    context.tr('pronostico_general'),
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -196,20 +215,37 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
                 ),
                 child: Row(
                   children: [
-                    _botonToggle('Hoy', 0, colorTexto, colorTextoSecundario),
-                    _botonToggle('Mañana', 1, colorTexto, colorTextoSecundario),
-                    _botonToggle('7 días', 2, colorTexto, colorTextoSecundario),
+                    _botonToggle(
+                      context.tr('hoy'),
+                      0,
+                      colorTexto,
+                      colorTextoSecundario,
+                    ),
+                    _botonToggle(
+                      context.tr('manana'),
+                      1,
+                      colorTexto,
+                      colorTextoSecundario,
+                    ),
+                    _botonToggle(
+                      context.tr('siete_dias'),
+                      2,
+                      colorTexto,
+                      colorTextoSecundario,
+                    ),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 12),
 
-            // Badge de vigencia según RN-03
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: _climaEsVigente
                       ? const Color(0xFF2E7D32).withValues(alpha: 0.12)
@@ -225,20 +261,26 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      _climaEsVigente ? Icons.verified_outlined : Icons.history_rounded,
+                      _climaEsVigente
+                          ? Icons.verified_outlined
+                          : Icons.history_rounded,
                       size: 15,
-                      color: _climaEsVigente ? const Color(0xFF1B5E20) : Colors.brown.shade800,
+                      color: _climaEsVigente
+                          ? const Color(0xFF1B5E20)
+                          : Colors.brown.shade800,
                     ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         _climaEsVigente
-                            ? 'Datos meteorológicos vigentes (< 6 horas) — RN-03'
-                            : 'Datos no confirmados en las últimas 6h (Modo referencial) — RN-03',
+                            ? context.tr('datos_vigentes')
+                            : context.tr('datos_no_confirmados'),
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: _climaEsVigente ? const Color(0xFF1B5E20) : Colors.brown.shade900,
+                          color: _climaEsVigente
+                              ? const Color(0xFF1B5E20)
+                              : Colors.brown.shade900,
                         ),
                       ),
                     ),
@@ -299,7 +341,7 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          'Máx. ${data['tempMax']}',
+                          '${context.tr('max')} ${data['tempMax']}',
                           style: TextStyle(
                             fontSize: 12,
                             color: colorTextoSecundario,
@@ -307,7 +349,7 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Mín. ${data['tempMin']}',
+                          '${context.tr('min')} ${data['tempMin']}',
                           style: TextStyle(
                             fontSize: 12,
                             color: colorTextoSecundario,
@@ -341,28 +383,28 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
                     _MiniFactor(
                       icono: Icons.air,
                       valor: data['viento'],
-                      etiqueta: 'Viento',
+                      etiqueta: context.tr('viento'),
                       colorTexto: colorTexto,
                       colorTextoSecundario: colorTextoSecundario,
                     ),
                     _MiniFactor(
                       icono: Icons.water_drop,
                       valor: data['humedad'],
-                      etiqueta: 'Humedad',
+                      etiqueta: context.tr('humedad'),
                       colorTexto: colorTexto,
                       colorTextoSecundario: colorTextoSecundario,
                     ),
                     _MiniFactor(
                       icono: Icons.water_drop_outlined,
                       valor: data['lluvia'] ?? '0%',
-                      etiqueta: 'Lluvia',
+                      etiqueta: context.tr('lluvia'),
                       colorTexto: colorTexto,
                       colorTextoSecundario: colorTextoSecundario,
                     ),
                     _MiniFactor(
                       icono: Icons.wb_sunny,
                       valor: data['uv'],
-                      etiqueta: 'UV',
+                      etiqueta: context.tr('uv'),
                       colorTexto: colorTexto,
                       colorTextoSecundario: colorTextoSecundario,
                     ),
@@ -379,7 +421,9 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _opcionSeleccionada == 2 ? 'Próximos días' : 'Por horas',
+                      _opcionSeleccionada == 2
+                          ? context.tr('proximos_dias')
+                          : context.tr('por_horas'),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -407,7 +451,6 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
                           return _HoraItem(
                             hora: horaFormateada,
                             icono: Icons.wb_sunny,
-                            // 👇 REDONDEAMOS LA TEMPERATURA POR HORAS
                             grados: '${(item['temperature'] as num).round()}°',
                             colorTexto: colorTexto,
                             colorTextoSecundario: colorTextoSecundario,

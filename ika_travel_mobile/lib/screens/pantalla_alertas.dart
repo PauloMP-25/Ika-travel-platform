@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../config/colores_tema.dart';
 import '../config/tema.dart';
+import '../config/traducciones_scope.dart';
 import '../models/alerta_modelo.dart';
 import '../models/alternativa_modelo.dart';
 import '../services/alertas_service.dart';
@@ -18,7 +20,7 @@ class PantallaAlertas extends StatefulWidget {
 }
 
 class _PantallaAlertasState extends State<PantallaAlertas> {
-  int _opcionSeleccionada = 0; // 0 = Alertas activas, 1 = Alternativas recomendadas, 2 = Historial
+  int _opcionSeleccionada = 0;
   final AlertasService _alertasService = AlertasService();
   final RecomendadorService _recomendadorService = RecomendadorService();
 
@@ -27,47 +29,47 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
     final minuto = dt.minute.toString().padLeft(2, '0');
     final hoy = DateTime.now();
     if (dt.day == hoy.day && dt.month == hoy.month && dt.year == hoy.year) {
-      return 'Hoy, $hora:$minuto';
+      return '${context.tr('hoy')}, $hora:$minuto';
     } else if (hoy.difference(dt).inDays <= 1) {
-      return 'Ayer, $hora:$minuto';
+      return '${context.tr('ayer')}, $hora:$minuto';
     } else {
-      return 'Hace ${hoy.difference(dt).inDays} días';
+      return '${context.tr('hace')} ${hoy.difference(dt).inDays} ${context.tr('dias')}';
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final colorFondo = TemaApp.fondo(context);
+    final colorTarjeta = TemaApp.tarjeta(context);
+    final colorTexto = TemaApp.texto(context);
+    final colorTextoSecundario = TemaApp.textoSecundario(context);
+
     return Scaffold(
-      backgroundColor: AppColores.arenaFondo,
+      backgroundColor: colorFondo,
       body: SafeArea(
         child: Column(
           children: [
-            // 1. AppBar con flecha atrás, título y botones de acción
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   IconButton(
-                    icon: const Icon(
-                      Icons.arrow_back,
-                      color: AppColores.marronOscuro,
-                      size: 26,
-                    ),
+                    icon: Icon(Icons.arrow_back, color: colorTexto, size: 26),
                     onPressed: () => Navigator.pop(context),
                   ),
-                  const Text(
-                    'Alertas Inteligentes',
+                  Text(
+                    context.tr('alertas_inteligentes'),
                     style: TextStyle(
                       fontSize: 19,
                       fontWeight: FontWeight.bold,
-                      color: AppColores.marronOscuro,
+                      color: colorTexto,
                     ),
                   ),
                   Row(
                     children: [
                       IconButton(
-                        tooltip: 'Seguimiento de destinos',
+                        tooltip: context.tr('seguimiento_destinos'),
                         icon: const Icon(
                           Icons.timeline,
                           color: AppColores.naranjaBoton,
@@ -84,10 +86,10 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
                         },
                       ),
                       IconButton(
-                        tooltip: 'Configuración y permisos',
-                        icon: const Icon(
+                        tooltip: context.tr('configuracion_alertas'),
+                        icon: Icon(
                           Icons.settings_outlined,
-                          color: AppColores.marronOscuro,
+                          color: colorTexto,
                           size: 24,
                         ),
                         onPressed: () {
@@ -105,34 +107,42 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
                 ],
               ),
             ),
-
-            // 2. Banner de demostración y simulación en vivo de alertas
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: colorTarjeta,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: const Color(0xFFFFD54F)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.flash_on, color: Color(0xFFF57F17), size: 20),
+                    const Icon(
+                      Icons.flash_on,
+                      color: Color(0xFFF57F17),
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Simulación de alerta automática en tiempo real:',
+                        context.tr('simulacion_alerta'),
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: AppColores.marronOscuro,
+                          color: colorTexto,
                         ),
                       ),
                     ),
                     TextButton(
                       style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                         backgroundColor: AppColores.naranjaBoton,
                         foregroundColor: Colors.white,
                         visualDensity: VisualDensity.compact,
@@ -145,12 +155,12 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                              '¡Alerta automática generada para ${nueva.destino}!\n${nueva.titulo}',
+                              '${context.tr('alerta_generada')} ${nueva.destino}\n${nueva.titulo}',
                             ),
                             backgroundColor: const Color(0xFFC62828),
                             duration: const Duration(seconds: 4),
                             action: SnackBarAction(
-                              label: 'Ver detalle',
+                              label: context.tr('ver_detalle'),
                               textColor: Colors.white,
                               onPressed: () {
                                 Navigator.push(
@@ -165,22 +175,22 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
                           ),
                         );
                       },
-                      child: const Text('Simular', style: TextStyle(fontSize: 11)),
+                      child: Text(
+                        context.tr('simular'),
+                        style: const TextStyle(fontSize: 11),
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
-
             const SizedBox(height: 8),
-
-            // 3. Selector de 3 pestañas: Alertas Activas, Alternativas, Historial (Req 1)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Container(
                 height: 44,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: colorTarjeta,
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
@@ -192,21 +202,39 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
                 ),
                 child: Row(
                   children: [
-                    _botonToggle('Alertas', 0),
-                    _botonToggle('Alternativas', 1),
-                    _botonToggle('Historial', 2),
+                    _botonToggle(
+                      context.tr('alertas'),
+                      0,
+                      colorTextoSecundario,
+                    ),
+                    _botonToggle(
+                      context.tr('alternativas'),
+                      1,
+                      colorTextoSecundario,
+                    ),
+                    _botonToggle(
+                      context.tr('historial'),
+                      2,
+                      colorTextoSecundario,
+                    ),
                   ],
                 ),
               ),
             ),
-
             const SizedBox(height: 14),
-
-            // 4. Contenido según la pestaña seleccionada
             Expanded(
               child: _opcionSeleccionada == 1
-                  ? _buildVistaAlternativas()
-                  : _buildVistaAlertasOHistorial(),
+                  ? _buildVistaAlternativas(
+                      colorTarjeta,
+                      colorTexto,
+                      colorTextoSecundario,
+                    )
+                  : _buildVistaAlertasOHistorial(
+                      colorFondo,
+                      colorTarjeta,
+                      colorTexto,
+                      colorTextoSecundario,
+                    ),
             ),
           ],
         ),
@@ -214,8 +242,12 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
     );
   }
 
-  /// Vista de Alertas o Historial
-  Widget _buildVistaAlertasOHistorial() {
+  Widget _buildVistaAlertasOHistorial(
+    Color colorFondo,
+    Color colorTarjeta,
+    Color colorTexto,
+    Color colorTextoSecundario,
+  ) {
     return ValueListenableBuilder<List<AlertaClima>>(
       valueListenable: _alertasService.alertasNotifier,
       builder: (context, todasAlertas, _) {
@@ -233,18 +265,15 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
                       ? Icons.check_circle_outline
                       : Icons.history_toggle_off,
                   size: 56,
-                  color: Colors.grey.shade400,
+                  color: colorTextoSecundario,
                 ),
                 const SizedBox(height: 10),
                 Text(
                   _opcionSeleccionada == 0
-                      ? 'No hay alertas activas en tus destinos seguidos.'
-                      : 'No hay historial de alertas registrado.',
+                      ? context.tr('no_alertas_activas')
+                      : context.tr('no_historial'),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: AppColores.grisTexto,
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: colorTextoSecundario, fontSize: 14),
                 ),
               ],
             ),
@@ -254,53 +283,76 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
         return ListView(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           children: [
-            // Banner informativo en caso de condiciones desfavorables (Req 1)
             if (_opcionSeleccionada == 0 &&
-                listaAMostrar.any((a) =>
-                    a.nivelRiesgo == NivelRiesgo.alto ||
-                    a.nivelRiesgo == NivelRiesgo.critico)) ...[
+                listaAMostrar.any(
+                  (a) =>
+                      a.nivelRiesgo == NivelRiesgo.alto ||
+                      a.nivelRiesgo == NivelRiesgo.critico,
+                )) ...[
               GestureDetector(
                 onTap: () {
                   setState(() => _opcionSeleccionada = 1);
                 },
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFFF3E0),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: const Color(0xFFFFB74D)),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.alt_route, color: Color(0xFFE65100), size: 20),
-                      SizedBox(width: 8),
+                      const Icon(
+                        Icons.alt_route,
+                        color: Color(0xFFE65100),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Hay condiciones desfavorables. Toca aquí para ver alternativas recomendadas.',
-                          style: TextStyle(
+                          context.tr('condiciones_desfavorables'),
+                          style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFFE65100),
                           ),
                         ),
                       ),
-                      Icon(Icons.chevron_right, color: Color(0xFFE65100), size: 20),
+                      const Icon(
+                        Icons.chevron_right,
+                        color: Color(0xFFE65100),
+                        size: 20,
+                      ),
                     ],
                   ),
                 ),
               ),
             ],
-
-            ...listaAMostrar.map((alerta) => _buildItemAlerta(context, alerta)),
+            ...listaAMostrar.map(
+              (alerta) => _buildItemAlerta(
+                context,
+                alerta,
+                colorTarjeta,
+                colorFondo,
+                colorTexto,
+                colorTextoSecundario,
+              ),
+            ),
           ],
         );
       },
     );
   }
 
-  /// Vista de Alternativas Recomendadas como tarjetas limpias (Req 1)
-  Widget _buildVistaAlternativas() {
+  Widget _buildVistaAlternativas(
+    Color colorTarjeta,
+    Color colorTexto,
+    Color colorTextoSecundario,
+  ) {
     final alternativas = _recomendadorService.obtenerAlternativasGenerales();
 
     return ListView(
@@ -314,31 +366,51 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: const Color(0xFFA5D6A7)),
           ),
-          child: const Row(
+          child: Row(
             children: [
-              Icon(Icons.lightbulb_outline, color: Color(0xFF2E7D32), size: 22),
-              SizedBox(width: 10),
+              const Icon(
+                Icons.lightbulb_outline,
+                color: Color(0xFF2E7D32),
+                size: 22,
+              ),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Alternativas sugeridas ante vientos, oleaje o radiación extrema en los destinos de Ica. Toca cualquier tarjeta para ver su detalle completo.',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF1B5E20), height: 1.3),
+                  context.tr('alternativas_msg'),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF1B5E20),
+                    height: 1.3,
+                  ),
                 ),
               ),
             ],
           ),
         ),
-
-        ...alternativas.map((alt) => _buildTarjetaAlternativaResumida(context, alt)),
+        ...alternativas.map(
+          (alt) => _buildTarjetaAlternativaResumida(
+            context,
+            alt,
+            colorTarjeta,
+            colorTexto,
+            colorTextoSecundario,
+          ),
+        ),
       ],
     );
   }
 
-  /// Tarjeta de Alternativa con nombre, imagen, motivo y horario sugerido (Req 1)
-  Widget _buildTarjetaAlternativaResumida(BuildContext context, AlternativaRecomendada alt) {
+  Widget _buildTarjetaAlternativaResumida(
+    BuildContext context,
+    AlternativaRecomendada alt,
+    Color colorTarjeta,
+    Color colorTexto,
+    Color colorTextoSecundario,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorTarjeta,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -354,18 +426,17 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () {
-            // Navega a la pantalla de detalle independiente de la alternativa (Req 1)
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => PantallaDetalleAlternativa(alternativa: alt),
+                builder: (context) =>
+                    PantallaDetalleAlternativa(alternativa: alt),
               ),
             );
           },
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Imagen si está disponible
               ClipRRect(
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(16),
@@ -381,7 +452,11 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) => Container(
                           color: Colors.grey.shade300,
-                          child: const Icon(Icons.image, size: 40, color: Colors.grey),
+                          child: const Icon(
+                            Icons.image,
+                            size: 40,
+                            color: Colors.grey,
+                          ),
                         ),
                       ),
                     ),
@@ -402,7 +477,10 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
                       top: 10,
                       left: 10,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColores.naranjaBoton,
                           borderRadius: BorderRadius.circular(6),
@@ -434,7 +512,10 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
                           ),
                           Text(
                             alt.destino,
-                            style: const TextStyle(fontSize: 12, color: Colors.white70),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.white70,
+                            ),
                           ),
                         ],
                       ),
@@ -442,41 +523,45 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
                   ],
                 ),
               ),
-
               Padding(
                 padding: const EdgeInsets.all(14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Motivo de la recomendación (Req 1)
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.recommend, color: AppColores.naranjaBoton, size: 18),
+                        const Icon(
+                          Icons.recommend,
+                          color: AppColores.naranjaBoton,
+                          size: 18,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             alt.motivoRecomendacion,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: AppColores.marronOscuro,
+                              color: colorTexto,
                               height: 1.3,
                             ),
                           ),
                         ),
                       ],
                     ),
-
-                    // Horario sugerido si está disponible (Req 1)
                     if (alt.mejorHorarioSugerido != null) ...[
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          const Icon(Icons.schedule, size: 16, color: Color(0xFFF57F17)),
+                          const Icon(
+                            Icons.schedule,
+                            size: 16,
+                            color: Color(0xFFF57F17),
+                          ),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
-                              'Horario sugerido: ${alt.mejorHorarioSugerido}',
+                              '${context.tr('horario_sugerido')} ${alt.mejorHorarioSugerido}',
                               style: const TextStyle(
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.bold,
@@ -487,22 +572,20 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
                         ],
                       ),
                     ],
-
                     const SizedBox(height: 10),
-
-                    const Row(
+                    Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         Text(
-                          'Ver detalle completo',
+                          context.tr('ver_detalle_completo'),
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: AppColores.marronOscuro,
+                            color: colorTexto,
                           ),
                         ),
-                        SizedBox(width: 4),
-                        Icon(Icons.arrow_forward, size: 14, color: AppColores.marronOscuro),
+                        const SizedBox(width: 4),
+                        Icon(Icons.arrow_forward, size: 14, color: colorTexto),
                       ],
                     ),
                   ],
@@ -515,11 +598,18 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
     );
   }
 
-  Widget _buildItemAlerta(BuildContext context, AlertaClima alerta) {
+  Widget _buildItemAlerta(
+    BuildContext context,
+    AlertaClima alerta,
+    Color colorTarjeta,
+    Color colorFondo,
+    Color colorTexto,
+    Color colorTextoSecundario,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorTarjeta,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -569,25 +659,27 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
                             children: [
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: AppColores.arenaFondo,
+                                  color: colorFondo,
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
                                   alerta.destino,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
-                                    color: AppColores.marronOscuro,
+                                    color: colorTexto,
                                   ),
                                 ),
                               ),
                               Text(
                                 _formatearFechaHora(alerta.fechaHora),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 11,
-                                  color: AppColores.grisTexto,
+                                  color: colorTextoSecundario,
                                 ),
                               ),
                             ],
@@ -595,10 +687,10 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
                           const SizedBox(height: 4),
                           Text(
                             alerta.titulo,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
-                              color: AppColores.marronOscuro,
+                              color: colorTexto,
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -620,9 +712,9 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
                   alerta.motivoCambio,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColores.marronOscuro,
+                    color: colorTexto,
                     height: 1.3,
                   ),
                 ),
@@ -632,7 +724,9 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: alerta.nivelRiesgo.colorFondo,
                         borderRadius: BorderRadius.circular(6),
@@ -646,18 +740,18 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
                         ),
                       ),
                     ),
-                    const Row(
+                    Row(
                       children: [
                         Text(
-                          '¿Por qué cambió?',
-                          style: TextStyle(
+                          context.tr('por_que_cambio'),
+                          style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                             color: AppColores.naranjaBoton,
                           ),
                         ),
-                        SizedBox(width: 4),
-                        Icon(
+                        const SizedBox(width: 4),
+                        const Icon(
                           Icons.arrow_forward_ios,
                           size: 11,
                           color: AppColores.naranjaBoton,
@@ -674,7 +768,7 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
     );
   }
 
-  Widget _botonToggle(String texto, int index) {
+  Widget _botonToggle(String texto, int index, Color colorTextoSecundario) {
     final bool activo = _opcionSeleccionada == index;
     return Expanded(
       child: GestureDetector(
@@ -693,7 +787,7 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
             child: Text(
               texto,
               style: TextStyle(
-                color: activo ? Colors.white : AppColores.grisTexto,
+                color: activo ? Colors.white : colorTextoSecundario,
                 fontWeight: activo ? FontWeight.bold : FontWeight.normal,
                 fontSize: 12,
               ),

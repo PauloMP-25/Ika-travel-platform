@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../config/tema.dart';
 import '../config/colores_tema.dart';
+import '../config/traducciones_scope.dart';
 import '../services/alertas_service.dart';
 import '../services/weather_service.dart';
 import 'pantalla_detalle_dia.dart';
@@ -74,7 +75,8 @@ class _PantallaInicioState extends State<PantallaInicio> {
 
   @override
   Widget build(BuildContext context) {
-    final double alturaCarrusel = (MediaQuery.of(context).size.height * 0.48).clamp(340.0, 480.0);
+    final double alturaCarrusel = (MediaQuery.of(context).size.height * 0.48)
+        .clamp(340.0, 480.0);
 
     final colorFondoApp = TemaApp.fondo(context);
     final colorTarjeta = TemaApp.tarjeta(context);
@@ -137,7 +139,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // ICONOS SUPERIORES CONECTADOS
+                            // ICONOS SUPERIORES
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -177,8 +179,9 @@ class _PantallaInicioState extends State<PantallaInicio> {
                                         ),
                                         decoration: BoxDecoration(
                                           color: const Color(0xFFD32F2F),
-                                          borderRadius:
-                                              BorderRadius.circular(20),
+                                          borderRadius: BorderRadius.circular(
+                                            20,
+                                          ),
                                           boxShadow: [
                                             BoxShadow(
                                               color: Colors.black.withValues(
@@ -210,72 +213,82 @@ class _PantallaInicioState extends State<PantallaInicio> {
                                       ),
                                     ),
                                     const SizedBox(width: 4),
-                                    // Botón de Alertas (Campana con Badge Reactivo)
+                                    // Botón de Alertas
                                     ValueListenableBuilder(
-                                  valueListenable:
-                                      AlertasService().alertasNotifier,
-                                  builder: (context, _, _) {
-                                    final activas =
-                                        AlertasService().alertasActivas.length;
-                                    return Stack(
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(
-                                            Icons.notifications_none,
-                                            color: Colors.white,
-                                            size: 28,
-                                          ),
-                                          onPressed: () {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) =>
-                                                    const PantallaAlertas(),
+                                      valueListenable:
+                                          AlertasService().alertasNotifier,
+                                      builder: (context, _, _) {
+                                        final activas = AlertasService()
+                                            .alertasActivas
+                                            .length;
+                                        return Stack(
+                                          children: [
+                                            IconButton(
+                                              icon: const Icon(
+                                                Icons.notifications_none,
+                                                color: Colors.white,
+                                                size: 28,
                                               ),
-                                            );
-                                          },
-                                        ),
-                                        if (activas > 0)
-                                          Positioned(
-                                            right: 8,
-                                            top: 8,
-                                            child: Container(
-                                              padding: const EdgeInsets.all(4),
-                                              decoration: const BoxDecoration(
-                                                color: Color(0xFFE53935),
-                                                shape: BoxShape.circle,
-                                              ),
-                                              constraints:
-                                                  const BoxConstraints(
-                                                minWidth: 16,
-                                                minHeight: 16,
-                                              ),
-                                              child: Text(
-                                                '$activas',
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                                textAlign: TextAlign.center,
-                                              ),
+                                              onPressed: () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        const PantallaAlertas(),
+                                                  ),
+                                                );
+                                              },
                                             ),
-                                          ),
-                                      ],
-                                    );
-                                  },
+                                            if (activas > 0)
+                                              Positioned(
+                                                right: 8,
+                                                top: 8,
+                                                child: Container(
+                                                  padding: const EdgeInsets.all(
+                                                    4,
+                                                  ),
+                                                  decoration:
+                                                      const BoxDecoration(
+                                                        color: Color(
+                                                          0xFFE53935,
+                                                        ),
+                                                        shape: BoxShape.circle,
+                                                      ),
+                                                  constraints:
+                                                      const BoxConstraints(
+                                                        minWidth: 16,
+                                                        minHeight: 16,
+                                                      ),
+                                                  child: Text(
+                                                    '$activas',
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 10,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                    textAlign: TextAlign.center,
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
+                                        );
+                                      },
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ],
-                        ),
                             const SizedBox(height: 30),
-                            const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 8),
+                            // TEXTOS DEL CARRUSEL (Sin const)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  Text(
+                                  const Text(
                                     'ICA',
                                     style: TextStyle(
                                       fontSize: 48,
@@ -285,26 +298,26 @@ class _PantallaInicioState extends State<PantallaInicio> {
                                     ),
                                   ),
                                   Text(
-                                    'Turismo y Clima',
-                                    style: TextStyle(
+                                    context.tr('turismo_clima'),
+                                    style: const TextStyle(
                                       fontSize: 18,
                                       color: Colors.white,
                                     ),
                                   ),
-                                  SizedBox(height: 15),
+                                  const SizedBox(height: 15),
                                   Text(
-                                    '¿Qué planes tienes hoy?',
-                                    style: TextStyle(
+                                    context.tr('que_planes_hoy'),
+                                    style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.white,
                                     ),
                                   ),
-                                  SizedBox(height: 4),
+                                  const SizedBox(height: 4),
                                   Text(
-                                    'Te ayudamos a elegir el mejor plan según el clima.',
+                                    context.tr('ayudamos_elegir'),
                                     textAlign: TextAlign.center,
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 13,
                                       color: Colors.white70,
                                     ),
@@ -340,7 +353,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
               ),
             ),
             const SizedBox(height: 20),
-            // 3. TARJETA DEL CLIMA CON MONITOREO DIRECTO
+            // TARJETA DEL CLIMA
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Container(
@@ -365,7 +378,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'Ahora en Ica',
+                                context.tr('ahora_en_ica'),
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: colorTexto,
@@ -392,7 +405,6 @@ class _PantallaInicioState extends State<PantallaInicio> {
                                 size: 55,
                                 color: Colors.orange,
                               ),
-                              // 👇 REDONDEAMOS LA TEMPERATURA
                               Text(
                                 _clima != null
                                     ? '${(_clima!['temperatura_actual'] as num).round()}°C'
@@ -407,7 +419,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Viento   ${_clima != null ? (_clima!['velocidad_viento'] as num).round() : '12'} km/h',
+                                    '${context.tr('viento')}   ${_clima != null ? (_clima!['velocidad_viento'] as num).round() : '12'} km/h', // 👈
                                     style: TextStyle(
                                       fontSize: 13,
                                       color: colorTextoSecundario,
@@ -415,7 +427,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'Humedad  ${_clima != null ? (_clima!['humedad'] as num).round() : '48'}%',
+                                    '${context.tr('humedad')}  ${_clima != null ? (_clima!['humedad'] as num).round() : '48'}%', // 👈
                                     style: TextStyle(
                                       fontSize: 13,
                                       color: colorTextoSecundario,
@@ -423,7 +435,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'UV        ${_clima != null ? (_clima!['indice_uv'] as num).round() : 'Alto'}',
+                                    '${context.tr('uv')}        ${_clima != null ? (_clima!['indice_uv'] as num).round() : 'Alto'}', // 👈
                                     style: TextStyle(
                                       fontSize: 13,
                                       color: colorTextoSecundario,
@@ -434,9 +446,12 @@ class _PantallaInicioState extends State<PantallaInicio> {
                             ],
                           ),
                           const SizedBox(height: 14),
-                          Divider(height: 1, thickness: 0.5, color: colorTextoSecundario.withOpacity(0.2)),
+                          Divider(
+                            height: 1,
+                            thickness: 0.5,
+                            color: colorTextoSecundario.withOpacity(0.2),
+                          ),
                           const SizedBox(height: 10),
-                          // Acceso a Seguimiento de Destino (Req 14)
                           InkWell(
                             onTap: () {
                               Navigator.push(
@@ -459,7 +474,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
-                                      'Seguimiento de destinos turísticos',
+                                      context.tr('seguimiento_destinos'),
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
@@ -481,7 +496,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
               ),
             ),
             const SizedBox(height: 20),
-            // 4. BANNER PLANIFICADOR DE VIAJES
+
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: InkWell(
@@ -511,34 +526,30 @@ class _PantallaInicioState extends State<PantallaInicio> {
                       ),
                     ],
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      CircleAvatar(
+                      const CircleAvatar(
                         radius: 22,
                         backgroundColor: Color(0xFFD98E3D),
-                        child: Icon(
-                          Icons.route,
-                          color: Colors.white,
-                          size: 22,
-                        ),
+                        child: Icon(Icons.route, color: Colors.white, size: 22),
                       ),
-                      SizedBox(width: 14),
+                      const SizedBox(width: 14),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Planificar mi Viaje',
-                              style: TextStyle(
+                              context.tr('planificar_viaje'),
+                              style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
                               ),
                             ),
-                            SizedBox(height: 2),
+                            const SizedBox(height: 2),
                             Text(
-                              'Rutas por destinos con distancia y tiempo estimados',
-                              style: TextStyle(
+                              context.tr('rutas_destinos'),
+                              style: const TextStyle(
                                 fontSize: 11,
                                 color: Colors.white70,
                               ),
@@ -546,7 +557,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
                           ],
                         ),
                       ),
-                      Icon(
+                      const Icon(
                         Icons.arrow_forward_ios,
                         size: 14,
                         color: Colors.white54,
@@ -559,7 +570,6 @@ class _PantallaInicioState extends State<PantallaInicio> {
 
             const SizedBox(height: 14),
 
-            // 5. BOTÓN RECOMENDACIÓN DEL DÍA
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: SizedBox(
@@ -585,9 +595,9 @@ class _PantallaInicioState extends State<PantallaInicio> {
                       ),
                     );
                   },
-                  child: const Text(
-                    'Ver recomendación del día',
-                    style: TextStyle(
+                  child: Text(
+                    context.tr('ver_recomendacion'),
+                    style: const TextStyle(
                       fontSize: 16,
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -599,7 +609,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
 
             const SizedBox(height: 14),
 
-            // BANNER PRESTADORES FORMALES DIRCETUR (RF-03 / RN-01)
+            // BANNER PRESTADORES FORMALES
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: InkWell(
@@ -650,7 +660,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Servicios Turísticos Formalizados',
+                              context.tr('servicios_formalizados'),
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
@@ -658,7 +668,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
                               ),
                             ),
                             Text(
-                              'Agencias y guías empadronados por DIRCETUR Ica',
+                              context.tr('agencias_guias'),
                               style: TextStyle(
                                 fontSize: 11,
                                 color: colorTextoSecundario,
@@ -680,7 +690,6 @@ class _PantallaInicioState extends State<PantallaInicio> {
 
             const SizedBox(height: 14),
 
-            // 5. BANNER ASISTENCIA Y SOS
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: InkWell(
@@ -705,9 +714,9 @@ class _PantallaInicioState extends State<PantallaInicio> {
                       color: const Color(0xFFE53935).withValues(alpha: 0.3),
                     ),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      CircleAvatar(
+                      const CircleAvatar(
                         radius: 18,
                         backgroundColor: Color(0xFFFFEBEE),
                         child: Icon(
@@ -716,22 +725,22 @@ class _PantallaInicioState extends State<PantallaInicio> {
                           size: 20,
                         ),
                       ),
-                      SizedBox(width: 12),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Asistencia y Emergencia SOS',
-                              style: TextStyle(
+                              context.tr('asistencia_sos'),
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                                 color: AppColores.marronOscuro,
                               ),
                             ),
                             Text(
-                              'Alerta rápida y contacto de confianza en Ica',
-                              style: TextStyle(
+                              context.tr('alerta_rapida'),
+                              style: const TextStyle(
                                 fontSize: 11,
                                 color: AppColores.grisTexto,
                               ),
@@ -739,7 +748,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
                           ],
                         ),
                       ),
-                      Icon(
+                      const Icon(
                         Icons.arrow_forward_ios,
                         size: 14,
                         color: AppColores.grisTexto,

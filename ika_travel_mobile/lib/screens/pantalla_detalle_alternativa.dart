@@ -1,57 +1,66 @@
 import 'package:flutter/material.dart';
-import '../config/tema.dart';
+
+import '../config/colores_tema.dart';
 import '../config/navegacion_service.dart';
+import '../config/tema.dart';
+import '../config/traducciones_scope.dart';
 import '../models/alternativa_modelo.dart';
 import '../models/horario_modelo.dart';
 import '../widgets/tarjeta_horarios_atencion.dart';
 import 'pantalla_seguimiento_destino.dart';
 
-/// Pantalla de Detalle Independiente de la Alternativa Recomendada (Requerimiento 1)
 class PantallaDetalleAlternativa extends StatelessWidget {
   final AlternativaRecomendada alternativa;
 
-  const PantallaDetalleAlternativa({
-    super.key,
-    required this.alternativa,
-  });
+  const PantallaDetalleAlternativa({super.key, required this.alternativa});
 
   @override
   Widget build(BuildContext context) {
-    final horario = alternativa.horarioAtencion ??
+    final colorFondo = TemaApp.fondo(context);
+    final colorTarjeta = TemaApp.tarjeta(context);
+    final colorTexto = TemaApp.texto(context);
+    final colorTextoSecundario = TemaApp.textoSecundario(context);
+
+    final horario =
+        alternativa.horarioAtencion ??
         (alternativa.tituloActividad.toLowerCase().contains('vino')
             ? HorarioAtencion.paraVinedos()
             : alternativa.tituloActividad.toLowerCase().contains('ballesta')
-                ? HorarioAtencion.paraIslasBallestas()
-                : alternativa.tituloActividad.toLowerCase().contains('reserva')
-                    ? HorarioAtencion.paraReservaParacas()
-                    : alternativa.tituloActividad.toLowerCase().contains('sand') ||
-                            alternativa.tituloActividad.toLowerCase().contains('huacachina')
-                        ? HorarioAtencion.paraHuacachina()
-                        : HorarioAtencion.noConfirmado());
+            ? HorarioAtencion.paraIslasBallestas()
+            : alternativa.tituloActividad.toLowerCase().contains('reserva')
+            ? HorarioAtencion.paraReservaParacas()
+            : alternativa.tituloActividad.toLowerCase().contains('sand') ||
+                  alternativa.tituloActividad.toLowerCase().contains(
+                    'huacachina',
+                  )
+            ? HorarioAtencion.paraHuacachina()
+            : HorarioAtencion.noConfirmado());
 
     return Scaffold(
-      backgroundColor: AppColores.arenaFondo,
+      backgroundColor: colorFondo,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: colorTarjeta,
         elevation: 0.5,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColores.marronOscuro),
+          icon: Icon(Icons.arrow_back, color: colorTexto),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Alternativa Recomendada',
+        title: Text(
+          context.tr('alternativa_recomendada'),
           style: TextStyle(
-            color: AppColores.marronOscuro,
+            color: colorTexto,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
         ),
         actions: [
           IconButton(
-            tooltip: 'Ver en el mapa de Ika Travel',
-            icon: const Icon(Icons.map_outlined, color: AppColores.naranjaBoton),
+            tooltip: context.tr('ver_en_mapa_tooltip'),
+            icon: const Icon(
+              Icons.map_outlined,
+              color: AppColores.naranjaBoton,
+            ),
             onPressed: () {
-              // Navega a la sección principal del mapa conservando la barra inferior
               NavegacionService.irAMapa(context);
             },
           ),
@@ -61,7 +70,6 @@ class PantallaDetalleAlternativa extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Imagen de cabecera con Badge de Tipo de Alternativa
             Stack(
               children: [
                 SizedBox(
@@ -72,7 +80,11 @@ class PantallaDetalleAlternativa extends StatelessWidget {
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) => Container(
                       color: Colors.grey.shade400,
-                      child: const Icon(Icons.image, size: 50, color: Colors.white),
+                      child: const Icon(
+                        Icons.image,
+                        size: 50,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
@@ -93,7 +105,10 @@ class PantallaDetalleAlternativa extends StatelessWidget {
                   top: 14,
                   left: 14,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColores.naranjaBoton,
                       borderRadius: BorderRadius.circular(8),
@@ -127,7 +142,11 @@ class PantallaDetalleAlternativa extends StatelessWidget {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(Icons.location_on, color: Colors.white70, size: 16),
+                          const Icon(
+                            Icons.location_on,
+                            color: Colors.white70,
+                            size: 16,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             alternativa.destino,
@@ -143,38 +162,23 @@ class PantallaDetalleAlternativa extends StatelessWidget {
                 ),
               ],
             ),
-
             Padding(
               padding: const EdgeInsets.all(18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 2. Por qué se recomienda esta alternativa (Req 1)
-                  _buildTarjetaMotivoRecomendacion(),
-
+                  _buildTarjetaMotivoRecomendacion(context),
                   const SizedBox(height: 18),
-
-                  // 3. Condiciones actuales disponibles del lugar (Req 1)
-                  _buildTarjetaCondicionesActuales(),
-
+                  _buildTarjetaCondicionesActuales(context),
                   const SizedBox(height: 18),
-
-                  // 4. Información del lugar (Req 1)
-                  _buildTarjetaInformacionLugar(),
-
+                  _buildTarjetaInformacionLugar(context),
                   const SizedBox(height: 18),
-
-                  // 5. Horarios de atención y días disponibles (Req 1 y 3)
                   TarjetaHorariosAtencion(
                     horario: horario,
                     tituloDestino: alternativa.tituloActividad,
                   ),
-
                   const SizedBox(height: 22),
-
-                  // 6. Acciones: Ver en el mapa o consultar seguimiento (Req 1 y 2)
                   _buildBotonesAccion(context),
-
                   const SizedBox(height: 30),
                 ],
               ),
@@ -185,8 +189,7 @@ class PantallaDetalleAlternativa extends StatelessWidget {
     );
   }
 
-  /// Tarjeta con el motivo concreto de la recomendación y justificación climática
-  Widget _buildTarjetaMotivoRecomendacion() {
+  Widget _buildTarjetaMotivoRecomendacion(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -197,13 +200,13 @@ class PantallaDetalleAlternativa extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.recommend, color: Color(0xFFE65100), size: 22),
-              SizedBox(width: 8),
+              const Icon(Icons.recommend, color: Color(0xFFE65100), size: 22),
+              const SizedBox(width: 8),
               Text(
-                '¿Por qué se recomienda?',
-                style: TextStyle(
+                context.tr('por_que_se_recomienda'),
+                style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFFE65100),
@@ -230,15 +233,19 @@ class PantallaDetalleAlternativa extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.check_circle, color: Color(0xFF2E7D32), size: 18),
+                const Icon(
+                  Icons.check_circle,
+                  color: Color(0xFF2E7D32),
+                  size: 18,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Condición que justifica el cambio:',
-                        style: TextStyle(
+                      Text(
+                        context.tr('condicion_justifica_cambio'),
+                        style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF2E7D32),
@@ -266,7 +273,7 @@ class PantallaDetalleAlternativa extends StatelessWidget {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    'Ventana horaria ideal: ${alternativa.mejorHorarioSugerido}',
+                    '${context.tr('ventana_horaria_ideal')} ${alternativa.mejorHorarioSugerido}',
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
@@ -282,12 +289,15 @@ class PantallaDetalleAlternativa extends StatelessWidget {
     );
   }
 
-  /// Condiciones actuales disponibles
-  Widget _buildTarjetaCondicionesActuales() {
+  Widget _buildTarjetaCondicionesActuales(BuildContext context) {
+    final colorTarjeta = TemaApp.tarjeta(context);
+    final colorTexto = TemaApp.texto(context);
+    final colorTextoSecundario = TemaApp.textoSecundario(context);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorTarjeta,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -300,26 +310,41 @@ class PantallaDetalleAlternativa extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Condiciones Actuales Disponibles',
+          Text(
+            context.tr('condiciones_actuales_disponibles'),
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.bold,
-              color: AppColores.marronOscuro,
+              color: colorTexto,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Estado meteorológico en la zona de esta alternativa',
-            style: TextStyle(fontSize: 11, color: AppColores.grisTexto),
+          Text(
+            context.tr('estado_meteorologico_zona'),
+            style: TextStyle(fontSize: 11, color: colorTextoSecundario),
           ),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _itemClimaChip(Icons.thermostat, 'Temperatura', alternativa.temperaturaActual),
-              _itemClimaChip(Icons.air, 'Viento', alternativa.vientoActual),
-              _itemClimaChip(Icons.wb_sunny_outlined, 'Estado', alternativa.estadoClima),
+              _itemClimaChip(
+                context,
+                Icons.thermostat,
+                context.tr('temperatura'),
+                alternativa.temperaturaActual,
+              ),
+              _itemClimaChip(
+                context,
+                Icons.air,
+                context.tr('viento'),
+                alternativa.vientoActual,
+              ),
+              _itemClimaChip(
+                context,
+                Icons.wb_sunny_outlined,
+                context.tr('estado'),
+                alternativa.estadoClima,
+              ),
             ],
           ),
         ],
@@ -327,34 +352,47 @@ class PantallaDetalleAlternativa extends StatelessWidget {
     );
   }
 
-  Widget _itemClimaChip(IconData icono, String etiqueta, String valor) {
+  Widget _itemClimaChip(
+    BuildContext context,
+    IconData icono,
+    String etiqueta,
+    String valor,
+  ) {
+    final colorTexto = TemaApp.texto(context);
+    final colorTextoSecundario = TemaApp.textoSecundario(context);
+
     return Column(
       children: [
         Icon(icono, color: AppColores.naranjaBoton, size: 22),
         const SizedBox(height: 4),
-        Text(etiqueta, style: const TextStyle(fontSize: 11, color: AppColores.grisTexto)),
+        Text(
+          etiqueta,
+          style: TextStyle(fontSize: 11, color: colorTextoSecundario),
+        ),
         Text(
           valor,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.bold,
-            color: AppColores.marronOscuro,
+            color: colorTexto,
           ),
         ),
       ],
     );
   }
 
-  /// Información del lugar
-  Widget _buildTarjetaInformacionLugar() {
+  Widget _buildTarjetaInformacionLugar(BuildContext context) {
+    final colorTarjeta = TemaApp.tarjeta(context);
+    final colorTexto = TemaApp.texto(context);
+
     final descripcion = alternativa.descripcionLugar.isNotEmpty
         ? alternativa.descripcionLugar
-        : 'Destino turístico con atractivos naturales y culturales destacados de la región Ica.';
+        : context.tr('descripcion_lugar_default');
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorTarjeta,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -367,16 +405,16 @@ class PantallaDetalleAlternativa extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.info_outline, color: AppColores.marronOscuro, size: 20),
-              SizedBox(width: 8),
+              Icon(Icons.info_outline, color: colorTexto, size: 20),
+              const SizedBox(width: 8),
               Text(
-                'Información del Lugar',
+                context.tr('informacion_lugar'),
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
-                  color: AppColores.marronOscuro,
+                  color: colorTexto,
                 ),
               ),
             ],
@@ -384,22 +422,19 @@ class PantallaDetalleAlternativa extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             descripcion,
-            style: const TextStyle(
-              fontSize: 13,
-              color: AppColores.marronOscuro,
-              height: 1.4,
-            ),
+            style: TextStyle(fontSize: 13, color: colorTexto, height: 1.4),
           ),
         ],
       ),
     );
   }
 
-  /// Botones de acción: Ver en el mapa o consultar seguimiento
   Widget _buildBotonesAccion(BuildContext context) {
+    final colorTexto = TemaApp.texto(context);
+    final colorTarjeta = TemaApp.tarjeta(context);
+
     return Column(
       children: [
-        // Botón 1: Ver en el mapa (cumple Req 1 y 2 manteniendo navegación inferior)
         SizedBox(
           width: double.infinity,
           height: 48,
@@ -413,31 +448,27 @@ class PantallaDetalleAlternativa extends StatelessWidget {
               elevation: 2,
             ),
             icon: const Icon(Icons.map_outlined),
-            label: const Text('Ver en el Mapa de Ika Travel'),
+            label: Text(context.tr('ver_en_mapa_ika')),
             onPressed: () {
-              // Navega directamente a la pestaña del mapa de la app principal conservando la barra inferior
               NavegacionService.irAMapa(context);
             },
           ),
         ),
-
         const SizedBox(height: 10),
-
-        // Botón 2: Consultar seguimiento de este destino
         SizedBox(
           width: double.infinity,
           height: 48,
           child: OutlinedButton.icon(
             style: OutlinedButton.styleFrom(
-              foregroundColor: AppColores.marronOscuro,
-              side: const BorderSide(color: AppColores.marronOscuro, width: 1.2),
+              foregroundColor: colorTexto,
+              side: BorderSide(color: colorTexto, width: 1.2),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
             icon: const Icon(Icons.timeline),
             label: Text(
-              'Consultar Seguimiento de ${alternativa.destino}',
+              '${context.tr('consultar_seguimiento_de')} ${alternativa.destino}',
               overflow: TextOverflow.ellipsis,
               maxLines: 1,
             ),

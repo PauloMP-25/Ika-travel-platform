@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../config/tema.dart';
 import '../config/colores_tema.dart';
+import '../config/traducciones_scope.dart';
 import 'pantalla_detalle.dart';
 import 'pantalla_mas.dart';
 
@@ -110,9 +111,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
       'indice': '92/100',
       'categoria': 'Cultura',
       'imagen': 'assets/images/carrusel_2_vinos.jpg',
-      'imagenes_detalle': [
-        'assets/images/carrusel_2_vinos.jpg',
-      ],
+      'imagenes_detalle': ['assets/images/carrusel_2_vinos.jpg'],
     },
     {
       'titulo': 'Santuario del Señor de Luren',
@@ -123,9 +122,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
       'indice': '89/100',
       'categoria': 'Cultura',
       'imagen': 'assets/images/act_buggy1.jpg',
-      'imagenes_detalle': [
-        'assets/images/act_buggy1.jpg',
-      ],
+      'imagenes_detalle': ['assets/images/act_buggy1.jpg'],
     },
     {
       'titulo': 'Cachiche (Pueblo de las Brujas)',
@@ -136,9 +133,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
       'indice': '82/100',
       'categoria': 'Cultura',
       'imagen': 'assets/images/detalle_buggy_2.jpg',
-      'imagenes_detalle': [
-        'assets/images/detalle_buggy_2.jpg',
-      ],
+      'imagenes_detalle': ['assets/images/detalle_buggy_2.jpg'],
     },
     {
       'titulo': 'Cañón de los Perdidos',
@@ -164,7 +159,6 @@ class _PantallaMapaState extends State<PantallaMapa> {
         _textoBusqueda = _busquedaController.text;
       });
     });
-    // Obtener ubicación GPS en segundo plano al abrir el mapa
     _centrarEnMiUbicacion(pedirPermiso: false, autoCentrar: false);
   }
 
@@ -179,9 +173,9 @@ class _PantallaMapaState extends State<PantallaMapa> {
         if (mounted && pedirPermiso) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Por favor enciende el GPS en tu celular para ver tu ubicación en vivo.'),
+              content: Text(context.tr('gps_encender_msg')),
               action: SnackBarAction(
-                label: 'Ajustes',
+                label: context.tr('ajustes'),
                 onPressed: () => Geolocator.openLocationSettings(),
               ),
             ),
@@ -195,7 +189,8 @@ class _PantallaMapaState extends State<PantallaMapa> {
         permiso = await Geolocator.requestPermission();
       }
 
-      if (permiso == LocationPermission.whileInUse || permiso == LocationPermission.always) {
+      if (permiso == LocationPermission.whileInUse ||
+          permiso == LocationPermission.always) {
         final pos = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high,
           timeLimit: const Duration(seconds: 8),
@@ -211,7 +206,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
         }
       } else if (pedirPermiso && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Se requiere permiso de ubicación para ubicarte en el mapa.')),
+          SnackBar(content: Text(context.tr('gps_permiso_requerido'))),
         );
       }
     } catch (e) {
@@ -228,7 +223,6 @@ class _PantallaMapaState extends State<PantallaMapa> {
     super.dispose();
   }
 
-  /// Lista de ubicaciones filtrada por categoría y por la barra de búsqueda de texto
   List<Map<String, dynamic>> get _ubicacionesFiltradas {
     return _ubicaciones.where((u) {
       final coincideCategoria =
@@ -248,7 +242,6 @@ class _PantallaMapaState extends State<PantallaMapa> {
     }).toList();
   }
 
-  /// Selecciona un lugar, cierra el teclado y mueve la cámara del mapa
   void _seleccionarLugar(Map<String, dynamic> lugar) {
     setState(() {
       _seleccionada = lugar;
@@ -257,7 +250,6 @@ class _PantallaMapaState extends State<PantallaMapa> {
     _mapController.move(LatLng(lugar['lat'], lugar['lng']), 13.0);
   }
 
-  /// Restablece la vista general panorámica de Ica
   void _centrarMapaGeneral() {
     _mapController.move(const LatLng(-14.06402, -75.72907), 10.0);
   }
@@ -280,7 +272,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Filtrar por categoría',
+                context.tr('filtrar_categoria'),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -288,11 +280,11 @@ class _PantallaMapaState extends State<PantallaMapa> {
                 ),
               ),
               const SizedBox(height: 15),
-              _itemFiltro('Todas', colorTexto),
-              _itemFiltro('Aventura', colorTexto),
-              _itemFiltro('Naturaleza', colorTexto),
-              _itemFiltro('Gastronomía', colorTexto),
-              _itemFiltro('Cultura', colorTexto),
+              _itemFiltro(context.tr('categoria_todas'), colorTexto),
+              _itemFiltro(context.tr('categoria_aventura'), colorTexto),
+              _itemFiltro(context.tr('categoria_naturaleza'), colorTexto),
+              _itemFiltro(context.tr('categoria_gastronomia'), colorTexto),
+              _itemFiltro(context.tr('categoria_cultura'), colorTexto),
               const SizedBox(height: 10),
             ],
           ),
@@ -325,7 +317,6 @@ class _PantallaMapaState extends State<PantallaMapa> {
     final colorTextoSecundario = TemaApp.textoSecundario(context);
     final colorTarjeta = TemaApp.tarjeta(context);
 
-    // Sugerencias rápidas cuando el usuario escribe en la barra
     final sugerencias = _textoBusqueda.trim().isNotEmpty
         ? _ubicacionesFiltradas.take(4).toList()
         : <Map<String, dynamic>>[];
@@ -335,7 +326,6 @@ class _PantallaMapaState extends State<PantallaMapa> {
       body: SafeArea(
         child: Column(
           children: [
-            // Cabecera superior
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
@@ -353,7 +343,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
                     },
                   ),
                   Text(
-                    'Mapa Turístico',
+                    context.tr('mapa_turistico'),
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -361,7 +351,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
                     ),
                   ),
                   IconButton(
-                    tooltip: 'Filtrar por categoría',
+                    tooltip: context.tr('filtrar_categoria'),
                     icon: Icon(
                       _filtroActual == 'Todas'
                           ? Icons.filter_list
@@ -376,12 +366,9 @@ class _PantallaMapaState extends State<PantallaMapa> {
                 ],
               ),
             ),
-
-            // Mapa interactivo con Barra de Búsqueda flotante
             Expanded(
               child: Stack(
                 children: [
-                  // Capa del Mapa Leaflet / OpenStreetMap
                   FlutterMap(
                     mapController: _mapController,
                     options: const MapOptions(
@@ -402,7 +389,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
                               width: 44,
                               height: 44,
                               child: Tooltip(
-                                message: 'Mi ubicación GPS actual',
+                                message: context.tr('mi_ubicacion_gps'),
                                 child: Stack(
                                   alignment: Alignment.center,
                                   children: [
@@ -411,7 +398,8 @@ class _PantallaMapaState extends State<PantallaMapa> {
                                       height: 40,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: const Color(0xFF1976D2).withValues(alpha: 0.25),
+                                        color: const Color(0xFF1976D2)
+                                            .withValues(alpha: 0.25),
                                       ),
                                     ),
                                     Container(
@@ -420,10 +408,15 @@ class _PantallaMapaState extends State<PantallaMapa> {
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
                                         color: const Color(0xFF1976D2),
-                                        border: Border.all(color: Colors.white, width: 3),
+                                        border: Border.all(
+                                          color: Colors.white,
+                                          width: 3,
+                                        ),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.black.withValues(alpha: 0.25),
+                                            color: Colors.black.withValues(
+                                              alpha: 0.25,
+                                            ),
                                             blurRadius: 4,
                                             offset: const Offset(0, 2),
                                           ),
@@ -459,7 +452,9 @@ class _PantallaMapaState extends State<PantallaMapa> {
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.3),
+                                        color: Colors.black.withValues(
+                                          alpha: 0.3,
+                                        ),
                                         blurRadius: esSeleccionada ? 10 : 4,
                                         offset: const Offset(0, 3),
                                       ),
@@ -480,8 +475,6 @@ class _PantallaMapaState extends State<PantallaMapa> {
                       ),
                     ],
                   ),
-
-                  // BARRA DE BÚSQUEDA DE LUGARES POR ESCRITO (Flotante)
                   Positioned(
                     top: 12,
                     left: 16,
@@ -490,7 +483,6 @@ class _PantallaMapaState extends State<PantallaMapa> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Caja principal de búsqueda
                         Container(
                           height: 52,
                           decoration: BoxDecoration(
@@ -498,7 +490,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.12),
+                                color: Colors.black.withValues(alpha: 0.12),
                                 blurRadius: 14,
                                 offset: const Offset(0, 4),
                               ),
@@ -509,7 +501,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
                             focusNode: _focusBusqueda,
                             style: TextStyle(fontSize: 15, color: colorTexto),
                             decoration: InputDecoration(
-                              hintText: 'Buscar lugares, huacachina, viñedos...',
+                              hintText: context.tr('buscar_lugares_hint'),
                               hintStyle: TextStyle(
                                 fontSize: 14,
                                 color: colorTextoSecundario,
@@ -531,18 +523,19 @@ class _PantallaMapaState extends State<PantallaMapa> {
                                       },
                                     )
                                   : (_filtroActual != 'Todas'
-                                      ? Tooltip(
-                                          message: 'Filtro: $_filtroActual',
-                                          child: IconButton(
-                                            icon: const Icon(
-                                              Icons.filter_alt,
-                                              size: 20,
-                                              color: AppColores.naranjaBoton,
+                                        ? Tooltip(
+                                            message:
+                                                '${context.tr('filtro')}: $_filtroActual',
+                                            child: IconButton(
+                                              icon: const Icon(
+                                                Icons.filter_alt,
+                                                size: 20,
+                                                color: AppColores.naranjaBoton,
+                                              ),
+                                              onPressed: _mostrarFiltros,
                                             ),
-                                            onPressed: _mostrarFiltros,
-                                          ),
-                                        )
-                                      : null),
+                                          )
+                                        : null),
                               border: InputBorder.none,
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16,
@@ -556,8 +549,6 @@ class _PantallaMapaState extends State<PantallaMapa> {
                             },
                           ),
                         ),
-
-                        // Lista desplegable de sugerencias rápidas al escribir
                         if (_focusBusqueda.hasFocus && sugerencias.isNotEmpty)
                           Container(
                             margin: const EdgeInsets.only(top: 6),
@@ -566,7 +557,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.12),
+                                  color: Colors.black.withValues(alpha: 0.12),
                                   blurRadius: 12,
                                   offset: const Offset(0, 4),
                                 ),
@@ -580,7 +571,9 @@ class _PantallaMapaState extends State<PantallaMapa> {
                               separatorBuilder: (_, __) => Divider(
                                 height: 1,
                                 thickness: 0.5,
-                                color: colorTextoSecundario.withOpacity(0.2),
+                                color: colorTextoSecundario.withValues(
+                                  alpha: 0.2,
+                                ),
                               ),
                               itemBuilder: (context, idx) {
                                 final lugar = sugerencias[idx];
@@ -616,8 +609,6 @@ class _PantallaMapaState extends State<PantallaMapa> {
                               },
                             ),
                           ),
-
-                        // Aviso cuando no hay coincidencias con la búsqueda
                         if (_textoBusqueda.isNotEmpty &&
                             listaParaMostrar.isEmpty)
                           Container(
@@ -631,7 +622,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
                               borderRadius: BorderRadius.circular(14),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.08),
+                                  color: Colors.black.withValues(alpha: 0.08),
                                   blurRadius: 8,
                                   offset: const Offset(0, 3),
                                 ),
@@ -647,7 +638,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    'No hay lugares con "$_textoBusqueda"',
+                                    '${context.tr('no_lugares_con')} "$_textoBusqueda"',
                                     style: TextStyle(
                                       fontSize: 13,
                                       color: colorTextoSecundario,
@@ -656,7 +647,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
                                 ),
                                 TextButton(
                                   onPressed: () => _busquedaController.clear(),
-                                  child: const Text('Limpiar'),
+                                  child: Text(context.tr('limpiar')),
                                 ),
                               ],
                             ),
@@ -664,8 +655,6 @@ class _PantallaMapaState extends State<PantallaMapa> {
                       ],
                     ),
                   ),
-
-                  // Botones flotantes: Mi Ubicación GPS y Panorámica de Ica
                   Positioned(
                     right: 16,
                     bottom: _seleccionada != null ? 150 : 20,
@@ -677,8 +666,11 @@ class _PantallaMapaState extends State<PantallaMapa> {
                           backgroundColor: Colors.white,
                           foregroundColor: const Color(0xFF1976D2),
                           elevation: 4,
-                          tooltip: 'Ir a mi ubicación GPS actual',
-                          onPressed: () => _centrarEnMiUbicacion(pedirPermiso: true, autoCentrar: true),
+                          tooltip: context.tr('ir_mi_ubicacion'),
+                          onPressed: () => _centrarEnMiUbicacion(
+                            pedirPermiso: true,
+                            autoCentrar: true,
+                          ),
                           child: _obteniendoGps
                               ? const SizedBox(
                                   width: 22,
@@ -696,15 +688,13 @@ class _PantallaMapaState extends State<PantallaMapa> {
                           backgroundColor: colorTarjeta,
                           foregroundColor: AppColores.naranjaBoton,
                           elevation: 3,
-                          tooltip: 'Ver todo Ica (Panorámica)',
+                          tooltip: context.tr('ver_todo_ica'),
                           onPressed: _centrarMapaGeneral,
                           child: const Icon(Icons.map_outlined),
                         ),
                       ],
                     ),
                   ),
-
-                  // Chip informativo de resultados activos cuando hay búsqueda o filtro
                   if (_textoBusqueda.isNotEmpty || _filtroActual != 'Todas')
                     Positioned(
                       left: 16,
@@ -715,11 +705,11 @@ class _PantallaMapaState extends State<PantallaMapa> {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: colorTarjeta.withOpacity(0.92),
+                          color: colorTarjeta.withValues(alpha: 0.92),
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.08),
+                              color: Colors.black.withValues(alpha: 0.08),
                               blurRadius: 6,
                               offset: const Offset(0, 2),
                             ),
@@ -735,7 +725,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              '${listaParaMostrar.length} encontrados',
+                              '${listaParaMostrar.length} ${context.tr('encontrados')}',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
@@ -746,8 +736,6 @@ class _PantallaMapaState extends State<PantallaMapa> {
                         ),
                       ),
                     ),
-
-                  // Tarjeta inferior del lugar seleccionado
                   if (_seleccionada != null)
                     Positioned(
                       bottom: 20,
@@ -775,7 +763,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
                             borderRadius: BorderRadius.circular(18),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.15),
+                                color: Colors.black.withValues(alpha: 0.15),
                                 blurRadius: 16,
                                 offset: const Offset(0, 6),
                               ),
@@ -792,14 +780,14 @@ class _PantallaMapaState extends State<PantallaMapa> {
                                   fit: BoxFit.cover,
                                   errorBuilder: (context, error, stackTrace) =>
                                       Container(
-                                    width: 72,
-                                    height: 72,
-                                    color: Colors.grey[300],
-                                    child: const Icon(
-                                      Icons.image,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
+                                        width: 72,
+                                        height: 72,
+                                        color: Colors.grey[300],
+                                        child: const Icon(
+                                          Icons.image,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
                                 ),
                               ),
                               const SizedBox(width: 14),
@@ -831,9 +819,12 @@ class _PantallaMapaState extends State<PantallaMapa> {
                                             vertical: 2,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: Colors.green.withOpacity(0.12),
-                                            borderRadius:
-                                                BorderRadius.circular(6),
+                                            color: Colors.green.withValues(
+                                              alpha: 0.12,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              6,
+                                            ),
                                           ),
                                           child: Text(
                                             _seleccionada!['condicion'],
@@ -859,7 +850,7 @@ class _PantallaMapaState extends State<PantallaMapa> {
                                 ),
                               ),
                               IconButton(
-                                tooltip: 'Cerrar tarjeta',
+                                tooltip: context.tr('cerrar_tarjeta'),
                                 icon: const Icon(Icons.close, size: 20),
                                 color: colorTextoSecundario,
                                 onPressed: () {
