@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../config/colores_tema.dart';
 import '../config/tema.dart';
+import '../config/traducciones_scope.dart';
 import '../models/translation_model.dart';
 import '../services/translation_service.dart';
 
@@ -14,15 +16,13 @@ class PantallaTraduccion extends StatefulWidget {
 }
 
 class _PantallaTraduccionState extends State<PantallaTraduccion> {
-  int _tabIndex = 0; // 0 = Frases oficiales, 1 = Traductor libre
+  int _tabIndex = 0;
   late final TranslationService _translationService;
 
-  // Frasebook
   PhrasebookResponseModel? _phrasebook;
   bool _cargandoFrases = true;
   String _filtroCategoria = '';
 
-  // Traducción libre
   final TextEditingController _textoController = TextEditingController();
   String _sourceLang = 'es';
   String _targetLang = 'en';
@@ -99,7 +99,7 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorTraduccion = 'No se pudo traducir. Intente con frases oficiales.';
+          _errorTraduccion = context.tr('error_traduccion');
           _traduciendo = false;
         });
       }
@@ -114,32 +114,32 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
 
   @override
   Widget build(BuildContext context) {
+    final colorFondo = TemaApp.fondo(context);
+    final colorTarjeta = TemaApp.tarjeta(context);
+    final colorTexto = TemaApp.texto(context);
+    final colorTextoSecundario = TemaApp.textoSecundario(context);
+
     return Scaffold(
-      backgroundColor: AppColores.arenaFondo,
+      backgroundColor: colorFondo,
       body: SafeArea(
         child: Column(
           children: [
-            // AppBar personalizado
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(
-                      Icons.arrow_back,
-                      color: AppColores.marronOscuro,
-                      size: 28,
-                    ),
+                    icon: Icon(Icons.arrow_back, color: colorTexto, size: 28),
                     onPressed: () => Navigator.pop(context),
                   ),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Traductor y Guía Bilingüe',
+                      context.tr('traductor_guia'),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: AppColores.marronOscuro,
+                        color: colorTexto,
                       ),
                     ),
                   ),
@@ -147,32 +147,45 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
                 ],
               ),
             ),
-
-            // Selector de pestaña (Frasebook oficial / Traducción libre)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
               child: Container(
                 height: 45,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: colorTarjeta,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
-                    _buildTabButton('Frases oficiales', 0),
-                    _buildTabButton('Traductor libre', 1),
+                    _buildTabButton(
+                      context.tr('frases_oficiales'),
+                      0,
+                      colorTexto,
+                      colorTextoSecundario,
+                    ),
+                    _buildTabButton(
+                      context.tr('traductor_libre'),
+                      1,
+                      colorTexto,
+                      colorTextoSecundario,
+                    ),
                   ],
                 ),
               ),
             ),
-
             const SizedBox(height: 8),
-
-            // Vista activa
             Expanded(
               child: _tabIndex == 0
-                  ? _buildVistaFrasebook()
-                  : _buildVistaTraductorLibre(),
+                  ? _buildVistaFrasebook(
+                      colorTarjeta,
+                      colorTexto,
+                      colorTextoSecundario,
+                    )
+                  : _buildVistaTraductorLibre(
+                      colorTarjeta,
+                      colorTexto,
+                      colorTextoSecundario,
+                    ),
             ),
           ],
         ),
@@ -180,7 +193,12 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
     );
   }
 
-  Widget _buildTabButton(String texto, int index) {
+  Widget _buildTabButton(
+    String texto,
+    int index,
+    Color colorTexto,
+    Color colorTextoSecundario,
+  ) {
     final bool activo = _tabIndex == index;
     return Expanded(
       child: GestureDetector(
@@ -195,7 +213,7 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
             child: Text(
               texto,
               style: TextStyle(
-                color: activo ? Colors.white : AppColores.grisTexto,
+                color: activo ? Colors.white : colorTextoSecundario,
                 fontWeight: activo ? FontWeight.bold : FontWeight.normal,
               ),
             ),
@@ -205,10 +223,13 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
     );
   }
 
-  Widget _buildVistaFrasebook() {
+  Widget _buildVistaFrasebook(
+    Color colorTarjeta,
+    Color colorTexto,
+    Color colorTextoSecundario,
+  ) {
     return Column(
       children: [
-        // Chips horizontales de categorías
         SizedBox(
           height: 42,
           child: ListView.builder(
@@ -218,15 +239,36 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
             itemBuilder: (context, index) {
               final cat = _categorias[index];
               final bool seleccionada = _filtroCategoria == cat['id'];
+
+              String nombreCat = cat['nombre']!;
+              if (cat['id'] == '') nombreCat = context.tr('categoria_todas');
+              if (cat['id'] == 'emergency')
+                nombreCat = context.tr('cat_emergencia');
+              if (cat['id'] == 'health') nombreCat = context.tr('cat_salud');
+              if (cat['id'] == 'transport')
+                nombreCat = context.tr('cat_transporte');
+              if (cat['id'] == 'services')
+                nombreCat = context.tr('cat_servicios');
+              if (cat['id'] == 'directions')
+                nombreCat = context.tr('cat_direcciones');
+              if (cat['id'] == 'lodging')
+                nombreCat = context.tr('cat_hospedaje');
+              if (cat['id'] == 'food') nombreCat = context.tr('cat_comida');
+              if (cat['id'] == 'courtesy')
+                nombreCat = context.tr('cat_cortesia');
+
               return Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: ChoiceChip(
-                  label: Text(cat['nombre']!),
+                  label: Text(nombreCat),
                   selected: seleccionada,
                   selectedColor: AppColores.naranjaBoton,
+                  backgroundColor: colorTarjeta,
                   labelStyle: TextStyle(
-                    color: seleccionada ? Colors.white : AppColores.marronOscuro,
-                    fontWeight: seleccionada ? FontWeight.bold : FontWeight.normal,
+                    color: seleccionada ? Colors.white : colorTexto,
+                    fontWeight: seleccionada
+                        ? FontWeight.bold
+                        : FontWeight.normal,
                     fontSize: 12,
                   ),
                   onSelected: (val) {
@@ -240,20 +282,22 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
             },
           ),
         ),
-
         const SizedBox(height: 8),
-
-        // Lista de frases
         Expanded(
           child: _cargandoFrases
               ? const Center(
-                  child: CircularProgressIndicator(color: AppColores.naranjaBoton),
+                  child: CircularProgressIndicator(
+                    color: AppColores.naranjaBoton,
+                  ),
                 )
               : RefreshIndicator(
                   color: AppColores.naranjaBoton,
                   onRefresh: _cargarFrases,
                   child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     itemCount: _phrasebook?.phrases.length ?? 0,
                     itemBuilder: (context, index) {
                       final item = _phrasebook!.phrases[index];
@@ -261,11 +305,11 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
                         margin: const EdgeInsets.only(bottom: 10),
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: colorTarjeta,
                           borderRadius: BorderRadius.circular(15),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.04),
+                              color: Colors.black.withValues(alpha: 0.04),
                               blurRadius: 6,
                               offset: const Offset(0, 3),
                             ),
@@ -280,10 +324,10 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
                                 Expanded(
                                   child: Text(
                                     item.spanish,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 15,
-                                      color: AppColores.marronOscuro,
+                                      color: colorTexto,
                                     ),
                                   ),
                                 ),
@@ -293,12 +337,12 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
                                     vertical: 3,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.orange.shade50,
+                                    color: Colors.orange.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Text(
                                     item.category.toUpperCase(),
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.bold,
                                       color: AppColores.naranjaBoton,
@@ -312,7 +356,7 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
                               item.english,
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.blueGrey.shade800,
+                                color: colorTextoSecundario,
                                 fontStyle: FontStyle.italic,
                               ),
                             ),
@@ -320,9 +364,9 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
                               const SizedBox(height: 4),
                               Text(
                                 '[ ${item.phonetic} ]',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: AppColores.grisTexto,
+                                  color: colorTextoSecundario,
                                 ),
                               ),
                             ],
@@ -337,21 +381,24 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
     );
   }
 
-  Widget _buildVistaTraductorLibre() {
+  Widget _buildVistaTraductorLibre(
+    Color colorTarjeta,
+    Color colorTexto,
+    Color colorTextoSecundario,
+  ) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Selector de Idiomas
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: colorTarjeta,
               borderRadius: BorderRadius.circular(14),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 6,
                   offset: const Offset(0, 2),
                 ),
@@ -361,8 +408,12 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 Text(
-                  _sourceLang == 'es' ? '🇪🇸 Español' : '🇺🇸 Inglés',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  _sourceLang == 'es' ? 'Español' : 'Inglés',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: colorTexto,
+                  ),
                 ),
                 IconButton(
                   icon: const Icon(
@@ -373,23 +424,24 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
                   onPressed: _intercambiarIdiomas,
                 ),
                 Text(
-                  _targetLang == 'en' ? '🇺🇸 Inglés' : '🇪🇸 Español',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  _targetLang == 'en' ? 'Inglés' : 'Español',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: colorTexto,
+                  ),
                 ),
               ],
             ),
           ),
-
           const SizedBox(height: 16),
-
-          // Caja de texto de entrada
           Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: colorTarjeta,
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 6,
                   offset: const Offset(0, 2),
                 ),
@@ -399,21 +451,22 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
               controller: _textoController,
               maxLines: 4,
               maxLength: 500,
-              decoration: const InputDecoration(
-                hintText: 'Escribe aquí la consulta o frase...',
+              style: TextStyle(color: colorTexto),
+              decoration: InputDecoration(
+                hintText: context.tr('escribe_frase'),
+                hintStyle: TextStyle(color: colorTextoSecundario),
                 border: InputBorder.none,
-                contentPadding: EdgeInsets.all(16),
+                contentPadding: const EdgeInsets.all(16),
               ),
             ),
           ),
-
           const SizedBox(height: 14),
-
-          // Botón Traducir
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColores.naranjaBoton,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
             onPressed: _traduciendo ? null : _realizarTraduccion,
@@ -426,16 +479,15 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
                       strokeWidth: 2,
                     ),
                   )
-                : const Text(
-                    'Traducir con IA',
-                    style: TextStyle(
+                : Text(
+                    context.tr('traducir_ia'),
+                    style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                       color: Colors.white,
                     ),
                   ),
           ),
-
           if (_errorTraduccion != null) ...[
             const SizedBox(height: 12),
             Text(
@@ -444,21 +496,20 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
               style: const TextStyle(color: Colors.red, fontSize: 13),
             ),
           ],
-
           if (_traduccionResultado.isNotEmpty) ...[
             const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: colorTarjeta,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: AppColores.naranjaBoton.withOpacity(0.4),
+                  color: AppColores.naranjaBoton.withValues(alpha: 0.4),
                   width: 1.5,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -470,12 +521,12 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Traducción:',
+                      Text(
+                        context.tr('traduccion'),
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
-                          color: AppColores.grisTexto,
+                          color: colorTextoSecundario,
                         ),
                       ),
                       Container(
@@ -484,12 +535,12 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.orange.shade50,
+                          color: Colors.orange.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          'Fuente: $_origenTraduccion',
-                          style: TextStyle(
+                          '${context.tr('fuente')} $_origenTraduccion',
+                          style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
                             color: AppColores.naranjaBoton,
@@ -501,10 +552,10 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
                   const SizedBox(height: 10),
                   Text(
                     _traduccionResultado,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: AppColores.marronOscuro,
+                      color: colorTexto,
                     ),
                   ),
                 ],

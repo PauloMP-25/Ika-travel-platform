@@ -3,11 +3,11 @@ import 'package:geolocator/geolocator.dart';
 
 import '../config/colores_tema.dart';
 import '../config/tema.dart';
+import '../config/traducciones_scope.dart';
 import '../services/auth_service.dart';
 import 'main_scaffold.dart';
 import 'pantalla_registro.dart';
 
-/// Pantalla de inicio de sesión con flujo completo de autenticación.
 class PantallaLogin extends StatefulWidget {
   final bool abrirComoModal;
 
@@ -57,7 +57,9 @@ class _PantallaLoginState extends State<PantallaLogin> {
           ),
           backgroundColor: const Color(0xFF2E7D32),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
 
@@ -73,7 +75,7 @@ class _PantallaLoginState extends State<PantallaLogin> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('Ingresaste en modo invitado. ¡Disfruta tu viaje!'),
+        content: Text(context.tr('ingreso_invitado')),
         backgroundColor: AppColores.marronOscuro,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -84,31 +86,48 @@ class _PantallaLoginState extends State<PantallaLogin> {
   }
 
   Future<void> _verificarPermisosYEntrar() async {
-    // 1. Validar si el sensor de GPS está encendido
     bool gpsActivo = await Geolocator.isLocationServiceEnabled();
     if (!gpsActivo && mounted) {
       await showDialog<bool>(
         context: context,
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          title: const Row(
+          backgroundColor: TemaApp.tarjeta(ctx),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          title: Row(
             children: [
-              Icon(Icons.location_on_rounded, color: AppColores.naranjaBoton, size: 26),
-              SizedBox(width: 10),
+              const Icon(
+                Icons.location_on_rounded,
+                color: AppColores.naranjaBoton,
+                size: 26,
+              ),
+              const SizedBox(width: 10),
               Expanded(
-                child: Text('Activar Ubicación GPS', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                child: Text(
+                  context.tr('activar_gps_titulo'),
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: TemaApp.texto(ctx),
+                  ),
+                ),
               ),
             ],
           ),
-          content: const Text(
-            'Para que Ika Travel te guíe en tiempo real por Ica, calcule rutas exactas y envíe tu auxilio SOS en 1 clic, por favor activa el GPS de tu celular.',
-            style: TextStyle(fontSize: 13, height: 1.35),
+          content: Text(
+            context.tr('activar_gps_msg'),
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.35,
+              color: TemaApp.textoSecundario(ctx),
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Continuar sin GPS'),
+              child: Text(context.tr('continuar_sin_gps')),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -119,14 +138,13 @@ class _PantallaLoginState extends State<PantallaLogin> {
                 Navigator.pop(ctx, true);
                 await Geolocator.openLocationSettings();
               },
-              child: const Text('Activar GPS'),
+              child: Text(context.tr('activar_gps')),
             ),
           ],
         ),
       );
     }
 
-    // 2. Solicitar permiso de ubicación
     LocationPermission permiso = await Geolocator.checkPermission();
     if (permiso == LocationPermission.denied) {
       permiso = await Geolocator.requestPermission();
@@ -151,15 +169,19 @@ class _PantallaLoginState extends State<PantallaLogin> {
   }
 
   void _mostrarDialogoRecuperarPassword() {
-    final correoRecuperacion = TextEditingController(text: _emailController.text);
+    final correoRecuperacion = TextEditingController(
+      text: _emailController.text,
+    );
     showDialog(
       context: context,
       builder: (ctx) {
         return AlertDialog(
           backgroundColor: TemaApp.tarjeta(ctx),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: Text(
-            'Recuperar contraseña',
+            context.tr('recuperar_contrasena'),
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: TemaApp.texto(ctx),
@@ -170,7 +192,7 @@ class _PantallaLoginState extends State<PantallaLogin> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Ingresa tu correo registrado y te enviaremos un enlace seguro para restablecer tu contraseña.',
+                context.tr('recuperar_contrasena_msg'),
                 style: TextStyle(
                   fontSize: 13,
                   color: TemaApp.textoSecundario(ctx),
@@ -181,7 +203,7 @@ class _PantallaLoginState extends State<PantallaLogin> {
                 controller: correoRecuperacion,
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
-                  labelText: 'Correo electrónico',
+                  labelText: context.tr('correo_electronico'),
                   prefixIcon: const Icon(Icons.email_outlined),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
@@ -193,7 +215,7 @@ class _PantallaLoginState extends State<PantallaLogin> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancelar'),
+              child: Text(context.tr('cancelar')),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -208,14 +230,14 @@ class _PantallaLoginState extends State<PantallaLogin> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      'Enlace enviado a ${correoRecuperacion.text}. Revisa tu bandeja.',
+                      '${context.tr('enlace_enviado')} ${correoRecuperacion.text}',
                     ),
                     backgroundColor: AppColores.marronOscuro,
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
               },
-              child: const Text('Enviar enlace'),
+              child: Text(context.tr('enviar_enlace')),
             ),
           ],
         );
@@ -238,18 +260,22 @@ class _PantallaLoginState extends State<PantallaLogin> {
           builder: (context, cargando, _) {
             return Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 20),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 26,
+                  vertical: 20,
+                ),
                 child: Form(
                   key: _formKey,
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Logotipo e Identidad
                       Container(
                         padding: const EdgeInsets.all(18),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: AppColores.naranjaBoton.withOpacity(0.12),
+                          color: AppColores.naranjaBoton.withValues(
+                            alpha: 0.12,
+                          ),
                         ),
                         child: const Icon(
                           Icons.travel_explore,
@@ -269,16 +295,12 @@ class _PantallaLoginState extends State<PantallaLogin> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Tu compañero inteligente de viaje en Ica',
+                        context.tr('eslogan_login'),
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: colorTextoSec,
-                        ),
+                        style: TextStyle(fontSize: 14, color: colorTextoSec),
                       ),
                       const SizedBox(height: 28),
 
-                      // Tarjeta de Formulario
                       Container(
                         padding: const EdgeInsets.all(22),
                         decoration: BoxDecoration(
@@ -286,7 +308,7 @@ class _PantallaLoginState extends State<PantallaLogin> {
                           borderRadius: BorderRadius.circular(24),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.06),
+                              color: Colors.black.withValues(alpha: 0.06),
                               blurRadius: 16,
                               offset: const Offset(0, 8),
                             ),
@@ -296,7 +318,7 @@ class _PantallaLoginState extends State<PantallaLogin> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Iniciar sesión',
+                              context.tr('iniciar_sesion'),
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -305,16 +327,15 @@ class _PantallaLoginState extends State<PantallaLogin> {
                             ),
                             const SizedBox(height: 18),
 
-                            // Campo Correo
                             TextFormField(
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
                               decoration: InputDecoration(
-                                labelText: 'Correo electrónico',
+                                labelText: context.tr('correo_electronico'),
                                 hintText: 'ejemplo@correo.com',
                                 prefixIcon: const Icon(Icons.email_outlined),
                                 filled: true,
-                                fillColor: colorFondo.withOpacity(0.5),
+                                fillColor: colorFondo.withValues(alpha: 0.5),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(16),
                                   borderSide: BorderSide.none,
@@ -322,22 +343,21 @@ class _PantallaLoginState extends State<PantallaLogin> {
                               ),
                               validator: (val) {
                                 if (val == null || val.trim().isEmpty) {
-                                  return 'Ingresa tu correo electrónico';
+                                  return context.tr('error_correo_vacio');
                                 }
                                 if (!val.contains('@') || !val.contains('.')) {
-                                  return 'Ingresa un correo electrónico válido';
+                                  return context.tr('error_correo_invalido');
                                 }
                                 return null;
                               },
                             ),
                             const SizedBox(height: 14),
 
-                            // Campo Contraseña
                             TextFormField(
                               controller: _passwordController,
                               obscureText: _obscurePassword,
                               decoration: InputDecoration(
-                                labelText: 'Contraseña',
+                                labelText: context.tr('contrasena'),
                                 prefixIcon: const Icon(Icons.lock_outline),
                                 suffixIcon: IconButton(
                                   icon: Icon(
@@ -352,7 +372,7 @@ class _PantallaLoginState extends State<PantallaLogin> {
                                   },
                                 ),
                                 filled: true,
-                                fillColor: colorFondo.withOpacity(0.5),
+                                fillColor: colorFondo.withValues(alpha: 0.5),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(16),
                                   borderSide: BorderSide.none,
@@ -360,17 +380,16 @@ class _PantallaLoginState extends State<PantallaLogin> {
                               ),
                               validator: (val) {
                                 if (val == null || val.isEmpty) {
-                                  return 'Ingresa tu contraseña';
+                                  return context.tr('error_contrasena_vacia');
                                 }
                                 if (val.length < 6) {
-                                  return 'La contraseña debe tener al menos 6 caracteres';
+                                  return context.tr('error_contrasena_corta');
                                 }
                                 return null;
                               },
                             ),
                             const SizedBox(height: 8),
 
-                            // Recordarme y Olvidé Contraseña (sin overflow)
                             Wrap(
                               alignment: WrapAlignment.spaceBetween,
                               crossAxisAlignment: WrapCrossAlignment.center,
@@ -385,16 +404,20 @@ class _PantallaLoginState extends State<PantallaLogin> {
                                         value: _recordarme,
                                         activeColor: AppColores.naranjaBoton,
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(4),
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
                                         ),
                                         onChanged: (val) {
-                                          setState(() => _recordarme = val ?? true);
+                                          setState(
+                                            () => _recordarme = val ?? true,
+                                          );
                                         },
                                       ),
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
-                                      'Recordarme',
+                                      context.tr('recordarme'),
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: colorTextoSec,
@@ -404,14 +427,18 @@ class _PantallaLoginState extends State<PantallaLogin> {
                                 ),
                                 TextButton(
                                   style: TextButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 4,
+                                      vertical: 2,
+                                    ),
                                     minimumSize: Size.zero,
-                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
                                   ),
                                   onPressed: _mostrarDialogoRecuperarPassword,
-                                  child: const Text(
-                                    '¿Olvidaste tu contraseña?',
-                                    style: TextStyle(
+                                  child: Text(
+                                    context.tr('olvidaste_contrasena'),
+                                    style: const TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
                                       color: AppColores.naranjaBoton,
@@ -421,7 +448,6 @@ class _PantallaLoginState extends State<PantallaLogin> {
                               ],
                             ),
 
-                            // Mensaje de Error
                             if (_mensajeError != null) ...[
                               const SizedBox(height: 10),
                               Container(
@@ -432,7 +458,9 @@ class _PantallaLoginState extends State<PantallaLogin> {
                                 decoration: BoxDecoration(
                                   color: Colors.red.shade50,
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.red.shade200),
+                                  border: Border.all(
+                                    color: Colors.red.shade200,
+                                  ),
                                 ),
                                 child: Row(
                                   children: [
@@ -458,7 +486,6 @@ class _PantallaLoginState extends State<PantallaLogin> {
 
                             const SizedBox(height: 18),
 
-                            // Botón de Iniciar Sesión
                             SizedBox(
                               width: double.infinity,
                               height: 52,
@@ -467,8 +494,8 @@ class _PantallaLoginState extends State<PantallaLogin> {
                                   backgroundColor: AppColores.naranjaBoton,
                                   foregroundColor: Colors.white,
                                   elevation: 2,
-                                  shadowColor:
-                                      AppColores.naranjaBoton.withOpacity(0.35),
+                                  shadowColor: AppColores.naranjaBoton
+                                      .withValues(alpha: 0.35),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(16),
                                   ),
@@ -482,13 +509,13 @@ class _PantallaLoginState extends State<PantallaLogin> {
                                           strokeWidth: 2.5,
                                           valueColor:
                                               AlwaysStoppedAnimation<Color>(
-                                            Colors.white,
-                                          ),
+                                                Colors.white,
+                                              ),
                                         ),
                                       )
-                                    : const Text(
-                                        'Iniciar Sesión',
-                                        style: TextStyle(
+                                    : Text(
+                                        context.tr('iniciar_sesion'),
+                                        style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -501,11 +528,12 @@ class _PantallaLoginState extends State<PantallaLogin> {
 
                       const SizedBox(height: 18),
 
-                      // Botón Cuenta Demo
                       OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
                           side: BorderSide(
-                            color: AppColores.naranjaBoton.withOpacity(0.5),
+                            color: AppColores.naranjaBoton.withValues(
+                              alpha: 0.5,
+                            ),
                           ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
@@ -520,9 +548,9 @@ class _PantallaLoginState extends State<PantallaLogin> {
                           size: 18,
                           color: AppColores.naranjaBoton,
                         ),
-                        label: const Text(
-                          'Cargar cuenta demo de prueba',
-                          style: TextStyle(
+                        label: Text(
+                          context.tr('cargar_demo'),
+                          style: const TextStyle(
                             fontSize: 13,
                             color: AppColores.naranjaBoton,
                             fontWeight: FontWeight.w600,
@@ -533,19 +561,18 @@ class _PantallaLoginState extends State<PantallaLogin> {
 
                       const SizedBox(height: 16),
 
-                      // Continuar como Invitado
                       TextButton.icon(
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.person_outline,
                           size: 18,
-                          color: Colors.grey,
+                          color: colorTextoSec,
                         ),
-                        label: const Text(
-                          'Continuar como invitado',
+                        label: Text(
+                          context.tr('continuar_invitado'),
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: Colors.grey,
+                            color: colorTextoSec,
                           ),
                         ),
                         onPressed: cargando ? null : _ingresarComoInvitado,
@@ -553,12 +580,11 @@ class _PantallaLoginState extends State<PantallaLogin> {
 
                       const SizedBox(height: 16),
 
-                      // Registro de cuenta nueva
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            '¿No tienes una cuenta? ',
+                            context.tr('no_tienes_cuenta'),
                             style: TextStyle(
                               fontSize: 13,
                               color: colorTextoSec,
@@ -573,9 +599,9 @@ class _PantallaLoginState extends State<PantallaLogin> {
                                 ),
                               );
                             },
-                            child: const Text(
-                              'Regístrate aquí',
-                              style: TextStyle(
+                            child: Text(
+                              context.tr('registrate_aqui'),
+                              style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
                                 color: AppColores.naranjaBoton,

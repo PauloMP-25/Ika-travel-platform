@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../config/tema.dart';
 import '../config/colores_tema.dart';
 import '../config/favoritos_manager.dart';
-import '../services/auth_service.dart';
+import '../config/tema.dart';
+import '../config/traducciones_scope.dart';
 import '../models/usuario_modelo.dart';
-import 'pantalla_detalle.dart';
+import '../services/auth_service.dart';
 import 'pantalla_alertas.dart';
+import 'pantalla_detalle.dart';
 import 'pantalla_login.dart';
 
 class PantallaFavoritos extends StatelessWidget {
@@ -37,10 +38,9 @@ class PantallaFavoritos extends StatelessWidget {
                     )
                   else
                     const SizedBox(width: 48),
-
                   Expanded(
                     child: Text(
-                      'Favoritos',
+                      context.tr('favoritos'),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 20,
@@ -53,7 +53,6 @@ class PantallaFavoritos extends StatelessWidget {
                 ],
               ),
             ),
-
             Expanded(
               child: ValueListenableBuilder<UsuarioModelo?>(
                 valueListenable: AuthService().usuarioNotifier,
@@ -69,7 +68,9 @@ class PantallaFavoritos extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.all(18),
                               decoration: BoxDecoration(
-                                color: AppColores.naranjaBoton.withValues(alpha: 0.12),
+                                color: AppColores.naranjaBoton.withValues(
+                                  alpha: 0.12,
+                                ),
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
@@ -80,7 +81,7 @@ class PantallaFavoritos extends StatelessWidget {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'Guarda tus favoritos',
+                              context.tr('guarda_favoritos'),
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -89,7 +90,7 @@ class PantallaFavoritos extends StatelessWidget {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Inicia sesión con tu cuenta de viajero para guardar y sincronizar los mejores atractivos turísticos de Ica.',
+                              context.tr('guarda_favoritos_msg'),
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 13,
@@ -111,15 +112,19 @@ class PantallaFavoritos extends StatelessWidget {
                                 ),
                               ),
                               icon: const Icon(Icons.login, size: 18),
-                              label: const Text(
-                                'Iniciar sesión',
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                              label: Text(
+                                context.tr('iniciar_sesion'),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                               onPressed: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => const PantallaLogin(abrirComoModal: true),
+                                    builder: (_) => const PantallaLogin(
+                                      abrirComoModal: true,
+                                    ),
                                   ),
                                 );
                               },
@@ -136,7 +141,7 @@ class PantallaFavoritos extends StatelessWidget {
                       if (favoritos.isEmpty) {
                         return Center(
                           child: Text(
-                            'Aún no tienes favoritos ❤️',
+                            context.tr('sin_favoritos'),
                             style: TextStyle(
                               color: colorTextoSecundario,
                               fontSize: 16,
@@ -145,99 +150,98 @@ class PantallaFavoritos extends StatelessWidget {
                         );
                       }
 
-                  return ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    itemCount: favoritos.length,
-                    itemBuilder: (context, index) {
-                      final actividad = favoritos[index];
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                          color: colorTarjeta,
-                          borderRadius: BorderRadius.circular(15),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.05),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Material(
-                          color: Colors.transparent,
-                          borderRadius: BorderRadius.circular(15),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.all(10),
-                            leading: ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: Image.asset(
-                                actividad['imagen'],
-                                width: 70,
-                                height: 70,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                            title: Text(
-                              actividad['titulo'].replaceAll('\n', ' '),
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                                color: colorTexto,
-                              ),
-                            ),
-                            subtitle: Row(
-                              children: [
-                                Text(
-                                  'Excelente • ',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.green.shade700,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                Text(
-                                  '92/100',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: colorTextoSecundario,
-                                  ),
+                      return ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        itemCount: favoritos.length,
+                        itemBuilder: (context, index) {
+                          final actividad = favoritos[index];
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            decoration: BoxDecoration(
+                              color: colorTarjeta,
+                              borderRadius: BorderRadius.circular(15),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.05),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
                                 ),
                               ],
                             ),
-                            trailing: IconButton(
-                              icon: const Icon(
-                                Icons.favorite,
-                                color: AppColores.naranjaBoton,
-                              ),
-                              onPressed: () {
-                                toggleFavorito(actividad);
-                              },
-                            ),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => PantallaDetalle(
-                                    titulo: actividad['titulo'],
-                                    subtitulo: actividad['subtitulo'],
-                                    imagenes: List<String>.from(
-                                      actividad['imagenes_detalle'],
-                                    ),
+                            child: Material(
+                              color: Colors.transparent,
+                              borderRadius: BorderRadius.circular(15),
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.all(10),
+                                leading: ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Image.asset(
+                                    actividad['imagen'],
+                                    width: 70,
+                                    height: 70,
+                                    fit: BoxFit.cover,
                                   ),
                                 ),
-                              );
-                            },
-                          ),
-                        ),
+                                title: Text(
+                                  actividad['titulo'].replaceAll('\n', ' '),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                    color: colorTexto,
+                                  ),
+                                ),
+                                subtitle: Row(
+                                  children: [
+                                    Text(
+                                      '${context.tr('excelente')} • ',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.green.shade700,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Text(
+                                      '92/100',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: colorTextoSecundario,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                trailing: IconButton(
+                                  icon: const Icon(
+                                    Icons.favorite,
+                                    color: AppColores.naranjaBoton,
+                                  ),
+                                  onPressed: () {
+                                    toggleFavorito(actividad);
+                                  },
+                                ),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => PantallaDetalle(
+                                        titulo: actividad['titulo'],
+                                        subtitulo: actividad['subtitulo'],
+                                        imagenes: List<String>.from(
+                                          actividad['imagenes_detalle'],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          );
+                        },
                       );
                     },
                   );
                 },
-              );
-            },
-          ),
-        ),
-
+              ),
+            ),
             ValueListenableBuilder<UsuarioModelo?>(
               valueListenable: AuthService().usuarioNotifier,
               builder: (context, usuario, _) {
@@ -268,9 +272,9 @@ class PantallaFavoritos extends StatelessWidget {
                         Icons.notifications_none,
                         color: Colors.white,
                       ),
-                      label: const Text(
-                        'Recibir alertas para favoritos',
-                        style: TextStyle(
+                      label: Text(
+                        context.tr('recibir_alertas_favoritos'),
+                        style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),

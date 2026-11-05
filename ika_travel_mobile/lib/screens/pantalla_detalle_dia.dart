@@ -25,7 +25,7 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
   final WeatherService _weatherService = WeatherService();
 
   Map<String, dynamic>? _climaActual;
-  
+
   bool _cargando = true;
 
   @override
@@ -45,7 +45,7 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
       if (mounted) {
         setState(() {
           _climaActual = clima;
-          
+
           if (recIA != null) {
             _textoRecomendacionIA = recIA['recommendation_text'] as String?;
             _consejosIA = (recIA['consejos'] as List<dynamic>?) ?? [];
@@ -65,8 +65,29 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
       return widget.fecha!;
     }
     final ahora = DateTime.now();
-    final dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-    final meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    final dias = [
+      'Lunes',
+      'Martes',
+      'Miércoles',
+      'Jueves',
+      'Viernes',
+      'Sábado',
+      'Domingo',
+    ];
+    final meses = [
+      'enero',
+      'febrero',
+      'marzo',
+      'abril',
+      'mayo',
+      'junio',
+      'julio',
+      'agosto',
+      'septiembre',
+      'octubre',
+      'noviembre',
+      'diciembre',
+    ];
     final diaSemana = dias[ahora.weekday - 1];
     final mes = meses[ahora.month - 1];
     final hora = DateFormat('hh:mm a').format(ahora);
@@ -100,12 +121,24 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
     final colorTextoSecundario = TemaApp.textoSecundario(context);
     final colorTarjeta = TemaApp.tarjeta(context);
 
-    final temp = _climaActual != null ? '${(_climaActual!['temperatura_actual'] as num?)?.round() ?? 22}°C' : '22°C';
-    final viento = _climaActual != null ? '${(_climaActual!['velocidad_viento'] as num?)?.round() ?? 5} km/h' : '5 km/h';
-    final humedad = _climaActual != null ? '${(_climaActual!['humedad'] as num?)?.round() ?? 70}%' : '70%';
-    final lluvia = _climaActual != null ? '${(_climaActual!['probabilidad_precipitacion'] as num?)?.round() ?? 10}%' : '10%';
-    final uv = _climaActual != null ? '${(_climaActual!['indice_uv'] as num?)?.round() ?? 0}' : '0';
-    final descripcion = _climaActual != null ? (_climaActual!['descripcion_clima'] ?? 'Cielo claro') : 'Cielo despejado';
+    final temp = _climaActual != null
+        ? '${(_climaActual!['temperatura_actual'] as num?)?.round() ?? 22}°C'
+        : '22°C';
+    final viento = _climaActual != null
+        ? '${(_climaActual!['velocidad_viento'] as num?)?.round() ?? 5} km/h'
+        : '5 km/h';
+    final humedad = _climaActual != null
+        ? '${(_climaActual!['humedad'] as num?)?.round() ?? 70}%'
+        : '70%';
+    final lluvia = _climaActual != null
+        ? '${(_climaActual!['probabilidad_precipitacion'] as num?)?.round() ?? 10}%'
+        : '10%';
+    final uv = _climaActual != null
+        ? '${(_climaActual!['indice_uv'] as num?)?.round() ?? 0}'
+        : '0';
+    final descripcion = _climaActual != null
+        ? (_climaActual!['descripcion_clima'] ?? 'Cielo claro')
+        : 'Cielo despejado';
 
     return Scaffold(
       backgroundColor: TemaApp.fondo(context),
@@ -171,7 +204,11 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
                   const SizedBox(height: 4),
                   Text(
                     _obtenerFechaFormateada(),
-                    style: TextStyle(fontSize: 13, color: colorTextoSecundario, fontWeight: FontWeight.w500),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: colorTextoSecundario,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ],
               ),
@@ -199,7 +236,9 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
                         final horaActual = DateTime.now().hour;
                         final esNoche = horaActual < 6 || horaActual >= 18;
                         final iconoMomento = esNoche ? '🌙' : '☀️';
-                        final tituloMomento = esNoche ? 'Condición Nocturna en Ica' : 'Condición Diurna en Ica';
+                        final tituloMomento = esNoche
+                            ? 'Condición Nocturna en Ica'
+                            : 'Condición Diurna en Ica';
                         final descMomento = esNoche
                             ? 'Estado actual: $descripcion. Temperatura templada ($temp, humedad $humedad).'
                             : 'Estado actual: $descripcion. Temperatura de $temp con radiación UV $uv.';
@@ -213,7 +252,10 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
                                 shape: BoxShape.circle,
                               ),
                               child: Center(
-                                child: Text(iconoMomento, style: const TextStyle(fontSize: 28)),
+                                child: Text(
+                                  iconoMomento,
+                                  style: const TextStyle(fontSize: 28),
+                                ),
                               ),
                             ),
                             const SizedBox(width: 15),
@@ -231,7 +273,9 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    _cargando ? 'Consultando sensores...' : descMomento,
+                                    _cargando
+                                        ? 'Consultando sensores...'
+                                        : descMomento,
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: colorTextoSecundario,
@@ -357,7 +401,11 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.auto_awesome, color: AppColores.naranjaBoton, size: 26),
+                            const Icon(
+                              Icons.auto_awesome,
+                              color: AppColores.naranjaBoton,
+                              size: 26,
+                            ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
@@ -375,27 +423,42 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
                         Text(
                           _textoRecomendacionIA ??
                               'Con una temperatura de $temp y humedad de $humedad, las condiciones climáticas son propicias para visitar el Oasis de Huacachina o la Bodega Tacama según los datos registrados en el catálogo.',
-                          style: TextStyle(fontSize: 13, color: colorTextoSecundario, height: 1.45),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: colorTextoSecundario,
+                            height: 1.45,
+                          ),
                         ),
                         if (_consejosIA.isNotEmpty) ...[
                           const SizedBox(height: 12),
                           const Divider(height: 1),
                           const SizedBox(height: 10),
-                          ..._consejosIA.map((consejo) => Padding(
-                                padding: const EdgeInsets.only(bottom: 6),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text('• ', style: TextStyle(color: AppColores.naranjaBoton, fontWeight: FontWeight.bold)),
-                                    Expanded(
-                                      child: Text(
-                                        consejo.toString(),
-                                        style: TextStyle(fontSize: 12, color: colorTextoSecundario),
+                          ..._consejosIA.map(
+                            (consejo) => Padding(
+                              padding: const EdgeInsets.only(bottom: 6),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    '• ',
+                                    style: TextStyle(
+                                      color: AppColores.naranjaBoton,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      consejo.toString(),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: colorTextoSecundario,
                                       ),
                                     ),
-                                  ],
-                                ),
-                              )),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ],
                       ],
                     ),
