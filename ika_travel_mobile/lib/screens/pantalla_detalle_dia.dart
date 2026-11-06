@@ -192,9 +192,7 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
                     ),
                   ],
                 ),
-                child: Row(
-                  children: [
-                    Builder(
+                child: Builder(
                       builder: (context) {
                         final horaActual = DateTime.now().hour;
                         final esNoche = horaActual < 6 || horaActual >= 18;
@@ -244,10 +242,8 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
                         );
                       },
                     ),
-                  ],
                 ),
               ),
-            ),
             const SizedBox(height: 25),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
