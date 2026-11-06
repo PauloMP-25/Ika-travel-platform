@@ -11,7 +11,7 @@ import time
 import pytest
 from unittest.mock import AsyncMock, patch
 
-from src.modules.weather.ai.schemas import RecomendacionEnriquecida
+from src.modules.ai_engine.schemas import RecomendacionEnriquecida
 from src.modules.weather.rules import (
     AlertaCandidata,
     evaluar_alertas,
@@ -19,7 +19,8 @@ from src.modules.weather.rules import (
     seleccionar_perfil,
     PERFILES,
 )
-from src.modules.weather import ai_recommender
+from src.modules.ai_engine import recommender as ai_engine
+from src.modules.weather import scoring
 
 
 # ======================================================================
@@ -117,7 +118,7 @@ def test_rendimiento_fallback_determinista_menor_150ms():
     """1,000 ejecuciones del cálculo de recomendación deben tardar en promedio < 1 ms por ejecución."""
     inicio = time.perf_counter()
     for _ in range(1000):
-        ai_recommender.generar_recomendacion(
+        scoring.generar_recomendacion(
             nombre_atractivo="Laguna de Huacachina",
             slugs_categorias=["aventura", "desierto"],
             temperatura=28.5,
@@ -138,7 +139,7 @@ def test_rendimiento_fallback_determinista_menor_150ms():
 @pytest.mark.anyio
 async def test_guardarrail_de_seguridad_recorta_score_ante_peligro(monkeypatch):
     """Aunque Gemini devuelva un score alto (0.95), una alerta 'high' fuerza score <= 0.30."""
-    from src.modules.weather.ai.engine import MotorGeminiClima
+    from src.modules.ai_engine.engine import MotorGeminiClima
 
     mock_rec = RecomendacionEnriquecida(
         summary="Visita a Paracas con emoción extrema.",
@@ -153,7 +154,7 @@ async def test_guardarrail_de_seguridad_recorta_score_ante_peligro(monkeypatch):
     with patch.object(MotorGeminiClima, "generar_recomendacion_estructurada", new_callable=AsyncMock) as mock_gemini:
         mock_gemini.return_value = mock_rec
 
-        resultado_base = ai_recommender.generar_recomendacion(
+        resultado_base = scoring.generar_recomendacion(
             nombre_atractivo="Islas Ballestas",
             slugs_categorias=["marina"],
             temperatura=19,
@@ -161,7 +162,7 @@ async def test_guardarrail_de_seguridad_recorta_score_ante_peligro(monkeypatch):
             viento=55,  # Peligro: viento Paracas alto
         )
 
-        rec = await ai_recommender.generar_recomendacion_enriquecida(
+        rec = await ai_engine.generar_recomendacion_enriquecida(
             nombre_atractivo="Islas Ballestas",
             resultado=resultado_base,
             temperatura=19,

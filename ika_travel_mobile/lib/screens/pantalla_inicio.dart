@@ -400,10 +400,26 @@ class _PantallaInicioState extends State<PantallaInicio> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Icon(
-                                Icons.wb_sunny,
-                                size: 55,
-                                color: Colors.orange,
+                              Builder(
+                                builder: (context) {
+                                  final hora = DateTime.now().hour;
+                                  final esNoche = hora < 6 || hora >= 18;
+                                  final desc = (_clima != null ? _clima!['descripcion_clima'] ?? '' : '').toString().toLowerCase();
+                                  IconData icono = esNoche ? Icons.nightlight_round : Icons.wb_sunny;
+                                  Color color = esNoche ? const Color(0xFFFFD54F) : Colors.orange;
+                                  if (desc.contains('lluv')) {
+                                    icono = Icons.grain;
+                                    color = Colors.lightBlue;
+                                  } else if (desc.contains('nub')) {
+                                    icono = esNoche ? Icons.nights_stay : Icons.cloud;
+                                    color = esNoche ? const Color(0xFF90CAF9) : Colors.blueGrey;
+                                  }
+                                  return Icon(
+                                    icono,
+                                    size: 55,
+                                    color: color,
+                                  );
+                                },
                               ),
                               Text(
                                 _clima != null

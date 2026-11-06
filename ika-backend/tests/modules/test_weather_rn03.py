@@ -13,7 +13,8 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from src.core.exceptions import registrar_manejadores_excepciones
-from src.modules.weather import ai_recommender, service
+from src.modules.ai_engine import recommender as ai_engine
+from src.modules.weather import scoring, service
 from src.modules.weather.exceptions import (
     AtractivoSinClimaException,
     DatosClimaDesactualizadosException,
@@ -123,11 +124,11 @@ async def test_forzar_refresco_ignora_redis_y_bd(monkeypatch, sin_redis):
 # Recomendador y alertas (funciones puras)
 # ----------------------------------------------------------------------
 def test_viento_alto_baja_el_score_de_sandboarding():
-    calmado = ai_recommender.generar_recomendacion(
+    calmado = scoring.generar_recomendacion(
         nombre_atractivo="Sandboarding en Huacachina", slugs_categorias=["sandboarding"],
         temperatura=25, uv=6, viento=10, precipitacion=0,
     )
-    ventoso = ai_recommender.generar_recomendacion(
+    ventoso = scoring.generar_recomendacion(
         nombre_atractivo="Sandboarding en Huacachina", slugs_categorias=["sandboarding"],
         temperatura=25, uv=6, viento=50, precipitacion=0,
     )
@@ -137,58 +138,58 @@ def test_viento_alto_baja_el_score_de_sandboarding():
 
 def test_actividad_cultural_penaliza_menos_el_viento_que_sandboarding():
     kwargs = dict(temperatura=25, uv=6, viento=35, precipitacion=0)
-    cultural = ai_recommender.generar_recomendacion(
+    cultural = scoring.generar_recomendacion(
         nombre_atractivo="Museo Regional", slugs_categorias=["cultural"], **kwargs
     )
-    aventura = ai_recommender.generar_recomendacion(
+    aventura = scoring.generar_recomendacion(
         nombre_atractivo="Sandboarding", slugs_categorias=["sandboarding"], **kwargs
     )
     assert cultural.score > aventura.score
 
 
 def test_detectar_alertas_por_viento_y_uv():
-    alertas = ai_recommender.detectar_alertas(temperatura=25, uv=12, viento=65, precipitacion=0)
+    alertas = scoring.detectar_alertas(temperatura=25, uv=12, viento=65, precipitacion=0)
     codigos = {(a.code, a.severity) for a in alertas}
     assert ("viento_fuerte", "high") in codigos
     assert ("uv_extremo", "high") in codigos
 
 
 def test_sin_condiciones_extremas_no_hay_alertas():
-    assert ai_recommender.detectar_alertas(temperatura=25, uv=5, viento=10, precipitacion=0) == []
+    assert scoring.detectar_alertas(temperatura=25, uv=5, viento=10, precipitacion=0) == []
 
 
 @pytest.mark.anyio
 async def test_gemini_caido_devuelve_none_y_no_rompe(monkeypatch):
     """Si Gemini falla, la recomendación sigue funcionando con el texto por reglas."""
-    monkeypatch.setattr(ai_recommender.configuracion, "GEMINI_API_KEY", "clave-falsa")
+    monkeypatch.setattr(ai_engine.configuracion, "GEMINI_API_KEY", "clave-falsa")
 
-    class ClienteRoto:
-        def __init__(self, *a, **k): ...
-        async def __aenter__(self): return self
-        async def __aexit__(self, *a): return False
-        async def post(self, *a, **k): raise httpx.ConnectTimeout("caído")
+    monkeypatch.setattr(ai_engine, "_motor_gemini", None)
 
-    monkeypatch.setattr(ai_recommender.httpx, "AsyncClient", ClienteRoto)
-    resultado = ai_recommender.generar_recomendacion(
+    async def _gemini_caido(self, *a, **k):
+        return None  # el motor degrada a None ante timeout/errores del proveedor
+
+    monkeypatch.setattr(ai_engine.MotorGeminiClima, "generar_recomendacion_estructurada", _gemini_caido)
+    resultado = scoring.generar_recomendacion(
         nombre_atractivo="Huacachina", slugs_categorias=[], temperatura=25, uv=5, viento=10, precipitacion=0
     )
-    texto = await ai_recommender.redactar_con_gemini(
+    texto = await ai_engine.redactar_con_gemini(
         nombre_atractivo="Huacachina", resultado=resultado, temperatura=25, uv=5, viento=10,
         condicion="Despejado",
     )
-    assert texto is None
+    assert texto == (None, [])  # redactar_con_gemini devuelve (texto, consejos)
     assert resultado.texto  # el texto por reglas siempre existe
 
 
 @pytest.mark.anyio
 async def test_gemini_sin_api_key_no_hace_llamadas(monkeypatch):
-    monkeypatch.setattr(ai_recommender.configuracion, "GEMINI_API_KEY", "")
-    resultado = ai_recommender.generar_recomendacion(
+    monkeypatch.setattr(ai_engine.configuracion, "GEMINI_API_KEY", "")
+    resultado = scoring.generar_recomendacion(
         nombre_atractivo="X", slugs_categorias=[], temperatura=25, uv=5, viento=10, precipitacion=0
     )
-    assert await ai_recommender.redactar_con_gemini(
+    monkeypatch.setattr(ai_engine, "_motor_gemini", None)
+    assert await ai_engine.redactar_con_gemini(
         nombre_atractivo="X", resultado=resultado, temperatura=25, uv=5, viento=10, condicion="-"
-    ) is None
+    ) == (None, [])
 
 
 # ----------------------------------------------------------------------
@@ -221,7 +222,7 @@ def test_excepciones_de_clima_se_mapean_a_http(excepcion, estado, codigo):
 
 
 def test_recomendacion_personalizada_aplica_bonificacion_por_afinidad() -> None:
-    from src.modules.weather.ai_recommender import generar_recomendacion
+    from src.modules.weather.scoring import generar_recomendacion
 
     # Atractivo de aventura en desierto (Huacachina) con buen clima
     rec_sin_preferencia = generar_recomendacion(

@@ -87,7 +87,7 @@ En lugar de acoplarse a un único proveedor meteorológico monolítico, el siste
 ## 4. Modelo de Inteligencia Artificial Utilizado
 
 ### Modelo: **Google Gemini Flash (`gemini-flash-latest`)**
-Se utiliza la API oficial de **Google GenAI SDK** configurada en `src/modules/weather/ai/engine.py`.
+Se utiliza la API oficial de **Google GenAI SDK** configurada en `src/modules/ai_engine/engine.py`.
 
 ### Justificación de la Elección:
 1. **Baja Latencia de Inferencia:** Gemini Flash responde en menos de $800\text{ ms}$, ideal para aplicaciones móviles donde el usuario requiere recomendaciones ágiles en pantalla.

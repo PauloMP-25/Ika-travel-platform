@@ -45,3 +45,7 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Plataformas de escritorio no utilizadas
+windows/
+linux/

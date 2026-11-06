@@ -11,7 +11,7 @@ from google import genai
 from google.genai import types
 
 from src.core.config import configuracion
-from src.modules.weather.ai.schemas import RecomendacionEnriquecida
+from src.modules.ai_engine.schemas import RecomendacionEnriquecida
 from src.shared.ai_logging import registrar_consumo_tokens
 
 logger = logging.getLogger(__name__)
