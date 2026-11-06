@@ -132,10 +132,26 @@ class TarjetaClima extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const Icon(
-                    Icons.wb_sunny,
-                    size: 44,
-                    color: AppColores.naranjaBoton,
+                  Builder(
+                    builder: (context) {
+                      final hora = DateTime.now().hour;
+                      final esNoche = hora < 6 || hora >= 18;
+                      final cond = condicion.toLowerCase();
+                      IconData icono = esNoche ? Icons.nightlight_round : Icons.wb_sunny;
+                      Color color = esNoche ? const Color(0xFFFFD54F) : AppColores.naranjaBoton;
+                      if (cond.contains('lluv')) {
+                        icono = Icons.grain;
+                        color = Colors.lightBlue;
+                      } else if (cond.contains('nub')) {
+                        icono = esNoche ? Icons.nights_stay : Icons.cloud;
+                        color = esNoche ? const Color(0xFF90CAF9) : Colors.blueGrey;
+                      }
+                      return Icon(
+                        icono,
+                        size: 44,
+                        color: color,
+                      );
+                    },
                   ),
                 ],
               ),

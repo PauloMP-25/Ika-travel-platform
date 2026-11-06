@@ -99,11 +99,24 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
     }
 
     List<dynamic> horasFiltradas = [];
+    final ahora = DateTime.now();
     if (_opcionSeleccionada == 0) {
-      horasFiltradas = horas.take(12).toList();
+      // Filtrar a partir de la hora actual de Ica hacia adelante
+      final futuras = horas.where((h) {
+        if (h['time'] == null) return true;
+        final d = DateTime.parse(h['time']);
+        return d.isAfter(ahora.subtract(const Duration(minutes: 50)));
+      }).toList();
+      horasFiltradas = futuras.isNotEmpty ? futuras.take(12).toList() : horas.take(12).toList();
     } else if (_opcionSeleccionada == 1) {
-      horasFiltradas = horas.skip(12).take(12).toList();
-      if (horasFiltradas.isEmpty) horasFiltradas = horas.take(12).toList();
+      // Horas del día siguiente (Mañana)
+      final manana = ahora.add(const Duration(days: 1));
+      final horasManana = horas.where((h) {
+        if (h['time'] == null) return false;
+        final d = DateTime.parse(h['time']);
+        return d.day == manana.day;
+      }).toList();
+      horasFiltradas = horasManana.isNotEmpty ? horasManana.take(12).toList() : horas.skip(12).take(12).toList();
     } else {
       horasFiltradas = dias.map((dia) {
         return {
@@ -215,10 +228,22 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
                   children: [
                     Row(
                       children: [
-                        const Icon(
-                          Icons.wb_sunny,
-                          size: 50,
-                          color: Colors.orange,
+                        Builder(
+                          builder: (context) {
+                            final hora = DateTime.now().hour;
+                            final esNoche = _opcionSeleccionada == 0 && (hora < 6 || hora >= 18);
+                            final cond = (data['condicion'] ?? '').toString().toLowerCase();
+                            IconData ic = esNoche ? Icons.nightlight_round : Icons.wb_sunny;
+                            Color col = esNoche ? const Color(0xFFFFD54F) : Colors.orange;
+                            if (cond.contains('lluv')) {
+                              ic = Icons.grain;
+                              col = Colors.lightBlue;
+                            } else if (cond.contains('nub')) {
+                              ic = esNoche ? Icons.nights_stay : Icons.cloud;
+                              col = esNoche ? const Color(0xFF90CAF9) : Colors.blueGrey;
+                            }
+                            return Icon(ic, size: 50, color: col);
+                          },
                         ),
                         const SizedBox(width: 15),
                         Column(
@@ -343,8 +368,18 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
                         itemBuilder: (context, index) {
                           final item = data['porHoras'][index];
                           String horaFormateada = '--';
+                          IconData icHora = Icons.wb_sunny;
                           if (item['time'] != null) {
                             final date = DateTime.parse(item['time']);
+                            final esNocheH = date.hour < 6 || date.hour >= 18;
+                            final condH = (item['condition'] ?? '').toString().toLowerCase();
+                            if (condH.contains('lluv')) {
+                              icHora = Icons.grain;
+                            } else if (condH.contains('nub')) {
+                              icHora = esNocheH ? Icons.nights_stay : Icons.cloud;
+                            } else {
+                              icHora = esNocheH ? Icons.nightlight_round : Icons.wb_sunny;
+                            }
                             if (_opcionSeleccionada == 2) {
                               horaFormateada = '${date.day}/${date.month}';
                             } else {
@@ -354,7 +389,7 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
                           }
                           return _HoraItem(
                             hora: horaFormateada,
-                            icono: Icons.wb_sunny,
+                            icono: icHora,
                             // 👇 REDONDEAMOS LA TEMPERATURA POR HORAS
                             grados: '${(item['temperature'] as num).round()}°',
                             colorTexto: colorTexto,
