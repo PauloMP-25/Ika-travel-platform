@@ -37,5 +37,10 @@ celery_app.conf.update(
             "task": "catalog.sincronizar_padron_dircetur",
             "schedule": 24 * 60 * 60,
         },
+        # NUEVO: purga las alertas leídas hace más de 24 h.
+        "purgar-alertas-leidas-cada-hora": {
+            "task": "weather.purgar_alertas_leidas",
+            "schedule": 60 * 60,  # cada hora (3600 s)
+        },
     },
 )

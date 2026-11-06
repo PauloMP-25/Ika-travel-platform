@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import obtener_bd
@@ -10,6 +10,7 @@ from src.modules.users.models import User
 from src.modules.weather import service
 from src.modules.weather.schemas import (
     AlertaClimaResponse,
+    AlertaLeidaRequest,
     ClimaActualResponse,
     PronosticoResponse,
     RecomendacionResponse,
@@ -63,9 +64,32 @@ async def obtener_pronostico(
 
 @router.get("/alerts", response_model=list[AlertaClimaResponse])
 async def listar_alertas(db: AsyncSession = Depends(obtener_bd)) -> list[AlertaClimaResponse]:
-    """Alertas meteorológicas activas (`ends_at > now()`)."""
-    alertas = await service.listar_alertas_activas(db)
+    """Alertas meteorológicas activas (`ends_at > now()`) que el usuario no ha marcado como leídas."""
+    alertas = await service.listar_alertas_activas(db, excluir_leidas=True)
     return [AlertaClimaResponse.model_validate(a) for a in alertas]
+
+
+@router.get("/alerts/history", response_model=list[AlertaClimaResponse])
+async def listar_historial_alertas(
+    horas: int = Query(24, ge=1, le=168, description="Ventana de historial en horas"),
+    db: AsyncSession = Depends(obtener_bd),
+) -> list[AlertaClimaResponse]:
+    """Alertas leídas en las últimas N horas (default 24h)."""
+    alertas = await service.listar_alertas_historial(db, horas=horas)
+    return [AlertaClimaResponse.model_validate(a) for a in alertas]
+
+
+@router.patch("/alerts/{alert_id}", response_model=AlertaClimaResponse)
+async def marcar_alerta_leida(
+    alert_id: UUID,
+    body: AlertaLeidaRequest,
+    db: AsyncSession = Depends(obtener_bd),
+) -> AlertaClimaResponse:
+    """Marca o desmarca una alerta como leída por el usuario."""
+    alerta = await service.marcar_alerta_como_leida(db, alert_id, body.read)
+    if alerta is None:
+        raise HTTPException(status_code=404, detail="Alerta no encontrada")
+    return AlertaClimaResponse.model_validate(alerta)
 
 
 @router.get("/recommendations", response_model=list[RecomendacionResponse])

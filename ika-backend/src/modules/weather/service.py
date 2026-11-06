@@ -67,7 +67,6 @@ class AgregadorClima:
             for adaptador in self.adaptadores
         ]
 
-        # return_exceptions=True permite que si una API falla, las otras sigan
         resultados = await asyncio.gather(*tareas, return_exceptions=True)
 
         exitosos: list[ClimaActual] = []
@@ -101,11 +100,9 @@ class AgregadorClima:
         def prom(lista: list[float]) -> float:
             return sum(lista) / n
 
-        # Para las ráfagas que pueden ser None en algunas APIs, filtramos los Nones
         rafagas_validas = [r.rafagas_viento for r in resultados if r.rafagas_viento is not None]
         promedio_rafagas = sum(rafagas_validas) / len(rafagas_validas) if rafagas_validas else None
 
-        # Para el UV, filtramos los 0.0 que vienen de OWM (no tienen el dato, no es UV real de 0)
         uvs_validos = [r.indice_uv for r in resultados if r.indice_uv > 0]
         promedio_uv = sum(uvs_validos) / len(uvs_validos) if uvs_validos else 0.0
 
@@ -142,7 +139,6 @@ class AgregadorClima:
         )
 
 
-# Instancia global — los adaptadores se inyectan aquí (Inversión de Dependencias)
 agregador_clima = AgregadorClima(
     adaptadores=[
         AdaptadorOpenWeatherMap(),
@@ -153,21 +149,15 @@ agregador_clima = AgregadorClima(
 
 
 def resolver_coordenadas_destino(destino: str) -> tuple[float, float]:
-    """Convierte el nombre de un destino turístico a sus coordenadas."""
     clave = normalizar_nombre_destino(destino)
     if clave not in DESTINOS_ICA:
         raise DestinoNoEncontradoException(destino)
     return DESTINOS_ICA[clave]
 
 
-# ======================================================================
-# Ubicaciones y caché (RN-03)
-# ======================================================================
 @dataclass(frozen=True)
 class Ubicacion:
-    """Punto del que se consulta el clima: atractivo, destino conocido o región."""
-
-    clave: str  # clave de caché
+    clave: str
     nombre: str
     latitud: float
     longitud: float
@@ -200,7 +190,6 @@ def ubicacion_de_atractivo(atractivo: Attraction) -> Ubicacion:
 async def resolver_ubicacion(
     db: AsyncSession, *, atractivo_id: UUID | None = None, destino: str | None = None
 ) -> Ubicacion:
-    """Prioridad: `attraction_id` > `destino` > región por defecto."""
     if atractivo_id is not None:
         resultado = await db.execute(
             select(Attraction).where(Attraction.id == atractivo_id, Attraction.is_active.is_(True))
@@ -227,7 +216,6 @@ def _clave_cache(prefijo: str, ubicacion: Ubicacion) -> str:
 async def _ultimo_snapshot_vigente(
     db: AsyncSession, ubicacion: Ubicacion
 ) -> WeatherSnapshot | None:
-    """Último snapshot guardado hace menos de `CLIMA_VIGENCIA_HORAS` (RN-03)."""
     limite = datetime.now(tz=timezone.utc) - _vigencia()
     consulta = select(WeatherSnapshot).where(WeatherSnapshot.creado_en >= limite)
     if ubicacion.atractivo_id is not None:
@@ -260,12 +248,6 @@ async def get_fresh_snapshot(
     forzar_refresco: bool = False,
     agregador: AgregadorClima | None = None,
 ) -> ClimaActualResponse:
-    """RN-03: nunca devuelve un dato de clima con más de 6 horas.
-
-    Cache-aside: Redis -> último snapshot vigente de BD -> refresco contra los
-    proveedores. Si el refresco falla no se sirve información vencida: se lanza
-    `DatosClimaDesactualizadosException` (HTTP 503). La regla vive solo aquí.
-    """
     if not forzar_refresco:
         en_redis = await cache_obtener_json(_clave_cache("current", ubicacion))
         if en_redis is not None:
@@ -281,7 +263,6 @@ async def get_fresh_snapshot(
             return respuesta
 
     if not forzar_refresco:
-        # Lock anti-stampede con Redis (RN-03): evita colapso concurrente en caché miss
         clave_lock = f"weather:lock:{ubicacion.clave}"
         from src.redis_client import obtener_cliente_redis
         cliente_redis = await obtener_cliente_redis()
@@ -290,7 +271,6 @@ async def get_fresh_snapshot(
             try:
                 lock_obtenido = bool(await cliente_redis.set(clave_lock, "1", nx=True, ex=15))
                 if not lock_obtenido:
-                    # Esperar hasta 2s y verificar si el ganador del lock ya pobló la caché
                     for _ in range(10):
                         await asyncio.sleep(0.2)
                         en_redis = await cache_obtener_json(_clave_cache("current", ubicacion))
@@ -323,9 +303,6 @@ async def obtener_clima_actual(
     return await get_fresh_snapshot(db, ubicacion)
 
 
-# ======================================================================
-# Pronóstico
-# ======================================================================
 TTL_PRONOSTICO_SEGUNDOS = 3 * 60 * 60
 
 
@@ -353,9 +330,6 @@ async def obtener_pronostico(
     return completo.model_copy(update={"dias": completo.dias[:dias]})
 
 
-# ======================================================================
-# Recomendaciones y alertas
-# ======================================================================
 async def _atractivos_activos(db: AsyncSession) -> list[Attraction]:
     resultado = await db.execute(
         select(Attraction).where(Attraction.is_active.is_(True)).options(selectinload(Attraction.categories))
@@ -394,7 +368,6 @@ def _a_recomendacion_response(
 async def listar_recomendaciones(
     db: AsyncSession, preferencias_usuario: list[str] | None = None
 ) -> list[RecomendacionResponse]:
-    """Atractivos activos ordenados por `score` descendente (modulado por preferencias de Ica)."""
     recomendaciones: list[RecomendacionResponse] = []
     for atractivo in await _atractivos_activos(db):
         clima = await get_fresh_snapshot(db, ubicacion_de_atractivo(atractivo))
@@ -409,7 +382,6 @@ async def listar_recomendaciones(
 async def recomendacion_del_dia(
     db: AsyncSession, preferencias_usuario: list[str] | None = None, idioma: str = "es"
 ) -> RecomendacionResponse | None:
-    """Top 1; redactado por Gemini con personalización y fallback determinista."""
     ranking = await listar_recomendaciones(db, preferencias_usuario=preferencias_usuario)
     if not ranking:
         return None
@@ -417,8 +389,7 @@ async def recomendacion_del_dia(
     atractivo = next(a for a in await _atractivos_activos(db) if a.id == mejor.atractivo_id)
     clima = await get_fresh_snapshot(db, ubicacion_de_atractivo(atractivo))
     resultado = _recomendar(atractivo, clima, preferencias=preferencias_usuario)
-    
-    # Obtener última narrativa generada para este atractivo (continuidad narrativa)
+
     narrativa_previa = None
     consulta_anterior = (
         select(AIRecommendation.recommendation_text)
@@ -430,7 +401,6 @@ async def recomendacion_del_dia(
     if rec_previa:
         narrativa_previa = rec_previa
 
-    # Evaluar alertas oficiales de Ica
     alertas_candidatas = rules.evaluar_alertas(
         temperatura=clima.temperatura_actual,
         uv=clima.indice_uv,
@@ -442,7 +412,6 @@ async def recomendacion_del_dia(
     nombres_alertas = [a.message for a in alertas_candidatas]
     hay_peligro = any(a.severity == "high" for a in alertas_candidatas)
 
-    # Extraer los 2 mejores lugares siguientes según el índice estadístico PERTUR
     top_alternativos_nombres = [r.atractivo_nombre for r in ranking if r.atractivo_id != atractivo.id][:2]
     texto, consejos_gemini = await ai_recommender.redactar_con_gemini(
         nombre_atractivo=atractivo.name,
@@ -464,8 +433,6 @@ async def recomendacion_del_dia(
         narrativa_previa=narrativa_previa,
     )
 
-    # Guardarraíl de seguridad Post-IA (P4):
-    # Si hay una alerta de nivel 'high' (peligro), el score se recorta a <= 0.30 y nivel 'no_recomendado'
     score_final = resultado.score
     nivel_final = resultado.nivel
     if hay_peligro:
@@ -483,12 +450,68 @@ async def recomendacion_del_dia(
     )
 
 
-async def listar_alertas_activas(db: AsyncSession) -> list[WeatherAlert]:
+# ======================================================================
+# Alertas: activas, marcadas como leídas e historial
+# ======================================================================
+async def listar_alertas_activas(
+    db: AsyncSession, excluir_leidas: bool = True
+) -> list[WeatherAlert]:
+    """Alertas activas (`ends_at > now()`). Por defecto excluye las marcadas como leídas."""
     ahora = datetime.now(tz=timezone.utc)
+    consulta = select(WeatherAlert).where(WeatherAlert.ends_at > ahora)
+    if excluir_leidas:
+        consulta = consulta.where(WeatherAlert.read.is_(False))
+    resultado = await db.execute(consulta.order_by(WeatherAlert.starts_at.desc()))
+    return list(resultado.scalars().all())
+
+
+async def marcar_alerta_como_leida(
+    db: AsyncSession, alerta_id: UUID, leida: bool
+) -> WeatherAlert | None:
+    """Marca o desmarca una alerta como leída. Devuelve la alerta o None si no existe."""
+    resultado = await db.execute(select(WeatherAlert).where(WeatherAlert.id == alerta_id))
+    alerta = resultado.scalar_one_or_none()
+    if alerta is None:
+        return None
+
+    alerta.read = leida
+    alerta.read_at = datetime.now(tz=timezone.utc) if leida else None
+    await db.commit()
+    await db.refresh(alerta)
+    return alerta
+
+
+async def listar_alertas_historial(
+    db: AsyncSession, horas: int = 24
+) -> list[WeatherAlert]:
+    """Alertas leídas en las últimas `horas` (por defecto 24 h)."""
+    hace_x_horas = datetime.now(tz=timezone.utc) - timedelta(hours=horas)
     resultado = await db.execute(
-        select(WeatherAlert).where(WeatherAlert.ends_at > ahora).order_by(WeatherAlert.starts_at.desc())
+        select(WeatherAlert)
+        .where(
+            WeatherAlert.read.is_(True),
+            WeatherAlert.read_at.is_not(None),
+            WeatherAlert.read_at >= hace_x_horas,
+        )
+        .order_by(WeatherAlert.read_at.desc())
     )
     return list(resultado.scalars().all())
+
+
+async def purgar_alertas_leidas_antiguas(
+    db: AsyncSession, horas: int = 24
+) -> int:
+    """Elimina alertas leídas hace más de `horas`. Devuelve cuántas borró."""
+    hace_x_horas = datetime.now(tz=timezone.utc) - timedelta(hours=horas)
+    resultado = await db.execute(
+        delete(WeatherAlert).where(
+            WeatherAlert.read.is_(True),
+            WeatherAlert.read_at.is_not(None),
+            WeatherAlert.read_at < hace_x_horas,
+        )
+    )
+    await db.commit()
+    return resultado.rowcount or 0
 
 
 async def regenerar_alertas_region(db: AsyncSession, clima: ClimaActualResponse) -> int:
@@ -563,4 +586,3 @@ async def purgar_antiguos(db: AsyncSession, *, dias: int = 7) -> int:
     await db.execute(delete(WeatherAlert).where(WeatherAlert.ends_at < limite))
     await db.commit()
     return resultado.rowcount or 0
-
