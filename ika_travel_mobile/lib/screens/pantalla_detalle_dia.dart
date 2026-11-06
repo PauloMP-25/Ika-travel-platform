@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../config/tema.dart';
 import '../config/colores_tema.dart';
+import '../config/navegacion_service.dart';
+import '../config/tema.dart';
+import '../config/traducciones_scope.dart';
 import '../services/weather_service.dart';
 
 class PantallaDetalleDia extends StatefulWidget {
@@ -25,17 +27,19 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
   final WeatherService _weatherService = WeatherService();
 
   Map<String, dynamic>? _climaActual;
-
   bool _cargando = true;
+
+  String? _textoRecomendacionIA;
+  String? _nombreAtractivo;
+  double _scoreRecomendacion = 0.0;
+  String _nivelRecomendacion = '';
+  List<dynamic> _consejosIA = [];
 
   @override
   void initState() {
     super.initState();
     _cargarDatosClima();
   }
-
-  String? _textoRecomendacionIA;
-  List<dynamic> _consejosIA = [];
 
   Future<void> _cargarDatosClima() async {
     try {
@@ -45,10 +49,12 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
       if (mounted) {
         setState(() {
           _climaActual = clima;
-
           if (recIA != null) {
             _textoRecomendacionIA = recIA['recommendation_text'] as String?;
             _consejosIA = (recIA['consejos'] as List<dynamic>?) ?? [];
+            _nombreAtractivo = recIA['atractivo_nombre'] as String?;
+            _scoreRecomendacion = (recIA['score'] as num?)?.toDouble() ?? 0.0;
+            _nivelRecomendacion = (recIA['nivel'] as String?) ?? '';
           }
           _cargando = false;
         });
@@ -60,38 +66,21 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
     }
   }
 
-  String _obtenerFechaFormateada() {
+  String _obtenerFechaFormateada(BuildContext context) {
     if (widget.fecha != null && widget.fecha!.isNotEmpty) {
       return widget.fecha!;
     }
     final ahora = DateTime.now();
-    final dias = [
-      'Lunes',
-      'Martes',
-      'Miércoles',
-      'Jueves',
-      'Viernes',
-      'Sábado',
-      'Domingo',
-    ];
-    final meses = [
-      'enero',
-      'febrero',
-      'marzo',
-      'abril',
-      'mayo',
-      'junio',
-      'julio',
-      'agosto',
-      'septiembre',
-      'octubre',
-      'noviembre',
-      'diciembre',
-    ];
-    final diaSemana = dias[ahora.weekday - 1];
-    final mes = meses[ahora.month - 1];
+    final diaSemana = DateFormat(
+      'EEEE',
+      context.locale.languageCode,
+    ).format(ahora);
+    final mes = DateFormat('MMMM', context.locale.languageCode).format(ahora);
     final hora = DateFormat('hh:mm a').format(ahora);
-    return '$diaSemana, ${ahora.day} de $mes de ${ahora.year} - $hora';
+    final diaCapitalizado = diaSemana[0].toUpperCase() + diaSemana.substring(1);
+    final mesCapitalizado = mes[0].toUpperCase() + mes.substring(1);
+
+    return '$diaCapitalizado, ${ahora.day} ${context.tr('de')} $mesCapitalizado ${context.tr('de')} ${ahora.year} - $hora';
   }
 
   Widget _buildImagenCabecera() {
@@ -113,6 +102,12 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
         fit: BoxFit.cover,
       ),
     );
+  }
+
+  Color _colorScore(double score) {
+    if (score >= 0.7) return const Color(0xFF2E7D32);
+    if (score >= 0.4) return const Color(0xFFE65100);
+    return const Color(0xFFC62828);
   }
 
   @override
@@ -137,8 +132,8 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
         ? '${(_climaActual!['indice_uv'] as num?)?.round() ?? 0}'
         : '0';
     final descripcion = _climaActual != null
-        ? (_climaActual!['descripcion_clima'] ?? 'Cielo claro')
-        : 'Cielo despejado';
+        ? (_climaActual!['descripcion_clima'] ?? context.tr('cielo_claro'))
+        : context.tr('cielo_despejado');
 
     return Scaffold(
       backgroundColor: TemaApp.fondo(context),
@@ -185,7 +180,7 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Detalle del Día',
+                    context.tr('detalle_dia'),
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -203,7 +198,7 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _obtenerFechaFormateada(),
+                    _obtenerFechaFormateada(context),
                     style: TextStyle(
                       fontSize: 13,
                       color: colorTextoSecundario,
@@ -229,66 +224,14 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
                     ),
                   ],
                 ),
-                child: Row(
-                  children: [
-                    Builder(
-                      builder: (context) {
-                        final horaActual = DateTime.now().hour;
-                        final esNoche = horaActual < 6 || horaActual >= 18;
-                        final iconoMomento = esNoche ? '🌙' : '☀️';
-                        final tituloMomento = esNoche
-                            ? 'Condición Nocturna en Ica'
-                            : 'Condición Diurna en Ica';
-                        final descMomento = esNoche
-                            ? 'Estado actual: $descripcion. Temperatura templada ($temp, humedad $humedad).'
-                            : 'Estado actual: $descripcion. Temperatura de $temp con radiación UV $uv.';
-                        return Row(
-                          children: [
-                            Container(
-                              width: 50,
-                              height: 50,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFFFF3E0),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Center(
-                                child: Text(
-                                  iconoMomento,
-                                  style: const TextStyle(fontSize: 28),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 15),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    tituloMomento,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: colorTexto,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    _cargando
-                                        ? 'Consultando sensores...'
-                                        : descMomento,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: colorTextoSecundario,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                  ],
+                child: _buildTarjetaMomento(
+                  context,
+                  colorTexto,
+                  colorTextoSecundario,
+                  temp,
+                  humedad,
+                  uv,
+                  descripcion,
                 ),
               ),
             ),
@@ -302,7 +245,7 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Datos en tiempo real (FastAPI)',
+                        context.tr('datos_tiempo_real'),
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -337,28 +280,28 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
                         _MiniFactor(
                           icono: Icons.thermostat,
                           valor: temp,
-                          etiqueta: 'Temperatura',
+                          etiqueta: context.tr('temperatura'),
                           colorTexto: colorTexto,
                           colorTextoSecundario: colorTextoSecundario,
                         ),
                         _MiniFactor(
                           icono: Icons.air,
                           valor: viento,
-                          etiqueta: 'Viento',
+                          etiqueta: context.tr('viento'),
                           colorTexto: colorTexto,
                           colorTextoSecundario: colorTextoSecundario,
                         ),
                         _MiniFactor(
                           icono: Icons.water_drop_outlined,
                           valor: humedad,
-                          etiqueta: 'Humedad',
+                          etiqueta: context.tr('humedad'),
                           colorTexto: colorTexto,
                           colorTextoSecundario: colorTextoSecundario,
                         ),
                         _MiniFactor(
                           icono: Icons.umbrella_outlined,
                           valor: lluvia,
-                          etiqueta: 'Lluvia',
+                          etiqueta: context.tr('lluvia'),
                           colorTexto: colorTexto,
                           colorTextoSecundario: colorTextoSecundario,
                         ),
@@ -375,9 +318,9 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Recomendación inteligente para esta hora',
+                    context.tr('tu_plan_ideal_hoy'),
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: colorTexto,
                     ),
@@ -387,12 +330,17 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       color: colorTarjeta,
-                      borderRadius: BorderRadius.circular(15),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: _colorScore(_scoreRecomendacion)
+                            .withValues(alpha: 0.3),
+                        width: 2,
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 12,
+                          offset: const Offset(0, 6),
                         ),
                       ],
                     ),
@@ -401,56 +349,117 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
                       children: [
                         Row(
                           children: [
-                            const Icon(
-                              Icons.auto_awesome,
-                              color: AppColores.naranjaBoton,
-                              size: 26,
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: AppColores.naranjaBoton.withValues(
+                                  alpha: 0.15,
+                                ),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.auto_awesome,
+                                color: AppColores.naranjaBoton,
+                                size: 24,
+                              ),
                             ),
-                            const SizedBox(width: 10),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                'Recomendación IA (Gemini & DIRCETUR)',
+                                context.tr('recomendacion_ia_titulo'),
                                 style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: colorTexto,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: colorTextoSecundario,
                                 ),
                               ),
                             ),
                           ],
                         ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _nombreAtractivo ?? '...',
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: colorTexto,
+                                  height: 1.2,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _colorScore(_scoreRecomendacion)
+                                    .withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: _colorScore(_scoreRecomendacion),
+                                ),
+                              ),
+                              child: Text(
+                                '${(_scoreRecomendacion * 100).toStringAsFixed(0)}/100',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: _colorScore(_scoreRecomendacion),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (_nivelRecomendacion.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            _nivelRecomendacion.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: _colorScore(_scoreRecomendacion),
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 12),
+                        Divider(
+                          height: 1,
+                          color: colorTextoSecundario.withValues(alpha: 0.15),
+                        ),
                         const SizedBox(height: 12),
                         Text(
                           _textoRecomendacionIA ??
-                              'Con una temperatura de $temp y humedad de $humedad, las condiciones climáticas son propicias para visitar el Oasis de Huacachina o la Bodega Tacama según los datos registrados en el catálogo.',
+                              '${context.tr('recomendacion_ia_default_1')} $temp ${context.tr('y_humedad_de')} $humedad, ${context.tr('recomendacion_ia_default_2')}',
                           style: TextStyle(
-                            fontSize: 13,
-                            color: colorTextoSecundario,
-                            height: 1.45,
+                            fontSize: 14,
+                            color: colorTexto,
+                            height: 1.5,
                           ),
                         ),
                         if (_consejosIA.isNotEmpty) ...[
                           const SizedBox(height: 12),
-                          const Divider(height: 1),
-                          const SizedBox(height: 10),
                           ..._consejosIA.map(
                             (consejo) => Padding(
                               padding: const EdgeInsets.only(bottom: 6),
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
-                                    '• ',
-                                    style: TextStyle(
-                                      color: AppColores.naranjaBoton,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                  const Icon(
+                                    Icons.check_circle,
+                                    size: 16,
+                                    color: AppColores.naranjaBoton,
                                   ),
+                                  const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
                                       consejo.toString(),
                                       style: TextStyle(
-                                        fontSize: 12,
+                                        fontSize: 13,
                                         color: colorTextoSecundario,
                                       ),
                                     ),
@@ -460,6 +469,32 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
                             ),
                           ),
                         ],
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColores.naranjaBoton,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            icon: const Icon(Icons.explore_outlined),
+                            label: Text(
+                              context.tr('ver_en_mapa'),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                            onPressed: () {
+                              Navigator.pop(context);
+                              NavegacionService.irAMapa(context);
+                            },
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -470,6 +505,61 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildTarjetaMomento(
+    BuildContext context,
+    Color colorTexto,
+    Color colorTextoSecundario,
+    String temp,
+    String humedad,
+    String uv,
+    String descripcion,
+  ) {
+    final horaActual = DateTime.now().hour;
+    final esNoche = horaActual < 6 || horaActual >= 18;
+    final iconoMomento = esNoche ? Icons.nights_stay : Icons.wb_sunny;
+    final tituloMomento = esNoche
+        ? context.tr('condicion_nocturna')
+        : context.tr('condicion_diurna');
+    final descMomento = esNoche
+        ? '${context.tr('estado_actual')} $descripcion. ${context.tr('temp_templada')} ($temp, ${context.tr('humedad')} $humedad).'
+        : '${context.tr('estado_actual')} $descripcion. ${context.tr('temp_de')} $temp ${context.tr('con_radiacion')} $uv.';
+
+    return Row(
+      children: [
+        Container(
+          width: 50,
+          height: 50,
+          decoration: BoxDecoration(
+            color: AppColores.naranjaBoton.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(iconoMomento, color: AppColores.naranjaBoton, size: 28),
+        ),
+        const SizedBox(width: 15),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                tituloMomento,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: colorTexto,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _cargando ? context.tr('consultando_sensores') : descMomento,
+                style: TextStyle(fontSize: 12, color: colorTextoSecundario),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

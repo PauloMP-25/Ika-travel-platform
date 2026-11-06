@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 
-import '../config/tema.dart';
 import '../config/colores_tema.dart';
 import '../config/favoritos_manager.dart';
-import '../services/alertas_service.dart';
-import '../services/auth_service.dart';
+import '../config/tema.dart';
+import '../config/traducciones_scope.dart';
 import '../models/alerta_modelo.dart';
 import '../models/horario_modelo.dart';
+import '../services/alertas_service.dart';
+import '../services/auth_service.dart';
 import '../widgets/tarjeta_horarios_atencion.dart';
-import 'pantalla_detalle_dia.dart';
 import 'pantalla_detalle_alerta.dart';
+import 'pantalla_detalle_dia.dart';
 import 'pantalla_login.dart';
 import 'pantalla_seguimiento_destino.dart';
 
@@ -97,7 +98,6 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                       ),
                     ),
                   ),
-
                   IgnorePointer(
                     child: Container(
                       height: 320,
@@ -115,7 +115,6 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                       ),
                     ),
                   ),
-
                   SafeArea(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
@@ -133,12 +132,10 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                             ),
                             onPressed: () => Navigator.pop(context),
                           ),
-
                           Row(
                             children: [
-                              // Botón rápido para seguimiento de este destino
                               IconButton(
-                                tooltip: 'Ver seguimiento del destino',
+                                tooltip: context.tr('ver_seguimiento_destino'),
                                 icon: const Icon(
                                   Icons.timeline,
                                   color: Colors.white,
@@ -150,13 +147,12 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                                     MaterialPageRoute(
                                       builder: (context) =>
                                           PantallaSeguimientoDestino(
-                                        nombreDestinoInicial: widget.titulo,
-                                      ),
+                                            nombreDestinoInicial: widget.titulo,
+                                          ),
                                     ),
                                   );
                                 },
                               ),
-                              // BOTÓN DE FAVORITO
                               ValueListenableBuilder(
                                 valueListenable: listaFavoritos,
                                 builder: (context, favoritos, child) {
@@ -172,19 +168,31 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                                       size: 28,
                                     ),
                                     onPressed: () {
-                                      final usuario = AuthService().usuarioActual;
-                                      if (usuario == null || usuario.esInvitado) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
+                                      final usuario =
+                                          AuthService().usuarioActual;
+                                      if (usuario == null ||
+                                          usuario.esInvitado) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
                                           SnackBar(
-                                            content: const Text('Inicia sesión para guardar atractivos en tus favoritos.'),
+                                            content: Text(
+                                              context.tr(
+                                                'inicia_sesion_favoritos',
+                                              ),
+                                            ),
                                             action: SnackBarAction(
-                                              label: 'Ingresar',
-                                              textColor: AppColores.naranjaBoton,
+                                              label: context.tr('ingresar'),
+                                              textColor:
+                                                  AppColores.naranjaBoton,
                                               onPressed: () {
                                                 Navigator.push(
                                                   context,
                                                   MaterialPageRoute(
-                                                    builder: (_) => const PantallaLogin(abrirComoModal: true),
+                                                    builder: (_) =>
+                                                        const PantallaLogin(
+                                                          abrirComoModal: true,
+                                                        ),
                                                   ),
                                                 );
                                               },
@@ -209,7 +217,6 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                       ),
                     ),
                   ),
-
                   Positioned(
                     bottom: 40,
                     left: 20,
@@ -229,8 +236,11 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            const Icon(Icons.location_on,
-                                size: 16, color: Colors.white70),
+                            const Icon(
+                              Icons.location_on,
+                              size: 16,
+                              color: Colors.white70,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               widget.subtitulo,
@@ -244,7 +254,6 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                       ],
                     ),
                   ),
-
                   Positioned(
                     bottom: 15,
                     left: 0,
@@ -271,29 +280,41 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                 ],
               ),
             ),
-
             const SizedBox(height: 16),
-
-            // ALERTA ACTIVA SI EXISTE PARA ESTA ACTIVIDAD
             ValueListenableBuilder<List<AlertaClima>>(
               valueListenable: _alertasService.alertasNotifier,
               builder: (context, alertas, _) {
                 final activa = alertas.where((a) {
-                  final actLimpia = a.actividad.replaceAll('\n', ' ').trim().toLowerCase();
-                  final titLimpio = widget.titulo.replaceAll('\n', ' ').trim().toLowerCase();
-                  return a.activa && (actLimpia == titLimpio || titLimpio.contains(actLimpia) || actLimpia.contains(titLimpio));
+                  final actLimpia = a.actividad
+                      .replaceAll('\n', ' ')
+                      .trim()
+                      .toLowerCase();
+                  final titLimpio = widget.titulo
+                      .replaceAll('\n', ' ')
+                      .trim()
+                      .toLowerCase();
+                  return a.activa &&
+                      (actLimpia == titLimpio ||
+                          titLimpio.contains(actLimpia) ||
+                          actLimpia.contains(titLimpio));
                 }).toList();
 
                 if (activa.isEmpty) return const SizedBox.shrink();
 
                 final alerta = activa.first;
                 return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 4,
+                  ),
                   child: Container(
                     decoration: BoxDecoration(
                       color: alerta.nivelRiesgo.colorFondo,
                       borderRadius: BorderRadius.circular(15),
-                      border: Border.all(color: alerta.nivelRiesgo.color, width: 1.2),
+                      border: Border.all(
+                        color: alerta.nivelRiesgo.color,
+                        width: 1.2,
+                      ),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.04),
@@ -311,7 +332,8 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => PantallaDetalleAlerta(alerta: alerta),
+                              builder: (context) =>
+                                  PantallaDetalleAlerta(alerta: alerta),
                             ),
                           );
                         },
@@ -319,7 +341,11 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                           padding: const EdgeInsets.all(14),
                           child: Row(
                             children: [
-                              Icon(alerta.nivelRiesgo.icono, color: alerta.nivelRiesgo.color, size: 28),
+                              Icon(
+                                alerta.nivelRiesgo.icono,
+                                color: alerta.nivelRiesgo.color,
+                                size: 28,
+                              ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
@@ -328,13 +354,19 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                                     Row(
                                       children: [
                                         Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 6,
+                                            vertical: 2,
+                                          ),
                                           decoration: BoxDecoration(
                                             color: alerta.nivelRiesgo.color,
-                                            borderRadius: BorderRadius.circular(4),
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
                                           ),
                                           child: Text(
-                                            alerta.nivelRiesgo.etiqueta.toUpperCase(),
+                                            alerta.nivelRiesgo.etiqueta
+                                                .toUpperCase(),
                                             style: const TextStyle(
                                               fontSize: 10,
                                               fontWeight: FontWeight.bold,
@@ -343,9 +375,9 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                                           ),
                                         ),
                                         const SizedBox(width: 6),
-                                        const Text(
-                                          'Alerta Climática',
-                                          style: TextStyle(
+                                        Text(
+                                          context.tr('alerta_climatica'),
+                                          style: const TextStyle(
                                             fontSize: 11,
                                             fontWeight: FontWeight.bold,
                                             color: AppColores.marronOscuro,
@@ -364,7 +396,7 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
-                                      '${alerta.motivoCambio.split('.').first}. Toca para ver "¿Por qué cambió?" y alternativas.',
+                                      '${alerta.motivoCambio.split('.').first}. ${context.tr('toca_ver_alternativas')}',
                                       style: const TextStyle(
                                         fontSize: 11,
                                         color: AppColores.marronOscuro,
@@ -375,7 +407,11 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                                   ],
                                 ),
                               ),
-                              const Icon(Icons.arrow_forward_ios, size: 14, color: AppColores.grisTexto),
+                              const Icon(
+                                Icons.arrow_forward_ios,
+                                size: 14,
+                                color: AppColores.grisTexto,
+                              ),
                             ],
                           ),
                         ),
@@ -385,16 +421,14 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                 );
               },
             ),
-
             const SizedBox(height: 12),
-
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Recomendación para hoy',
+                    context.tr('recomendacion_hoy'),
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -437,7 +471,11 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                               shape: BoxShape.circle,
                             ),
                             child: const Center(
-                              child: Text('😊', style: TextStyle(fontSize: 30)),
+                              child: Icon(
+                                Icons.thumb_up_alt,
+                                color: Color(0xFFFFB300),
+                                size: 30,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 15),
@@ -446,7 +484,7 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Excelente',
+                                  context.tr('excelente'),
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
@@ -455,7 +493,7 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Condiciones ideales para disfrutar estas actividades.',
+                                  context.tr('condiciones_ideales'),
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: colorTextoSecundario,
@@ -477,8 +515,6 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
               ),
             ),
             const SizedBox(height: 20),
-
-            // Horarios de atención y días disponibles (Req 3)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: TarjetaHorariosAtencion(
@@ -486,16 +522,13 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                 tituloDestino: widget.titulo.replaceAll('\n', ' '),
               ),
             ),
-
             const SizedBox(height: 20),
-
-            // Acceso al Seguimiento del Destino
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: colorTarjeta,
                   borderRadius: BorderRadius.circular(15),
                   boxShadow: [
                     BoxShadow(
@@ -510,10 +543,10 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: AppColores.arenaFondo,
+                        color: colorTexto.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.timeline, color: AppColores.marronOscuro, size: 22),
+                      child: Icon(Icons.timeline, color: colorTexto, size: 22),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -521,23 +554,29 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Seguimiento de ${widget.subtitulo}',
-                            style: const TextStyle(
+                            '${context.tr('seguimiento_de')} ${widget.subtitulo}',
+                            style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: AppColores.marronOscuro,
+                              color: colorTexto,
                             ),
                           ),
                           const SizedBox(height: 2),
-                          const Text(
-                            'Historial de cambios climáticos y aptitud de actividades.',
-                            style: TextStyle(fontSize: 11, color: AppColores.grisTexto),
+                          Text(
+                            context.tr('historial_cambios_clima'),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: colorTextoSecundario,
+                            ),
                           ),
                         ],
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.arrow_forward, color: AppColores.naranjaBoton),
+                      icon: const Icon(
+                        Icons.arrow_forward,
+                        color: AppColores.naranjaBoton,
+                      ),
                       onPressed: () {
                         Navigator.push(
                           context,
@@ -553,16 +592,14 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                 ),
               ),
             ),
-
             const SizedBox(height: 20),
-
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Factores estadísticos',
+                    context.tr('factores_estadisticos'),
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -586,7 +623,7 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                       children: [
                         _FilaFactor(
                           icono: Icons.thermostat,
-                          nombre: 'Temperatura',
+                          nombre: context.tr('temperatura'),
                           valor: '28°C',
                           colorTexto: colorTexto,
                           colorTextoSecundario: colorTextoSecundario,
@@ -594,11 +631,11 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                         Divider(
                           height: 1,
                           thickness: 0.5,
-                          color: colorTextoSecundario.withOpacity(0.2),
+                          color: colorTextoSecundario.withValues(alpha: 0.2),
                         ),
                         _FilaFactor(
                           icono: Icons.air,
-                          nombre: 'Viento',
+                          nombre: context.tr('viento'),
                           valor: '15 km/h',
                           colorTexto: colorTexto,
                           colorTextoSecundario: colorTextoSecundario,
@@ -606,11 +643,11 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                         Divider(
                           height: 1,
                           thickness: 0.5,
-                          color: colorTextoSecundario.withOpacity(0.2),
+                          color: colorTextoSecundario.withValues(alpha: 0.2),
                         ),
                         _FilaFactor(
                           icono: Icons.cloud_outlined,
-                          nombre: 'Nubosidad',
+                          nombre: context.tr('nubosidad'),
                           valor: '10%',
                           colorTexto: colorTexto,
                           colorTextoSecundario: colorTextoSecundario,
@@ -621,7 +658,6 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                 ],
               ),
             ),
-
             const SizedBox(height: 30),
           ],
         ),
@@ -674,4 +710,3 @@ class _FilaFactor extends StatelessWidget {
     );
   }
 }
-
