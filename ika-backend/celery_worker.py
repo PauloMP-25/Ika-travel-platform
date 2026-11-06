@@ -24,10 +24,11 @@ celery_app.conf.update(
     task_ignore_result=True,
     broker_connection_retry_on_startup=True,
     beat_schedule={
-        # RN-03: dato climático máximo de 6 h -> refresco cada 5 h.
-        "refrescar-clima-cada-5h": {
+        # RN-03: dato climático máximo de 6 h -> refresco cada 3 h, de modo que
+        # un refresco fallido deja margen para reintentar antes del vencimiento.
+        "refrescar-clima-cada-3h": {
             "task": "weather.refrescar_cache_clima",
-            "schedule": 5 * 60 * 60,
+            "schedule": 3 * 60 * 60,
         },
         "purgar-clima-antiguo-diario": {
             "task": "weather.purgar_datos_antiguos",
