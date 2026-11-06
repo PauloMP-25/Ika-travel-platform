@@ -8,7 +8,7 @@ PLAYAS_Y_DESTINOS = [
     (
         "Playa La Mina",
         "Hermosa playa de aguas calmas y color turquesa ubicada dentro de la Reserva Nacional de Paracas.",
-        -13.9167, -76.3167, "Paracas",
+        -13.911591, -76.318357, "Paracas",
         "Llevar sombrilla, bloqueador solar y agua. Respetar las zonas designadas de baño.",
         ["naturaleza", "aventura", "sol_playa"],
         "assets/images/act_reserva1.jpg"
@@ -24,7 +24,7 @@ PLAYAS_Y_DESTINOS = [
     (
         "Playa El Chaco",
         "Principal balneario y muelle turístico de Paracas, punto de embarque a las Islas Ballestas.",
-        -13.8322, -76.2483, "Paracas",
+        -13.830083, -76.247116, "Paracas",
         "Revisar alertas de oleaje y viento antes de abordar embarcaciones turísticas.",
         ["aventura", "gastronomia", "naturaleza", "sol_playa"],
         "assets/images/act_ballestas1.jpg"
@@ -40,7 +40,7 @@ PLAYAS_Y_DESTINOS = [
     (
         "Islas Ballestas",
         "Santuario marino que alberga lobos marinos, pingüinos de Humboldt y aves guaneras.",
-        -13.8167, -76.2833, "Paracas",
+        -13.735943, -76.394191, "Paracas",
         "Uso obligatorio de chaleco salvavidas en el deslizador turístico.",
         ["naturaleza", "aventura"],
         "assets/images/act_ballestas1.jpg"
@@ -48,15 +48,15 @@ PLAYAS_Y_DESTINOS = [
     (
         "Reserva Nacional de Paracas",
         "Área natural protegida que combina desierto costero y rica biodiversidad marina.",
-        -13.8333, -76.2500, "Paracas",
+        -13.911640, -76.318399, "Paracas",
         "Ingreso con ticket SERNANP. No arrojar residuos en el desierto.",
         ["naturaleza", "aventura"],
         "assets/images/act_reserva1.jpg"
     ),
     (
-        "Bodega Tacama",
+        "Viña Tacama",
         "El viñedo más antiguo de Sudamérica con paseos guiados, catas y shows de caballos de paso.",
-        -14.0206, -75.7089, "Ica",
+        -14.000958, -75.716955, "Ica",
         "Visitas recomendadas de 10:00 AM a 04:00 PM bajo sombra arbolada.",
         ["gastronomia", "cultural"],
         "assets/images/act_vinos.jpg"
