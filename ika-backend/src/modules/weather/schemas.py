@@ -97,6 +97,14 @@ class AlertaClimaResponse(BaseModel):
     message: str
     starts_at: datetime
     ends_at: datetime
+    # --- NUEVOS CAMPOS PARA HISTORIAL ---
+    read: bool = False
+    read_at: datetime | None = None
+
+
+class AlertaLeidaRequest(BaseModel):
+    """Body del PATCH /weather/alerts/{alert_id} para marcar como leída."""
+    read: bool = True
 
 
 class RecomendacionResponse(BaseModel):
@@ -107,4 +115,3 @@ class RecomendacionResponse(BaseModel):
     recommendation_text: str
     consejos: list[str] = []
     generated_at: datetime
-

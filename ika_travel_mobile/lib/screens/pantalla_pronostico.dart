@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../config/tema.dart';
 import '../config/colores_tema.dart';
@@ -15,6 +16,7 @@ class PantallaPronostico extends StatefulWidget {
 class _PantallaPronosticoState extends State<PantallaPronostico> {
   int _opcionSeleccionada = 0;
   bool _cargando = true;
+  bool _refrescando = false;
 
   Map<String, dynamic>? _datosPronostico;
   Map<String, dynamic>? _datosClimaActual;
@@ -26,18 +28,41 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
   }
 
   Future<void> _cargarTodo() async {
+    if (!_refrescando) setState(() => _cargando = true);
     final weather = WeatherService();
-    final pronostico = await weather.obtenerPronostico();
-    final actual = await weather.obtenerClimaActual();
-    setState(() {
-      _datosPronostico = pronostico;
-      _datosClimaActual = actual;
-      _cargando = false;
-    });
+    try {
+      final pronostico = await weather.obtenerPronostico();
+      final actual = await weather.obtenerClimaActual();
+      if (!mounted) return;
+      setState(() {
+        _datosPronostico = pronostico;
+        _datosClimaActual = actual;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _datosPronostico = null;
+        _datosClimaActual = null;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _cargando = false;
+          _refrescando = false;
+        });
+      }
+    }
   }
 
+  Future<void> _refrescar() async {
+    setState(() => _refrescando = true);
+    await _cargarTodo();
+  }
+
+  bool get _sinDatos => _datosPronostico == null || _datosClimaActual == null;
+
   bool get _climaEsVigente {
-    if (_datosClimaActual == null) return false;
+    if (_sinDatos) return false;
     final fechaRaw =
         _datosClimaActual!['fecha_hora_pronostico'] ??
         _datosClimaActual!['updated_at'];
@@ -48,9 +73,7 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
   }
 
   Map<String, dynamic> _getDatosActuales() {
-    if (_datosPronostico == null || _datosClimaActual == null) {
-      return {};
-    }
+    if (_sinDatos) return {};
 
     final horas = (_datosPronostico!['horas'] as List?) ?? [];
     final dias = (_datosPronostico!['dias'] as List?) ?? [];
@@ -97,20 +120,20 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
       }
     } else {
       if (dias.isNotEmpty) {
-        final double maxGlobal = dias
+        final maxGlobal = dias
             .map<double>((d) => (d['temp_max'] as num).toDouble())
             .reduce((a, b) => a > b ? a : b);
-        final double minGlobal = dias
+        final minGlobal = dias
             .map<double>((d) => (d['temp_min'] as num).toDouble())
             .reduce((a, b) => a < b ? a : b);
-        final double vientoProm =
+        final vientoProm =
             dias
                 .map<double>(
                   (d) => (d['wind_speed_max'] as num?)?.toDouble() ?? 12.0,
                 )
                 .reduce((a, b) => a + b) /
             dias.length;
-        final double uvMax = dias
+        final uvMax = dias
             .map<double>((d) => (d['uv_index_max'] as num?)?.toDouble() ?? 8.0)
             .reduce((a, b) => a > b ? a : b);
 
@@ -126,7 +149,7 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
       }
     }
 
-    List<dynamic> horasFiltradas = [];
+    List<dynamic> horasFiltradas;
     if (_opcionSeleccionada == 0) {
       horasFiltradas = horas.take(12).toList();
     } else if (_opcionSeleccionada == 1) {
@@ -158,28 +181,25 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
     };
   }
 
+  String _fechaActual(BuildContext context) {
+    final locale = context.locale.languageCode;
+    return DateFormat('EEEE, d MMMM', locale).format(DateTime.now());
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (_cargando) {
-      return Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
-    final data = _getDatosActuales();
     final colorTexto = TemaApp.texto(context);
     final colorTextoSecundario = TemaApp.textoSecundario(context);
     final colorTarjeta = TemaApp.tarjeta(context);
 
-    if (data.isEmpty) {
+    if (_cargando) {
       return Scaffold(
         backgroundColor: TemaApp.fondo(context),
-        body: Center(
-          child: Text(
-            context.tr('error_pronostico'),
-            style: TextStyle(color: colorTexto),
-          ),
-        ),
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
+
+    final data = _getDatosActuales();
 
     return Scaffold(
       backgroundColor: TemaApp.fondo(context),
@@ -187,20 +207,42 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-              child: Column(
+              padding: const EdgeInsets.fromLTRB(20, 15, 8, 5),
+              child: Row(
                 children: [
-                  Text(
-                    context.tr('pronostico_general'),
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: colorTexto,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          context.tr('pronostico_general'),
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: colorTexto,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Ica · ${_fechaActual(context)}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: colorTextoSecundario,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  Text(
-                    'Ica',
-                    style: TextStyle(fontSize: 14, color: colorTextoSecundario),
+                  IconButton(
+                    tooltip: context.tr('refrescar'),
+                    icon: _refrescando
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(Icons.refresh, color: colorTexto),
+                    onPressed: _refrescando ? null : _refrescar,
                   ),
                 ],
               ),
@@ -215,22 +257,11 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
                 ),
                 child: Row(
                   children: [
-                    _botonToggle(
-                      context.tr('hoy'),
-                      0,
-                      colorTexto,
-                      colorTextoSecundario,
-                    ),
-                    _botonToggle(
-                      context.tr('manana'),
-                      1,
-                      colorTexto,
-                      colorTextoSecundario,
-                    ),
+                    _botonToggle(context.tr('hoy'), 0, colorTextoSecundario),
+                    _botonToggle(context.tr('manana'), 1, colorTextoSecundario),
                     _botonToggle(
                       context.tr('siete_dias'),
                       2,
-                      colorTexto,
                       colorTextoSecundario,
                     ),
                   ],
@@ -238,228 +269,319 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
               ),
             ),
             const SizedBox(height: 12),
-
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: _climaEsVigente
-                      ? const Color(0xFF2E7D32).withValues(alpha: 0.12)
-                      : Colors.amber.shade100,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: _climaEsVigente
-                        ? const Color(0xFF2E7D32).withValues(alpha: 0.3)
-                        : Colors.amber.shade400,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      _climaEsVigente
-                          ? Icons.verified_outlined
-                          : Icons.history_rounded,
-                      size: 15,
-                      color: _climaEsVigente
-                          ? const Color(0xFF1B5E20)
-                          : Colors.brown.shade800,
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        _climaEsVigente
-                            ? context.tr('datos_vigentes')
-                            : context.tr('datos_no_confirmados'),
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: _climaEsVigente
-                              ? const Color(0xFF1B5E20)
-                              : Colors.brown.shade900,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: _buildChipEstado(context),
               ),
             ),
             const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: colorTarjeta,
-                  borderRadius: BorderRadius.circular(15),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+            if (data.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: colorTarjeta,
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.cloud_off,
+                        color: colorTextoSecundario,
+                        size: 40,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        context.tr('error_pronostico'),
+                        style: TextStyle(color: colorTexto),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        onPressed: _refrescar,
+                        child: Text(context.tr('reintentar')),
+                      ),
+                    ],
+                  ),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.wb_sunny,
-                          size: 50,
-                          color: Colors.orange,
-                        ),
-                        const SizedBox(width: 15),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+              )
+            else ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: colorTarjeta,
+                    borderRadius: BorderRadius.circular(15),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: Row(
                           children: [
-                            Text(
-                              data['tempActual'],
-                              style: TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                color: colorTexto,
-                              ),
+                            const Icon(
+                              Icons.wb_sunny,
+                              size: 45,
+                              color: Colors.orange,
                             ),
-                            Text(
-                              data['condicion'],
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: colorTextoSecundario,
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      data['tempActual'],
+                                      style: TextStyle(
+                                        fontSize: 32,
+                                        fontWeight: FontWeight.bold,
+                                        color: colorTexto,
+                                      ),
+                                    ),
+                                  ),
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      data['condicion'],
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: colorTextoSecundario,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '${context.tr('max')} ${data['tempMax']}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: colorTextoSecundario,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${context.tr('min')} ${data['tempMin']}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: colorTextoSecundario,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 15),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                decoration: BoxDecoration(
-                  color: colorTarjeta,
-                  borderRadius: BorderRadius.circular(15),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _MiniFactor(
-                      icono: Icons.air,
-                      valor: data['viento'],
-                      etiqueta: context.tr('viento'),
-                      colorTexto: colorTexto,
-                      colorTextoSecundario: colorTextoSecundario,
-                    ),
-                    _MiniFactor(
-                      icono: Icons.water_drop,
-                      valor: data['humedad'],
-                      etiqueta: context.tr('humedad'),
-                      colorTexto: colorTexto,
-                      colorTextoSecundario: colorTextoSecundario,
-                    ),
-                    _MiniFactor(
-                      icono: Icons.water_drop_outlined,
-                      valor: data['lluvia'] ?? '0%',
-                      etiqueta: context.tr('lluvia'),
-                      colorTexto: colorTexto,
-                      colorTextoSecundario: colorTextoSecundario,
-                    ),
-                    _MiniFactor(
-                      icono: Icons.wb_sunny,
-                      valor: data['uv'],
-                      etiqueta: context.tr('uv'),
-                      colorTexto: colorTexto,
-                      colorTextoSecundario: colorTextoSecundario,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 25),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _opcionSeleccionada == 2
-                          ? context.tr('proximos_dias')
-                          : context.tr('por_horas'),
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: colorTexto,
                       ),
-                    ),
-                    const SizedBox(height: 15),
-                    SizedBox(
-                      height: 100,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: (data['porHoras'] as List).length,
-                        itemBuilder: (context, index) {
-                          final item = data['porHoras'][index];
-                          String horaFormateada = '--';
-                          if (item['time'] != null) {
-                            final date = DateTime.parse(item['time']);
-                            if (_opcionSeleccionada == 2) {
-                              horaFormateada = '${date.day}/${date.month}';
-                            } else {
-                              horaFormateada =
-                                  '${date.hour.toString().padLeft(2, '0')}:00';
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                '${context.tr('max')} ${data['tempMax']}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: colorTextoSecundario,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                '${context.tr('min')} ${data['tempMin']}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: colorTextoSecundario,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 15),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  decoration: BoxDecoration(
+                    color: colorTarjeta,
+                    borderRadius: BorderRadius.circular(15),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _MiniFactor(
+                        icono: Icons.air,
+                        valor: data['viento'],
+                        etiqueta: context.tr('viento'),
+                        colorTexto: colorTexto,
+                        colorTextoSecundario: colorTextoSecundario,
+                      ),
+                      _MiniFactor(
+                        icono: Icons.water_drop,
+                        valor: data['humedad'],
+                        etiqueta: context.tr('humedad'),
+                        colorTexto: colorTexto,
+                        colorTextoSecundario: colorTextoSecundario,
+                      ),
+                      _MiniFactor(
+                        icono: Icons.water_drop_outlined,
+                        valor: data['lluvia'] ?? '0%',
+                        etiqueta: context.tr('lluvia'),
+                        colorTexto: colorTexto,
+                        colorTextoSecundario: colorTextoSecundario,
+                      ),
+                      _MiniFactor(
+                        icono: Icons.wb_sunny,
+                        valor: data['uv'],
+                        etiqueta: context.tr('uv'),
+                        colorTexto: colorTexto,
+                        colorTextoSecundario: colorTextoSecundario,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 25),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _opcionSeleccionada == 2
+                            ? context.tr('proximos_dias')
+                            : context.tr('por_horas'),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: colorTexto,
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+                      SizedBox(
+                        height: 100,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: (data['porHoras'] as List).length,
+                          itemBuilder: (context, index) {
+                            final item = data['porHoras'][index];
+                            String horaFormateada = '--';
+                            if (item['time'] != null) {
+                              final date = DateTime.parse(item['time']);
+                              if (_opcionSeleccionada == 2) {
+                                horaFormateada = '${date.day}/${date.month}';
+                              } else {
+                                horaFormateada =
+                                    '${date.hour.toString().padLeft(2, '0')}:00';
+                              }
                             }
-                          }
-                          return _HoraItem(
-                            hora: horaFormateada,
-                            icono: Icons.wb_sunny,
-                            grados: '${(item['temperature'] as num).round()}°',
-                            colorTexto: colorTexto,
-                            colorTextoSecundario: colorTextoSecundario,
-                          );
-                        },
+                            return _HoraItem(
+                              hora: horaFormateada,
+                              icono: Icons.wb_sunny,
+                              grados:
+                                  '${(item['temperature'] as num).round()}°',
+                              colorTexto: colorTexto,
+                              colorTextoSecundario: colorTextoSecundario,
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChipEstado(BuildContext context) {
+    if (_sinDatos) {
+      return Tooltip(
+        message: context.tr('sin_conexion_servidor'),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.grey.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.cloud_off, size: 14, color: Colors.grey.shade700),
+              const SizedBox(width: 4),
+              Text(
+                context.tr('sin_datos'),
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Tooltip(
+      message: _climaEsVigente
+          ? context.tr('datos_vigentes_tooltip')
+          : context.tr('datos_referenciales_tooltip'),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: _climaEsVigente
+              ? const Color(0xFF2E7D32).withValues(alpha: 0.12)
+              : Colors.amber.shade100,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: _climaEsVigente
+                ? const Color(0xFF2E7D32).withValues(alpha: 0.3)
+                : Colors.amber.shade400,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              _climaEsVigente ? Icons.verified_outlined : Icons.history_rounded,
+              size: 14,
+              color: _climaEsVigente
+                  ? const Color(0xFF1B5E20)
+                  : Colors.brown.shade800,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              _climaEsVigente
+                  ? context.tr('datos_al_dia')
+                  : context.tr('datos_referenciales'),
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: _climaEsVigente
+                    ? const Color(0xFF1B5E20)
+                    : Colors.brown.shade900,
               ),
             ),
           ],
@@ -468,12 +590,7 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
     );
   }
 
-  Widget _botonToggle(
-    String texto,
-    int index,
-    Color colorTexto,
-    Color colorTextoSecundario,
-  ) {
+  Widget _botonToggle(String texto, int index, Color colorTextoSecundario) {
     final bool activo = _opcionSeleccionada == index;
     return Expanded(
       child: GestureDetector(

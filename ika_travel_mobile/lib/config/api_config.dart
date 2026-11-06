@@ -10,14 +10,17 @@ class ApiConfig {
   /// Incluye 'ngrok-skip-browser-warning' para evitar que Ngrok bloquee las
   /// peticiones cuando la aplicación corre en Web (Chrome, Edge, etc.).
   static Map<String, String> get defaultHeaders => {
-        'Accept': 'application/json',
-        'Accept-Language': 'es-PE,es;q=0.9',
-        'ngrok-skip-browser-warning': 'true',
-      };
+    'Accept': 'application/json',
+    'Accept-Language': 'es-PE,es;q=0.9',
+    'ngrok-skip-browser-warning': 'true',
+  };
 
   // --- GEO & ATRACTIVOS CERCANOS ---
-  static String geoNearby({double lat = -14.0685, double lon = -75.7288, int radiusM = 100000}) =>
-      '$baseUrl/api/v1/geo/nearby?lat=$lat&lon=$lon&radius_m=$radiusM';
+  static String geoNearby({
+    double lat = -14.0685,
+    double lon = -75.7288,
+    int radiusM = 100000,
+  }) => '$baseUrl/api/v1/geo/nearby?lat=$lat&lon=$lon&radius_m=$radiusM';
 
   // --- CATALOG (Actividades) ---
   static String get attractions => '$baseUrl/api/v1/catalog/attractions';
@@ -30,12 +33,19 @@ class ApiConfig {
   static String get weatherCurrent => '$baseUrl/api/v1/weather/current';
   static String get weatherForecast => '$baseUrl/api/v1/weather/forecast';
   static String get weatherAlerts => '$baseUrl/api/v1/weather/alerts';
-  static String get recommendationOfDay => '$baseUrl/api/v1/weather/recommendation-of-the-day';
-  static String get recommendations => '$baseUrl/api/v1/weather/recommendations';
+  static String get weatherAlertsHistory =>
+      '$baseUrl/api/v1/weather/alerts/history';
+  static String weatherAlertById(String id) =>
+      '$baseUrl/api/v1/weather/alerts/$id';
+  static String get recommendationOfDay =>
+      '$baseUrl/api/v1/weather/recommendation-of-the-day';
+  static String get recommendations =>
+      '$baseUrl/api/v1/weather/recommendations';
 
   // --- AGENCIES & PRESTADORES FORMALES (RF-03 / RN-01) ---
   static String get agencies => '$baseUrl/api/v1/catalog/agencies';
-  static String agencyDetail(String id) => '$baseUrl/api/v1/catalog/agencies/$id';
+  static String agencyDetail(String id) =>
+      '$baseUrl/api/v1/catalog/agencies/$id';
 
   // --- EMERGENCY & SOS & REPORTES DIRCETUR (RF-05) ---
   static String get emergencyContacts => '$baseUrl/api/v1/emergency/contacts';
@@ -77,25 +87,18 @@ class ApiConfig {
     required String apiKey,
     String bbox = bboxIca,
   }) {
-    return Uri.https(
-      'api.tomtom.com',
-      '/traffic/services/5/incidentDetails',
-      {
-        'key': apiKey,
-        'bbox': bbox,
-        'language': 'es-ES',
-        'timeValidityFilter': 'present',
-        'fields':
-            '{incidents{type,geometry{type,coordinates},properties{id,iconCategory,magnitudeOfDelay,events{description,code},startTime,endTime,from,to,length,delay}}}',
-      },
-    );
+    return Uri.https('api.tomtom.com', '/traffic/services/5/incidentDetails', {
+      'key': apiKey,
+      'bbox': bbox,
+      'language': 'es-ES',
+      'timeValidityFilter': 'present',
+      'fields': '{incidents{type,geometry{type,coordinates},properties{id,iconCategory,magnitudeOfDelay,events{description,code},startTime,endTime,from,to,length,delay}}}',
+    });
   }
 
   /// URL en formato String para retrocompatibilidad
   static String tomtomIncidentDetailsUrl({
     required String apiKey,
     String bbox = bboxIca,
-  }) =>
-      tomtomIncidentDetailsUri(apiKey: apiKey, bbox: bbox).toString();
+  }) => tomtomIncidentDetailsUri(apiKey: apiKey, bbox: bbox).toString();
 }
-

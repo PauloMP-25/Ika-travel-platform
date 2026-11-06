@@ -4,12 +4,9 @@ import '../config/colores_tema.dart';
 import '../config/tema.dart';
 import '../config/traducciones_scope.dart';
 import '../models/alerta_modelo.dart';
-import '../models/alternativa_modelo.dart';
 import '../services/alertas_service.dart';
-import '../services/recomendador_service.dart';
 import 'pantalla_configurar_alertas.dart';
 import 'pantalla_detalle_alerta.dart';
-import 'pantalla_detalle_alternativa.dart';
 import 'pantalla_seguimiento_destino.dart';
 
 class PantallaAlertas extends StatefulWidget {
@@ -22,7 +19,14 @@ class PantallaAlertas extends StatefulWidget {
 class _PantallaAlertasState extends State<PantallaAlertas> {
   int _opcionSeleccionada = 0;
   final AlertasService _alertasService = AlertasService();
-  final RecomendadorService _recomendadorService = RecomendadorService();
+
+  @override
+  void initState() {
+    super.initState();
+    _alertasService.cargarDesdeBackend();
+    _alertasService.cargarHistorial();
+    _alertasService.cargarRecomendaciones();
+  }
 
   String _formatearFechaHora(DateTime dt) {
     final hora = dt.hour.toString().padLeft(2, '0');
@@ -35,6 +39,37 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
     } else {
       return '${context.tr('hace')} ${hoy.difference(dt).inDays} ${context.tr('dias')}';
     }
+  }
+
+  Future<void> _refrescarAlertas() async {
+    await _alertasService.cargarDesdeBackend();
+    await _alertasService.cargarHistorial();
+    await _alertasService.cargarRecomendaciones();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(context.tr('alertas_actualizadas')),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _marcarComoLeida(AlertaClima alerta) async {
+    final ok = await _alertasService.marcarComoLeida(alerta.id);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          ok
+              ? context.tr('alerta_marcada_leida')
+              : context.tr('error_marcar_leida'),
+        ),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: ok ? const Color(0xFF2E7D32) : Colors.redAccent,
+      ),
+    );
   }
 
   @override
@@ -58,32 +93,38 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
                     icon: Icon(Icons.arrow_back, color: colorTexto, size: 26),
                     onPressed: () => Navigator.pop(context),
                   ),
-                  Text(
-                    context.tr('alertas_inteligentes'),
-                    style: TextStyle(
-                      fontSize: 19,
-                      fontWeight: FontWeight.bold,
-                      color: colorTexto,
+                  Expanded(
+                    child: Text(
+                      context.tr('alertas_inteligentes'),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.bold,
+                        color: colorTexto,
+                      ),
                     ),
                   ),
                   Row(
                     children: [
                       IconButton(
-                        tooltip: context.tr('seguimiento_destinos'),
-                        icon: const Icon(
-                          Icons.timeline,
-                          color: AppColores.naranjaBoton,
-                          size: 24,
-                        ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  const PantallaSeguimientoDestino(),
-                            ),
-                          );
-                        },
+                        tooltip: context.tr('refrescar'),
+                        icon: _alertasService.cargando
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColores.naranjaBoton,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.refresh,
+                                color: AppColores.naranjaBoton,
+                                size: 24,
+                              ),
+                        onPressed: _alertasService.cargando
+                            ? null
+                            : _refrescarAlertas,
                       ),
                       IconButton(
                         tooltip: context.tr('configuracion_alertas'),
@@ -105,83 +146,6 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
                     ],
                   ),
                 ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: colorTarjeta,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFFFD54F)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.flash_on,
-                      color: Color(0xFFF57F17),
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        context.tr('simulacion_alerta'),
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: colorTexto,
-                        ),
-                      ),
-                    ),
-                    TextButton(
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        backgroundColor: AppColores.naranjaBoton,
-                        foregroundColor: Colors.white,
-                        visualDensity: VisualDensity.compact,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      onPressed: () {
-                        final nueva = _alertasService.simularDeteccionEnVivo();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              '${context.tr('alerta_generada')} ${nueva.destino}\n${nueva.titulo}',
-                            ),
-                            backgroundColor: const Color(0xFFC62828),
-                            duration: const Duration(seconds: 4),
-                            action: SnackBarAction(
-                              label: context.tr('ver_detalle'),
-                              textColor: Colors.white,
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        PantallaDetalleAlerta(alerta: nueva),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        );
-                      },
-                      child: Text(
-                        context.tr('simular'),
-                        style: const TextStyle(fontSize: 11),
-                      ),
-                    ),
-                  ],
-                ),
               ),
             ),
             const SizedBox(height: 8),
@@ -229,7 +193,14 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
                       colorTexto,
                       colorTextoSecundario,
                     )
-                  : _buildVistaAlertasOHistorial(
+                  : _opcionSeleccionada == 2
+                  ? _buildVistaHistorial(
+                      colorFondo,
+                      colorTarjeta,
+                      colorTexto,
+                      colorTextoSecundario,
+                    )
+                  : _buildVistaAlertasActivas(
                       colorFondo,
                       colorTarjeta,
                       colorTexto,
@@ -242,7 +213,7 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
     );
   }
 
-  Widget _buildVistaAlertasOHistorial(
+  Widget _buildVistaAlertasActivas(
     Color colorFondo,
     Color colorTarjeta,
     Color colorTexto,
@@ -250,45 +221,32 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
   ) {
     return ValueListenableBuilder<List<AlertaClima>>(
       valueListenable: _alertasService.alertasNotifier,
-      builder: (context, todasAlertas, _) {
-        final listaAMostrar = _opcionSeleccionada == 0
-            ? _alertasService.alertasActivas
-            : _alertasService.historialAlertas;
+      builder: (context, alertas, _) {
+        if (alertas.isEmpty &&
+            _alertasService.ultimaActualizacion == null &&
+            _alertasService.ultimoError == null) {
+          return const Center(
+            child: CircularProgressIndicator(color: AppColores.naranjaBoton),
+          );
+        }
 
-        if (listaAMostrar.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  _opcionSeleccionada == 0
-                      ? Icons.check_circle_outline
-                      : Icons.history_toggle_off,
-                  size: 56,
-                  color: colorTextoSecundario,
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  _opcionSeleccionada == 0
-                      ? context.tr('no_alertas_activas')
-                      : context.tr('no_historial'),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: colorTextoSecundario, fontSize: 14),
-                ),
-              ],
-            ),
+        if (alertas.isEmpty) {
+          return _buildEstadoVacio(
+            icono: Icons.check_circle_outline,
+            mensaje: context.tr('no_alertas_activas'),
+            colorTextoSecundario: colorTextoSecundario,
+            mostrarError: _alertasService.ultimoError != null,
           );
         }
 
         return ListView(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           children: [
-            if (_opcionSeleccionada == 0 &&
-                listaAMostrar.any(
-                  (a) =>
-                      a.nivelRiesgo == NivelRiesgo.alto ||
-                      a.nivelRiesgo == NivelRiesgo.critico,
-                )) ...[
+            if (alertas.any(
+              (a) =>
+                  a.nivelRiesgo == NivelRiesgo.alto ||
+                  a.nivelRiesgo == NivelRiesgo.critico,
+            ))
               GestureDetector(
                 onTap: () {
                   setState(() => _opcionSeleccionada = 1);
@@ -331,13 +289,148 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
                   ),
                 ),
               ),
-            ],
-            ...listaAMostrar.map(
+            ...alertas.map(
               (alerta) => _buildItemAlerta(
                 context,
                 alerta,
                 colorTarjeta,
                 colorFondo,
+                colorTexto,
+                colorTextoSecundario,
+                esHistorial: false,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildVistaHistorial(
+    Color colorFondo,
+    Color colorTarjeta,
+    Color colorTexto,
+    Color colorTextoSecundario,
+  ) {
+    return ValueListenableBuilder<List<AlertaClima>>(
+      valueListenable: _alertasService.historialNotifier,
+      builder: (context, alertas, _) {
+        if (alertas.isEmpty) {
+          return _buildEstadoVacio(
+            icono: Icons.history_toggle_off,
+            mensaje: context.tr('no_historial'),
+            colorTextoSecundario: colorTextoSecundario,
+            mostrarError: false,
+          );
+        }
+
+        return ListView(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          children: alertas
+              .map(
+                (alerta) => _buildItemAlerta(
+                  context,
+                  alerta,
+                  colorTarjeta,
+                  colorFondo,
+                  colorTexto,
+                  colorTextoSecundario,
+                  esHistorial: true,
+                ),
+              )
+              .toList(),
+        );
+      },
+    );
+  }
+
+  Widget _buildEstadoVacio({
+    required IconData icono,
+    required String mensaje,
+    required Color colorTextoSecundario,
+    required bool mostrarError,
+  }) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icono, size: 56, color: colorTextoSecundario),
+            const SizedBox(height: 10),
+            Text(
+              mensaje,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: colorTextoSecundario, fontSize: 14),
+            ),
+            if (mostrarError) ...[
+              const SizedBox(height: 8),
+              Text(
+                context.tr('sin_conexion_servidor'),
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 11, color: Colors.orange),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVistaAlternativas(
+    Color colorTarjeta,
+    Color colorTexto,
+    Color colorTextoSecundario,
+  ) {
+    return ValueListenableBuilder<List<Map<String, dynamic>>>(
+      valueListenable: _alertasService.recomendacionesNotifier,
+      builder: (context, recomendaciones, _) {
+        if (recomendaciones.isEmpty) {
+          return _buildEstadoVacio(
+            icono: Icons.lightbulb_outline,
+            mensaje: context.tr('no_recomendaciones'),
+            colorTextoSecundario: colorTextoSecundario,
+            mostrarError: false,
+          );
+        }
+
+        return ListView(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          children: [
+            Container(
+              margin: const EdgeInsets.only(bottom: 14),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F5E9),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFA5D6A7)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.lightbulb_outline,
+                    color: Color(0xFF2E7D32),
+                    size: 22,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      context.tr('alternativas_msg'),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF1B5E20),
+                        height: 1.3,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ...recomendaciones.map(
+              (json) => _buildTarjetaRecomendacionBackend(
+                context,
+                json,
+                colorTarjeta,
                 colorTexto,
                 colorTextoSecundario,
               ),
@@ -348,67 +441,28 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
     );
   }
 
-  Widget _buildVistaAlternativas(
-    Color colorTarjeta,
-    Color colorTexto,
-    Color colorTextoSecundario,
-  ) {
-    final alternativas = _recomendadorService.obtenerAlternativasGenerales();
-
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      children: [
-        Container(
-          margin: const EdgeInsets.only(bottom: 14),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: const Color(0xFFE8F5E9),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFA5D6A7)),
-          ),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.lightbulb_outline,
-                color: Color(0xFF2E7D32),
-                size: 22,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  context.tr('alternativas_msg'),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF1B5E20),
-                    height: 1.3,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        ...alternativas.map(
-          (alt) => _buildTarjetaAlternativaResumida(
-            context,
-            alt,
-            colorTarjeta,
-            colorTexto,
-            colorTextoSecundario,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTarjetaAlternativaResumida(
+  Widget _buildTarjetaRecomendacionBackend(
     BuildContext context,
-    AlternativaRecomendada alt,
+    Map<String, dynamic> json,
     Color colorTarjeta,
     Color colorTexto,
     Color colorTextoSecundario,
   ) {
+    final nombre = (json['atractivo_nombre'] ?? '').toString();
+    final score = (json['score'] as num?)?.toDouble() ?? 0.0;
+    final nivel = (json['nivel'] ?? '').toString();
+    final texto = (json['recommendation_text'] ?? '').toString();
+    final consejos = (json['consejos'] as List<dynamic>?)?.cast<String>() ?? [];
+
+    final colorScore = score >= 0.7
+        ? const Color(0xFF2E7D32)
+        : score >= 0.4
+        ? const Color(0xFFE65100)
+        : const Color(0xFFC62828);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: colorTarjeta,
         borderRadius: BorderRadius.circular(16),
@@ -420,180 +474,90 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) =>
-                    PantallaDetalleAlternativa(alternativa: alt),
-              ),
-            );
-          },
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  topRight: Radius.circular(16),
-                ),
-                child: Stack(
-                  children: [
-                    SizedBox(
-                      height: 125,
-                      width: double.infinity,
-                      child: Image.asset(
-                        alt.imagen,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          color: Colors.grey.shade300,
-                          child: const Icon(
-                            Icons.image,
-                            size: 40,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ),
-                    ),
-                    Container(
-                      height: 125,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Colors.black.withValues(alpha: 0.7),
-                          ],
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      top: 10,
-                      left: 10,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColores.naranjaBoton,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          alt.tipoAlternativa.etiqueta,
-                          style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 10,
-                      left: 14,
-                      right: 14,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            alt.tituloActividad,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          Text(
-                            alt.destino,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.white70,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+              Expanded(
+                child: Text(
+                  nombre,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: colorTexto,
+                  ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(
-                          Icons.recommend,
-                          color: AppColores.naranjaBoton,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            alt.motivoRecomendacion,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: colorTexto,
-                              height: 1.3,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (alt.mejorHorarioSugerido != null) ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.schedule,
-                            size: 16,
-                            color: Color(0xFFF57F17),
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              '${context.tr('horario_sugerido')} ${alt.mejorHorarioSugerido}',
-                              style: const TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFFE65100),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                    const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Text(
-                          context.tr('ver_detalle_completo'),
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: colorTexto,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Icon(Icons.arrow_forward, size: 14, color: colorTexto),
-                      ],
-                    ),
-                  ],
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: colorScore.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  nivel.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: colorScore,
+                  ),
                 ),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.star, size: 16, color: colorScore),
+              const SizedBox(width: 4),
+              Text(
+                '${(score * 100).toStringAsFixed(0)}/100',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: colorScore,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            texto,
+            style: TextStyle(fontSize: 13, color: colorTexto, height: 1.4),
+          ),
+          if (consejos.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Divider(color: colorTextoSecundario.withValues(alpha: 0.2)),
+            const SizedBox(height: 6),
+            ...consejos.map(
+              (c) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.check, size: 14, color: Color(0xFF2E7D32)),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        c,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: colorTextoSecundario,
+                          height: 1.3,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -604,8 +568,9 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
     Color colorTarjeta,
     Color colorFondo,
     Color colorTexto,
-    Color colorTextoSecundario,
-  ) {
+    Color colorTextoSecundario, {
+    required bool esHistorial,
+  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -740,24 +705,59 @@ class _PantallaAlertasState extends State<PantallaAlertas> {
                         ),
                       ),
                     ),
-                    Row(
-                      children: [
-                        Text(
-                          context.tr('por_que_cambio'),
+                    if (esHistorial)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8F5E9),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.check_circle,
+                              size: 12,
+                              color: Color(0xFF2E7D32),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              context.tr('leida'),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2E7D32),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      TextButton.icon(
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          foregroundColor: AppColores.naranjaBoton,
+                        ),
+                        icon: const Icon(Icons.mark_email_read, size: 14),
+                        label: Text(
+                          context.tr('marcar_como_leida'),
                           style: const TextStyle(
-                            fontSize: 12,
+                            fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: AppColores.naranjaBoton,
                           ),
                         ),
-                        const SizedBox(width: 4),
-                        const Icon(
-                          Icons.arrow_forward_ios,
-                          size: 11,
-                          color: AppColores.naranjaBoton,
-                        ),
-                      ],
-                    ),
+                        onPressed: _alertasService.marcando
+                            ? null
+                            : () => _marcarComoLeida(alerta),
+                      ),
                   ],
                 ),
               ],

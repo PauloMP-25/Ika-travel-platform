@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+
+import '../config/colores_tema.dart';
 import '../config/tema.dart';
+import '../config/traducciones_scope.dart';
 import '../models/horario_modelo.dart';
 
-/// Widget reutilizable para mostrar horarios de atención y días disponibles (Requerimiento 3)
-/// Usado de manera consistente en PantallaDetalle y PantallaDetalleAlternativa.
 class TarjetaHorariosAtencion extends StatefulWidget {
   final HorarioAtencion horario;
   final String tituloDestino;
@@ -15,7 +16,8 @@ class TarjetaHorariosAtencion extends StatefulWidget {
   });
 
   @override
-  State<TarjetaHorariosAtencion> createState() => _TarjetaHorariosAtencionState();
+  State<TarjetaHorariosAtencion> createState() =>
+      _TarjetaHorariosAtencionState();
 }
 
 class _TarjetaHorariosAtencionState extends State<TarjetaHorariosAtencion> {
@@ -24,11 +26,11 @@ class _TarjetaHorariosAtencionState extends State<TarjetaHorariosAtencion> {
   Color _colorEstadoVerificacion(String estado) {
     if (estado.toLowerCase().contains('verificado') ||
         estado.toLowerCase().contains('oficial')) {
-      return const Color(0xFF2E7D32); // Verde
+      return const Color(0xFF2E7D32);
     } else if (estado.toLowerCase().contains('referencial')) {
-      return const Color(0xFFE65100); // Naranja / Ámbar
+      return const Color(0xFFE65100);
     } else {
-      return const Color(0xFF757575); // Gris
+      return const Color(0xFF757575);
     }
   }
 
@@ -46,12 +48,17 @@ class _TarjetaHorariosAtencionState extends State<TarjetaHorariosAtencion> {
   @override
   Widget build(BuildContext context) {
     final horario = widget.horario;
+    final colorTarjeta = TemaApp.tarjeta(context);
+    final colorTexto = TemaApp.texto(context);
+    final colorTextoSecundario = TemaApp.textoSecundario(context);
+    final colorFondo = TemaApp.fondo(context);
+
     final colorBadge = _colorEstadoVerificacion(horario.estadoVerificacion);
     final fondoBadge = _fondoEstadoVerificacion(horario.estadoVerificacion);
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorTarjeta,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -66,36 +73,40 @@ class _TarjetaHorariosAtencionState extends State<TarjetaHorariosAtencion> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Cabecera: Título y Badge de Verificación
+            // Cabecera ajustada para evitar overflow
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
-                  children: [
-                    Icon(
-                      Icons.schedule,
-                      color: AppColores.marronOscuro,
-                      size: 22,
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      'Horarios de Atención',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppColores.marronOscuro,
+                Expanded(
+                  child: Row(
+                    children: [
+                      Icon(Icons.schedule, color: colorTexto, size: 22),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          context.tr('horarios_atencion'),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: colorTexto,
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: fondoBadge,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: colorBadge.withValues(alpha: 0.5)),
+                    border: Border.all(
+                      color: colorBadge.withValues(alpha: 0.5),
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -108,12 +119,15 @@ class _TarjetaHorariosAtencionState extends State<TarjetaHorariosAtencion> {
                         color: colorBadge,
                       ),
                       const SizedBox(width: 4),
-                      Text(
-                        horario.estadoVerificacion,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: colorBadge,
+                      Flexible(
+                        child: Text(
+                          horario.estadoVerificacion,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: colorBadge,
+                          ),
                         ),
                       ),
                     ],
@@ -123,10 +137,13 @@ class _TarjetaHorariosAtencionState extends State<TarjetaHorariosAtencion> {
             ),
 
             const SizedBox(height: 12),
-            const Divider(height: 1, thickness: 0.5),
+            Divider(
+              height: 1,
+              thickness: 0.5,
+              color: colorTextoSecundario.withValues(alpha: 0.2),
+            ),
             const SizedBox(height: 12),
 
-            // Días disponibles
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -140,21 +157,21 @@ class _TarjetaHorariosAtencionState extends State<TarjetaHorariosAtencion> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Días disponibles',
+                      Text(
+                        context.tr('dias_disponibles'),
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppColores.grisTexto,
+                          color: colorTextoSecundario,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         horario.diasSemana,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: AppColores.marronOscuro,
+                          color: colorTexto,
                         ),
                       ),
                     ],
@@ -165,7 +182,6 @@ class _TarjetaHorariosAtencionState extends State<TarjetaHorariosAtencion> {
 
             const SizedBox(height: 10),
 
-            // Horario general
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -179,21 +195,21 @@ class _TarjetaHorariosAtencionState extends State<TarjetaHorariosAtencion> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Horario de visita / operación',
+                      Text(
+                        context.tr('horario_visita_operacion'),
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppColores.grisTexto,
+                          color: colorTextoSecundario,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         horario.horarioGeneral,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: AppColores.marronOscuro,
+                          color: colorTexto,
                         ),
                       ),
                     ],
@@ -202,7 +218,6 @@ class _TarjetaHorariosAtencionState extends State<TarjetaHorariosAtencion> {
               ],
             ),
 
-            // Desglose de horarios por día si existen
             if (horario.horariosPorDia.isNotEmpty) ...[
               const SizedBox(height: 12),
               InkWell(
@@ -216,14 +231,16 @@ class _TarjetaHorariosAtencionState extends State<TarjetaHorariosAtencion> {
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Row(
                     children: [
-                      Text(
-                        _mostrarDetallePorDia
-                            ? 'Ocultar horarios específicos por día'
-                            : 'Ver horarios específicos por día (${horario.horariosPorDia.length})',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: AppColores.naranjaBoton,
+                      Expanded(
+                        child: Text(
+                          _mostrarDetallePorDia
+                              ? context.tr('ocultar_horarios_dia')
+                              : '${context.tr('ver_horarios_dia')} (${horario.horariosPorDia.length})',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppColores.naranjaBoton,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 4),
@@ -243,7 +260,7 @@ class _TarjetaHorariosAtencionState extends State<TarjetaHorariosAtencion> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColores.arenaFondo,
+                    color: colorFondo,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Column(
@@ -253,19 +270,21 @@ class _TarjetaHorariosAtencionState extends State<TarjetaHorariosAtencion> {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('• ',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColores.marronOscuro,
-                                )),
+                            Text(
+                              '• ',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: colorTexto,
+                              ),
+                            ),
                             Expanded(
                               flex: 3,
                               child: Text(
                                 item.dia,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
-                                  color: AppColores.marronOscuro,
+                                  color: colorTexto,
                                 ),
                               ),
                             ),
@@ -276,18 +295,18 @@ class _TarjetaHorariosAtencionState extends State<TarjetaHorariosAtencion> {
                                 children: [
                                   Text(
                                     item.horario,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
-                                      color: AppColores.marronOscuro,
+                                      color: colorTexto,
                                     ),
                                   ),
                                   if (item.nota != null)
                                     Text(
                                       item.nota!,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 11,
-                                        color: AppColores.grisTexto,
+                                        color: colorTextoSecundario,
                                       ),
                                     ),
                                 ],
@@ -302,43 +321,45 @@ class _TarjetaHorariosAtencionState extends State<TarjetaHorariosAtencion> {
               ],
             ],
 
-            // Observaciones relevantes
             if (horario.observaciones.isNotEmpty) ...[
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF9F9F9),
+                  color: colorFondo,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.shade300, width: 0.8),
+                  border: Border.all(
+                    color: colorTextoSecundario.withValues(alpha: 0.2),
+                    width: 0.8,
+                  ),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.announcement_outlined,
                       size: 16,
-                      color: AppColores.marronOscuro,
+                      color: colorTexto,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Observaciones importantes:',
+                          Text(
+                            context.tr('observaciones_importantes'),
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: AppColores.marronOscuro,
+                              color: colorTexto,
                             ),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             horario.observaciones,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
-                              color: AppColores.marronOscuro,
+                              color: colorTexto,
                               height: 1.3,
                             ),
                           ),

@@ -40,3 +40,13 @@ def purgar_datos_antiguos() -> int:
     eliminados = asyncio.run(_ejecutar(service.purgar_antiguos))
     logger.info("Snapshots de clima purgados: %s", eliminados)
     return eliminados
+
+
+@shared_task(name="weather.purgar_alertas_leidas")
+def purgar_alertas_leidas() -> int:
+    """Elimina alertas leídas hace más de 24 horas (historial expirado)."""
+    eliminadas = asyncio.run(
+        _ejecutar(lambda db: service.purgar_alertas_leidas_antiguas(db, horas=24))
+    )
+    logger.info("Alertas leídas antiguas purgadas: %s", eliminadas)
+    return eliminadas
