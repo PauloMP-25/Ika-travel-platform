@@ -150,10 +150,58 @@ agregador_clima = AgregadorClima(
 
 
 def resolver_coordenadas_destino(destino: str) -> tuple[float, float]:
+    """Resuelve las coordenadas a partir de un nombre de destino o actividad.
+    
+    Acepta tanto nombres exactos del diccionario (ej. "huacachina") como
+    nombres de actividades del catálogo (ej. "Sandboarding en Huacachina").
+    """
     clave = normalizar_nombre_destino(destino)
-    if clave not in DESTINOS_ICA:
-        raise DestinoNoEncontradoException(destino)
-    return DESTINOS_ICA[clave]
+    
+    # 1. Búsqueda exacta
+    if clave in DESTINOS_ICA:
+        return DESTINOS_ICA[clave]
+    
+    # 2. Búsqueda por coincidencia parcial
+    for nombre_destino, coords in DESTINOS_ICA.items():
+        if nombre_destino in clave or clave in nombre_destino:
+            return coords
+    
+    # 3. Mapeo manual de actividades del catálogo
+    mapeo_actividades = {
+        "sandboarding": "huacachina",
+        "buggy": "huacachina",
+        "laguna": "huacachina",
+        "dunas": "huacachina",
+        "ballestas": "islas ballestas",
+        "reserva": "reserva nacional de paracas",
+        "paracas": "reserva nacional de paracas",
+        "vino": "bodega tacama",
+        "viñedo": "bodega tacama",
+        "viñedos": "bodega tacama",
+        "bodega": "bodega tacama",
+        "tacama": "bodega tacama",
+        "cachiche": "pueblo de cachiche",
+        "brujas": "pueblo de cachiche",
+        "cañon": "cañon de los perdidos",
+        "perdidos": "cañon de los perdidos",
+        "cañón": "cañon de los perdidos",
+        "pisco": "plaza de armas de pisco",
+        "chincha": "plaza de armas de chincha",
+        "marcona": "playa hermosa de marcona",
+        "chaco": "playa el chaco",
+        "playa roja": "playa roja",
+        "playa la mina": "playa la mina",
+        "plaza de armas de ica": "plaza de armas de ica",
+        "plaza de armas": "plaza de armas de ica",
+        "cerro blanco": "cerro blanco",
+    }
+    
+    for palabra_clave, nombre_destino in mapeo_actividades.items():
+        if palabra_clave in clave:
+            return DESTINOS_ICA[nombre_destino]
+    
+    # 4. Si nada coincide
+    raise DestinoNoEncontradoException(destino)
 
 
 @dataclass(frozen=True)
@@ -587,3 +635,205 @@ async def purgar_antiguos(db: AsyncSession, *, dias: int = 7) -> int:
     await db.execute(delete(WeatherAlert).where(WeatherAlert.ends_at < limite))
     await db.commit()
     return resultado.rowcount or 0
+
+async def recomendacion_para_atractivo(
+    db: AsyncSession,
+    atractivo_id: UUID,
+    preferencias_usuario: list[str] | None = None,
+    idioma: str = "es",
+) -> RecomendacionResponse | None:
+    """Recomendación específica de un atractivo, redactada por Gemini."""
+    resultado_db = await db.execute(
+        select(Attraction)
+        .where(Attraction.id == atractivo_id, Attraction.is_active.is_(True))
+        .options(selectinload(Attraction.categories))
+    )
+    atractivo = resultado_db.scalar_one_or_none()
+    if atractivo is None:
+        return None
+
+    clima = await get_fresh_snapshot(db, ubicacion_de_atractivo(atractivo))
+    resultado = _recomendar(atractivo, clima, preferencias=preferencias_usuario)
+
+    # Narrativa previa para continuidad
+    rec_previa = (
+        await db.execute(
+            select(AIRecommendation.recommendation_text)
+            .where(AIRecommendation.atractivo_id == atractivo.id)
+            .order_by(AIRecommendation.generated_at.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+
+    # Alertas activas para este atractivo
+    alertas_candidatas = rules.evaluar_alertas(
+        temperatura=clima.temperatura_actual,
+        uv=clima.indice_uv,
+        viento=clima.velocidad_viento,
+        precipitacion=clima.precipitacion_mm or 0.0,
+        temperatura_arena=clima.temperatura_suelo_arena,
+        zona=atractivo.name,
+    )
+    hay_peligro = any(a.severity == "high" for a in alertas_candidatas)
+
+    # Texto generado por Gemini
+    texto, consejos_gemini = await ai_engine.redactar_con_gemini(
+        nombre_atractivo=atractivo.name,
+        resultado=resultado,
+        atractivos_alternativos=[],
+        temperatura=clima.temperatura_actual,
+        uv=clima.indice_uv,
+        viento=clima.velocidad_viento,
+        condicion=clima.descripcion_clima,
+        preferencias_usuario=preferencias_usuario,
+        idioma=idioma,
+        presion_hpa=clima.presion_atmosferica,
+        precipitacion_mm=clima.precipitacion_mm,
+        temperatura_arena=clima.temperatura_suelo_arena,
+        pm10=clima.calidad_aire_pm10,
+        ventana_pico_uv=clima.ventana_pico_uv,
+        horas_sol=clima.horas_sol_directo,
+        altura_ola=clima.altura_ola_metros,
+        narrativa_previa=rec_previa,
+    )
+
+    score_final = resultado.score
+    nivel_final = resultado.nivel
+    if hay_peligro:
+        score_final = min(score_final, 0.30)
+        nivel_final = "no_recomendado"
+
+    return RecomendacionResponse(
+        atractivo_id=atractivo.id,
+        atractivo_nombre=atractivo.name,
+        score=score_final,
+        nivel=nivel_final,
+        recommendation_text=texto or resultado.texto,
+        consejos=consejos_gemini or resultado.consejos,
+        generated_at=datetime.now(tz=timezone.utc),
+    )
+
+
+# ======================================================================
+# Historial cronológico de cambios por destino
+# ======================================================================
+UMBRALES_HISTORIAL = {
+    "temperatura": 2.0,   # °C
+    "viento": 5.0,        # km/h
+    "humedad": 10.0,      # %
+    "uv": 1.0,            # índice
+}
+
+
+def _resumen_temperatura(delta: float) -> str:
+    if delta >= 5:
+        return "Aumento brusco de temperatura. Riesgo de golpe de calor."
+    if delta >= 2:
+        return "Aumento gradual de temperatura."
+    if delta <= -5:
+        return "Descenso brusco de temperatura."
+    if delta <= -2:
+        return "Descenso gradual de temperatura."
+    return "Variación leve de temperatura."
+
+
+def _resumen_viento(delta: float) -> str:
+    if delta >= 15:
+        return "Ráfagas fuertes. Actividades al aire libre en riesgo."
+    if delta >= 5:
+        return "Aumento de viento. Precaución en dunas y playas."
+    if delta <= -15:
+        return "Disminución significativa del viento. Condiciones más seguras."
+    if delta <= -5:
+        return "Viento en descenso."
+    return "Variación leve de viento."
+
+
+def _resumen_uv(delta: float) -> str:
+    if delta >= 2:
+        return "Radiación UV en aumento. Usa protector solar."
+    if delta <= -2:
+        return "Radiación UV en descenso."
+    return "Variación leve de radiación UV."
+
+
+async def historial_cambios(
+    db: AsyncSession,
+    *,
+    destino: str,
+    horas: int = 24,
+    limite: int = 10,
+) -> dict:
+    """Detecta cambios significativos comparando snapshots consecutivos.
+
+    Compara cada snapshot con el anterior y registra los cambios que
+    superan los umbrales definidos en UMBRALES_HISTORIAL.
+    """
+    desde = datetime.now(tz=timezone.utc) - timedelta(hours=horas)
+
+    resultado = await db.execute(
+        select(WeatherSnapshot)
+        .where(
+            WeatherSnapshot.creado_en >= desde,
+            WeatherSnapshot.destino.ilike(f"%{destino}%"),
+        )
+        .order_by(WeatherSnapshot.creado_en.asc())
+    )
+    snapshots = list(resultado.scalars().all())
+
+    if len(snapshots) < 2:
+        return {"destino": destino, "cambios": []}
+
+    cambios: list[dict] = []
+
+    for anterior, actual in zip(snapshots, snapshots[1:]):
+        # Temperatura
+        delta_temp = actual.temperatura_actual - anterior.temperatura_actual
+        if abs(delta_temp) >= UMBRALES_HISTORIAL["temperatura"]:
+            cambios.append({
+                "fecha": actual.creado_en.isoformat(),
+                "parametro": "Temperatura",
+                "valor_anterior": f"{anterior.temperatura_actual:.0f}°C",
+                "valor_actual": f"{actual.temperatura_actual:.0f}°C",
+                "resumen": _resumen_temperatura(delta_temp),
+                "alerta_id": None,
+            })
+
+        # Viento
+        delta_viento = actual.velocidad_viento - anterior.velocidad_viento
+        if abs(delta_viento) >= UMBRALES_HISTORIAL["viento"]:
+            cambios.append({
+                "fecha": actual.creado_en.isoformat(),
+                "parametro": "Velocidad de viento",
+                "valor_anterior": f"{anterior.velocidad_viento:.0f} km/h",
+                "valor_actual": f"{actual.velocidad_viento:.0f} km/h",
+                "resumen": _resumen_viento(delta_viento),
+                "alerta_id": None,
+            })
+
+        # Humedad
+        delta_hum = actual.humedad - anterior.humedad
+        if abs(delta_hum) >= UMBRALES_HISTORIAL["humedad"]:
+            cambios.append({
+                "fecha": actual.creado_en.isoformat(),
+                "parametro": "Humedad relativa",
+                "valor_anterior": f"{anterior.humedad:.0f}%",
+                "valor_actual": f"{actual.humedad:.0f}%",
+                "resumen": "Cambio de humedad en el ambiente.",
+                "alerta_id": None,
+            })
+
+        # UV
+        delta_uv = actual.indice_uv - anterior.indice_uv
+        if abs(delta_uv) >= UMBRALES_HISTORIAL["uv"]:
+            cambios.append({
+                "fecha": actual.creado_en.isoformat(),
+                "parametro": "Índice UV",
+                "valor_anterior": f"{anterior.indice_uv:.0f}",
+                "valor_actual": f"{actual.indice_uv:.0f}",
+                "resumen": _resumen_uv(delta_uv),
+                "alerta_id": None,
+            })
+
+    cambios.sort(key=lambda c: c["fecha"], reverse=True)
+    return {"destino": destino, "cambios": cambios[:limite]}

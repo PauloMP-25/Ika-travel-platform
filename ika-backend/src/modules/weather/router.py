@@ -111,3 +111,41 @@ async def recomendacion_del_dia(
     preferencias = usuario_opcional.preferences if usuario_opcional else None
     idioma = usuario_opcional.preferred_language if usuario_opcional else "es"
     return await service.recomendacion_del_dia(db, preferencias_usuario=preferencias, idioma=idioma)
+
+
+@router.get(
+    "/recommendations/{attraction_id}",
+    response_model=RecomendacionResponse | None,
+)
+async def recomendacion_por_atractivo(
+    attraction_id: UUID,
+    usuario_opcional: User | None = Depends(obtener_usuario_opcional),
+    db: AsyncSession = Depends(obtener_bd),
+) -> RecomendacionResponse | None:
+    """Recomendación específica de un atractivo, redactada por Gemini."""
+    preferencias = usuario_opcional.preferences if usuario_opcional else None
+    idioma = usuario_opcional.preferred_language if usuario_opcional else "es"
+    return await service.recomendacion_para_atractivo(
+        db,
+        attraction_id,
+        preferencias_usuario=preferencias,
+        idioma=idioma,
+    )
+
+
+@router.get("/tracking/{destino}/history")
+async def historial_destino(
+    destino: str,
+    horas: int = Query(24, ge=1, le=168, description="Ventana de historial en horas"),
+    limite: int = Query(10, ge=1, le=50, description="Maximo de cambios a devolver"),
+    db: AsyncSession = Depends(obtener_bd),
+) -> dict:
+    """Historial cronologico de cambios significativos en un destino.
+
+    Compara snapshots consecutivos de clima y devuelve los cambios que
+    superan los umbrales (temperatura +/-2C, viento +/-5 km/h, humedad +/-10%,
+    UV +/-1). Permite al turista entender la evolucion de las condiciones.
+    """
+    return await service.historial_cambios(
+        db, destino=destino, horas=horas, limite=limite
+    )

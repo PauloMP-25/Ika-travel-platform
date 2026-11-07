@@ -1,6 +1,8 @@
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+
 import '../config/api_config.dart';
 
 class ApiService {
@@ -16,7 +18,7 @@ class ApiService {
           .timeout(const Duration(seconds: 8));
 
       if (response.statusCode == 200) {
-        debugPrint('✅ Respuesta recibida de atractivos');
+        debugPrint(' Respuesta recibida de atractivos');
 
         final data = json.decode(utf8.decode(response.bodyBytes));
 
@@ -29,7 +31,8 @@ class ApiService {
 
         final mapaImagenesLocales = {
           'Oasis de Huacachina': 'assets/images/carrusel_1_huacachina.jpg',
-          'Huacachina Sandboarding & Buggy': 'assets/images/detalle_sandboarding_1.jpg',
+          'Huacachina Sandboarding & Buggy':
+              'assets/images/detalle_sandboarding_1.jpg',
           'Cañón de los Perdidos': 'assets/images/act_buggy1.jpg',
           'Bodegas de Subtanjalla': 'assets/images/act_vinos.jpg',
           'Pueblo de Cachiche': 'assets/images/carrusel_2_vinos.jpg',
@@ -46,12 +49,22 @@ class ApiService {
 
         return items.map((item) {
           final nombre = item['name']?.toString() ?? 'Sin título';
-          final imgLocal = mapaImagenesLocales[nombre] ?? 'assets/images/carrusel_1_huacachina.jpg';
+          final imgLocal =
+              mapaImagenesLocales[nombre] ??
+              'assets/images/carrusel_1_huacachina.jpg';
           final rawCats = item['categories'] as List<dynamic>? ?? [];
-          final categorias = rawCats.map((c) {
-            if (c is Map) return c['name']?.toString() ?? '';
-            return c.toString();
-          }).where((c) => c.isNotEmpty).toList();
+          final categorias = rawCats
+              .map((c) {
+                if (c is Map) return c['name']?.toString() ?? '';
+                return c.toString();
+              })
+              .where((c) => c.isNotEmpty)
+              .toList();
+
+          // 🔎 DIAGNÓSTICO: ver qué trae cada ítem del backend
+          debugPrint(
+            '🔎 API ITEM: $nombre | id=${item['id']} | keys=${item.keys.toList()}',
+          );
 
           return {
             'id': item['id'],
@@ -64,15 +77,20 @@ class ApiService {
             'imagen_remota': item['cover_image_url'],
             'imagenes_detalle': [
               imgLocal,
-              if (item['cover_image_url'] != null) item['cover_image_url'].toString(),
+              if (item['cover_image_url'] != null)
+                item['cover_image_url'].toString(),
             ],
           };
         }).toList();
       } else {
-        debugPrint('❌ Error del servidor de atractivos: ${response.statusCode}');
+        debugPrint(
+          '❌ Error del servidor de atractivos: ${response.statusCode}',
+        );
       }
     } catch (e) {
-      debugPrint('❌ Error al obtener actividades ($e), usando catálogo oficial local.');
+      debugPrint(
+        '❌ Error al obtener actividades ($e), usando catálogo oficial local.',
+      );
     }
 
     // Catálogo oficial predefinido de la región Ica (RF-02)
@@ -155,9 +173,7 @@ class ApiService {
         'categorias': ['Cultura', 'Historia'],
         'descripcion': 'Templo católico emblemático y centro de la devoción tradicional del pueblo iqueño.',
         'imagen': 'assets/images/carrusel_2_vinos.jpg',
-        'imagenes_detalle': [
-          'assets/images/carrusel_2_vinos.jpg',
-        ],
+        'imagenes_detalle': ['assets/images/carrusel_2_vinos.jpg'],
       },
       {
         'id': '7',
@@ -167,9 +183,7 @@ class ApiService {
         'categorias': ['Cultura', 'Misticismo'],
         'descripcion': 'Famoso pueblo de leyendas y curandería tradicional con la Palmera de las Siete Cabezas.',
         'imagen': 'assets/images/detalle_buggy_2.jpg',
-        'imagenes_detalle': [
-          'assets/images/detalle_buggy_2.jpg',
-        ],
+        'imagenes_detalle': ['assets/images/detalle_buggy_2.jpg'],
       },
     ];
   }

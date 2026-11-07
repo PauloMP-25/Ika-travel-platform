@@ -30,17 +30,15 @@ class ApiConfig {
       '$baseUrl/api/v1/catalog/attractions/$id';
 
   // --- WEATHER (Clima) ---
-  static String get weatherCurrent => '$baseUrl/api/v1/weather/current';
-  static String get weatherForecast => '$baseUrl/api/v1/weather/forecast';
-  static String get weatherAlerts => '$baseUrl/api/v1/weather/alerts';
-  static String get weatherAlertsHistory =>
-      '$baseUrl/api/v1/weather/alerts/history';
-  static String weatherAlertById(String id) =>
-      '$baseUrl/api/v1/weather/alerts/$id';
+  static String get weatherBase => '$baseUrl/api/v1/weather';
+  static String get weatherCurrent => '$weatherBase/current';
+  static String get weatherForecast => '$weatherBase/forecast';
+  static String get weatherAlerts => '$weatherBase/alerts';
+  static String get weatherAlertsHistory => '$weatherBase/alerts/history';
+  static String weatherAlertById(String id) => '$weatherBase/alerts/$id';
   static String get recommendationOfDay =>
-      '$baseUrl/api/v1/weather/recommendation-of-the-day';
-  static String get recommendations =>
-      '$baseUrl/api/v1/weather/recommendations';
+      '$weatherBase/recommendation-of-the-day';
+  static String get recommendations => '$weatherBase/recommendations';
 
   // --- AGENCIES & PRESTADORES FORMALES (RF-03 / RN-01) ---
   static String get agencies => '$baseUrl/api/v1/catalog/agencies';

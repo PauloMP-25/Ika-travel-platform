@@ -228,6 +228,9 @@ class PantallaFavoritos extends StatelessWidget {
                                         imagenes: List<String>.from(
                                           actividad['imagenes_detalle'],
                                         ),
+                                        // Pasa el id guardado en el favorito
+                                        atractivoId: actividad['id']
+                                            ?.toString(),
                                       ),
                                     ),
                                   );

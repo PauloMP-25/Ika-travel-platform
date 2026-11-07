@@ -278,6 +278,8 @@ class Traducciones {
       'error_marcar_leida': 'No se pudo marcar como leída. Intenta de nuevo.',
       'marcar_como_leida': 'Marcar como leída',
       'leida': 'Leída',
+      'recomendacion_para_actividad': 'Recomendación para esta actividad',
+      'ver_recomendacion_actividad': 'Ver recomendaciones para esta actividad',
     },
     'en': {
       'inicio': 'Home',
@@ -541,6 +543,8 @@ class Traducciones {
       'error_marcar_leida': 'Could not mark as read. Try again.',
       'marcar_como_leida': 'Mark as read',
       'leida': 'Read',
+      'recomendacion_para_actividad': 'Recommendation for this activity',
+      'ver_recomendacion_actividad': 'See recommendations for this activity',
     },
     'ja': {
       'inicio': 'ホーム',
@@ -797,6 +801,8 @@ class Traducciones {
       'error_marcar_leida': '既読にできませんでした。もう一度お試しください。',
       'marcar_como_leida': '既読にする',
       'leida': '既読',
+      'recomendacion_para_actividad': 'このアクティビティのおすすめ',
+      'ver_recomendacion_actividad': 'このアクティビティのおすすめを見る',
     },
   };
 

@@ -5,10 +5,9 @@ import '../config/favoritos_manager.dart';
 import '../config/tema.dart';
 import '../config/traducciones_scope.dart';
 import '../models/alerta_modelo.dart';
-import '../models/horario_modelo.dart';
 import '../services/alertas_service.dart';
 import '../services/auth_service.dart';
-import '../widgets/tarjeta_horarios_atencion.dart';
+import '../services/weather_service.dart';
 import 'pantalla_detalle_alerta.dart';
 import 'pantalla_detalle_dia.dart';
 import 'pantalla_login.dart';
@@ -18,12 +17,14 @@ class PantallaDetalle extends StatefulWidget {
   final String titulo;
   final String subtitulo;
   final List<String> imagenes;
+  final String? atractivoId;
 
   const PantallaDetalle({
     super.key,
     required this.titulo,
     required this.subtitulo,
     required this.imagenes,
+    this.atractivoId,
   });
 
   @override
@@ -33,19 +34,33 @@ class PantallaDetalle extends StatefulWidget {
 class _PantallaDetalleState extends State<PantallaDetalle> {
   int _paginaActual = 0;
   final AlertasService _alertasService = AlertasService();
+  final WeatherService _weatherService = WeatherService();
 
-  HorarioAtencion _obtenerHorarioActividad(String titulo) {
-    final t = titulo.toLowerCase();
-    if (t.contains('sand') || t.contains('huacachina') || t.contains('buggy')) {
-      return HorarioAtencion.paraHuacachina();
-    } else if (t.contains('ballesta')) {
-      return HorarioAtencion.paraIslasBallestas();
-    } else if (t.contains('reserva')) {
-      return HorarioAtencion.paraReservaParacas();
-    } else if (t.contains('vino') || t.contains('bodega')) {
-      return HorarioAtencion.paraVinedos();
+  Map<String, dynamic>? _climaActual;
+  bool _cargandoClima = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarClima();
+  }
+
+  Future<void> _cargarClima() async {
+    try {
+      final clima = await _weatherService.obtenerClimaActual(
+        destino: widget.subtitulo,
+      );
+      if (mounted) {
+        setState(() {
+          _climaActual = clima;
+          _cargandoClima = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _cargandoClima = false);
+      }
     }
-    return HorarioAtencion.noConfirmado();
   }
 
   @override
@@ -53,6 +68,16 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
     final colorTexto = TemaApp.texto(context);
     final colorTextoSecundario = TemaApp.textoSecundario(context);
     final colorTarjeta = TemaApp.tarjeta(context);
+
+    final temp = _climaActual != null
+        ? '${(_climaActual!['temperatura_actual'] as num?)?.round() ?? 22}°C'
+        : '--';
+    final viento = _climaActual != null
+        ? '${(_climaActual!['velocidad_viento'] as num?)?.round() ?? 5} km/h'
+        : '--';
+    final humedad = _climaActual != null
+        ? '${(_climaActual!['humedad'] as num?)?.round() ?? 70}%'
+        : '--';
 
     return Scaffold(
       backgroundColor: TemaApp.fondo(context),
@@ -201,7 +226,9 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                                         );
                                         return;
                                       }
+                                      // Guarda el id del atractivo en el favorito
                                       toggleFavorito({
+                                        'id': widget.atractivoId,
                                         'titulo': widget.titulo,
                                         'subtitulo': widget.subtitulo,
                                         'imagen': widget.imagenes.first,
@@ -428,7 +455,7 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    context.tr('recomendacion_hoy'),
+                    context.tr('recomendacion_para_actividad'),
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -444,6 +471,7 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                           builder: (context) => PantallaDetalleDia(
                             tituloActividad: widget.titulo,
                             imagenActividad: widget.imagenes.first,
+                            atractivoId: widget.atractivoId,
                           ),
                         ),
                       );
@@ -466,14 +494,16 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                           Container(
                             width: 55,
                             height: 55,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFFFF3E0),
+                            decoration: BoxDecoration(
+                              color: AppColores.naranjaBoton.withValues(
+                                alpha: 0.15,
+                              ),
                               shape: BoxShape.circle,
                             ),
                             child: const Center(
                               child: Icon(
-                                Icons.thumb_up_alt,
-                                color: Color(0xFFFFB300),
+                                Icons.auto_awesome,
+                                color: AppColores.naranjaBoton,
                                 size: 30,
                               ),
                             ),
@@ -484,16 +514,16 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  context.tr('excelente'),
+                                  context.tr('ver_recomendacion_actividad'),
                                   style: TextStyle(
-                                    fontSize: 18,
+                                    fontSize: 16,
                                     fontWeight: FontWeight.bold,
                                     color: colorTexto,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  context.tr('condiciones_ideales'),
+                                  context.tr('recomendacion_ia_disponible'),
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: colorTextoSecundario,
@@ -512,14 +542,6 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                     ),
                   ),
                 ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: TarjetaHorariosAtencion(
-                horario: _obtenerHorarioActividad(widget.titulo),
-                tituloDestino: widget.titulo.replaceAll('\n', ' '),
               ),
             ),
             const SizedBox(height: 20),
@@ -598,13 +620,24 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    context.tr('factores_estadisticos'),
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: colorTexto,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        context.tr('factores_estadisticos'),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: colorTexto,
+                        ),
+                      ),
+                      if (_cargandoClima)
+                        const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 10),
                   Container(
@@ -624,9 +657,8 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                         _FilaFactor(
                           icono: Icons.thermostat,
                           nombre: context.tr('temperatura'),
-                          valor: '28°C',
+                          valor: temp,
                           colorTexto: colorTexto,
-                          colorTextoSecundario: colorTextoSecundario,
                         ),
                         Divider(
                           height: 1,
@@ -636,9 +668,8 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                         _FilaFactor(
                           icono: Icons.air,
                           nombre: context.tr('viento'),
-                          valor: '15 km/h',
+                          valor: viento,
                           colorTexto: colorTexto,
-                          colorTextoSecundario: colorTextoSecundario,
                         ),
                         Divider(
                           height: 1,
@@ -646,11 +677,10 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                           color: colorTextoSecundario.withValues(alpha: 0.2),
                         ),
                         _FilaFactor(
-                          icono: Icons.cloud_outlined,
-                          nombre: context.tr('nubosidad'),
-                          valor: '10%',
+                          icono: Icons.water_drop_outlined,
+                          nombre: context.tr('humedad'),
+                          valor: humedad,
                           colorTexto: colorTexto,
-                          colorTextoSecundario: colorTextoSecundario,
                         ),
                       ],
                     ),
@@ -671,14 +701,12 @@ class _FilaFactor extends StatelessWidget {
   final String nombre;
   final String valor;
   final Color colorTexto;
-  final Color colorTextoSecundario;
 
   const _FilaFactor({
     required this.icono,
     required this.nombre,
     required this.valor,
     required this.colorTexto,
-    required this.colorTextoSecundario,
   });
 
   @override
@@ -703,8 +731,6 @@ class _FilaFactor extends StatelessWidget {
               color: colorTexto,
             ),
           ),
-          const SizedBox(width: 8),
-          Icon(Icons.arrow_forward_ios, size: 14, color: colorTextoSecundario),
         ],
       ),
     );

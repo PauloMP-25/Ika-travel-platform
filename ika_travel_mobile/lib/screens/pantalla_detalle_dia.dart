@@ -11,12 +11,14 @@ class PantallaDetalleDia extends StatefulWidget {
   final String tituloActividad;
   final String imagenActividad;
   final String? fecha;
+  final String? atractivoId; // NUEVO
 
   const PantallaDetalleDia({
     super.key,
     required this.tituloActividad,
     required this.imagenActividad,
     this.fecha,
+    this.atractivoId, // NUEVO
   });
 
   @override
@@ -42,10 +44,25 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
   }
 
   Future<void> _cargarDatosClima() async {
+    // 👇 NUEVO: verificar si llega el atractivoId
+    debugPrint('🔍 DEBUG: atractivoId recibido = ${widget.atractivoId}');
+
     try {
       final clima = await _weatherService.obtenerClimaActual();
       final pron = await _weatherService.obtenerPronostico();
-      final recIA = await _weatherService.obtenerRecomendacionDelDia();
+
+      // NUEVO: si hay atractivoId, usa el endpoint específico
+      final recIA = widget.atractivoId != null
+          ? await _weatherService.obtenerRecomendacionPorAtractivo(
+              widget.atractivoId!,
+            )
+          : await _weatherService.obtenerRecomendacionDelDia();
+
+      // 👇 NUEVO: verificar qué devuelve el backend
+      debugPrint(
+        '🔍 DEBUG: atractivo_nombre devuelto = ${recIA?['atractivo_nombre']}',
+      );
+
       if (mounted) {
         setState(() {
           _climaActual = clima;

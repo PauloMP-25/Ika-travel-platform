@@ -355,6 +355,8 @@ class _PantallaActividadesState extends State<PantallaActividades> {
                                         actividad['imagenes_detalle'] ??
                                             [actividad['imagen']],
                                       ),
+
+                                      atractivoId: actividad['id']?.toString(),
                                     ),
                                   ),
                                 );

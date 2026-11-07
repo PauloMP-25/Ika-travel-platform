@@ -115,3 +115,24 @@ class RecomendacionResponse(BaseModel):
     recommendation_text: str
     consejos: list[str] = []
     generated_at: datetime
+
+
+# ======================================================================
+# Historial cronológico de cambios por destino
+# ======================================================================
+class CambioHistorial(BaseModel):
+    """Un cambio significativo detectado entre dos snapshots consecutivos."""
+
+    fecha: datetime
+    parametro: str
+    valor_anterior: str
+    valor_actual: str
+    resumen: str
+    alerta_id: str | None = None
+
+
+class HistoryResponse(BaseModel):
+    """Respuesta del endpoint de historial cronológico de un destino."""
+
+    destino: str
+    cambios: list[CambioHistorial]

@@ -80,7 +80,7 @@ class _PantallaConfiguracionState extends State<PantallaConfiguracion> {
                 ),
                 Divider(
                   height: 1,
-                  color: colorTextoSecundario.withOpacity(0.2),
+                  color: colorTextoSecundario.withValues(alpha: 0.2),
                 ),
                 ValueListenableBuilder<bool>(
                   valueListenable: modoOscuroActivo,
@@ -129,7 +129,6 @@ class _PantallaConfiguracionState extends State<PantallaConfiguracion> {
                 context.tr('idioma_app'),
                 style: TextStyle(color: colorTexto),
               ),
-
               trailing: Text(
                 Traducciones.nombresIdioma[locale.languageCode] ?? 'Español',
                 style: TextStyle(color: colorTextoSecundario),
@@ -138,53 +137,60 @@ class _PantallaConfiguracionState extends State<PantallaConfiguracion> {
                 showModalBottomSheet(
                   context: context,
                   backgroundColor: colorFondoTarjeta,
+                  useSafeArea: true,
+                  isScrollControlled: true,
                   shape: const RoundedRectangleBorder(
                     borderRadius: BorderRadius.vertical(
                       top: Radius.circular(20),
                     ),
                   ),
                   builder: (modalContext) {
-                    return Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            context.tr('seleccionar_idioma'),
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: colorTexto,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-
-                          ...Traducciones.supportedLocales.map((loc) {
-                            final nombre =
-                                Traducciones.nombresIdioma[loc.languageCode] ??
-                                loc.languageCode;
-                            final isSelected =
-                                loc.languageCode == locale.languageCode;
-
-                            return ListTile(
-                              title: Text(
-                                nombre,
-                                style: TextStyle(color: colorTexto),
+                    return SafeArea(
+                      child: SingleChildScrollView(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                context.tr('seleccionar_idioma'),
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: colorTexto,
+                                ),
                               ),
-                              trailing: isSelected
-                                  ? const Icon(
-                                      Icons.check,
-                                      color: AppColores.naranjaBoton,
-                                    )
-                                  : null,
-                              onTap: () {
-                                cambiarIdioma(loc.languageCode);
-                                Navigator.pop(modalContext);
-                              },
-                            );
-                          }),
-                        ],
+                              const SizedBox(height: 10),
+                              ...Traducciones.supportedLocales.map((loc) {
+                                final nombre =
+                                    Traducciones.nombresIdioma[loc
+                                        .languageCode] ??
+                                    loc.languageCode;
+                                final isSelected =
+                                    loc.languageCode == locale.languageCode;
+
+                                return ListTile(
+                                  title: Text(
+                                    nombre,
+                                    style: TextStyle(color: colorTexto),
+                                  ),
+                                  trailing: isSelected
+                                      ? const Icon(
+                                          Icons.check,
+                                          color: AppColores.naranjaBoton,
+                                        )
+                                      : null,
+                                  onTap: () {
+                                    cambiarIdioma(loc.languageCode);
+                                    Navigator.pop(modalContext);
+                                  },
+                                );
+                              }),
+                              const SizedBox(height: 10),
+                            ],
+                          ),
+                        ),
                       ),
                     );
                   },
