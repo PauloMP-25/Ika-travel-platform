@@ -67,6 +67,13 @@ class ApiConfig {
     defaultValue: '',
   );
 
+  // --- ADMIN & DIRCETUR (RF-19 / RF-20) ---
+
+  static const String adminApiKey = String.fromEnvironment(
+    'ADMIN_KEY',
+    defaultValue: '',
+  );
+
   // --- TRAFFIC & INCIDENTS (Tráfico e Incidentes Viales) ---
   /// Clave API configurable para tráfico real (TomTom Developer).
   /// Se inyecta mediante `--dart-define=TOMTOM_API_KEY=tu_clave` o en runtime.

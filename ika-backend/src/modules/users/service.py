@@ -65,8 +65,6 @@ async def authenticate_user(
     if not user.is_active:
         raise InactiveUserException()
 
-    # Cuentas creadas con login social: sin contraseña que comparar. Se
-    # responde el mismo 401 genérico para no revelar que la cuenta existe.
     if user.password_hash is None:
         raise InvalidCredentialsException()
 
@@ -79,7 +77,10 @@ async def authenticate_user(
 async def login_user(db: AsyncSession, data: UserLogin) -> TokenResponse:
     """Orquesta la autenticación y la emisión del token JWT."""
     user = await authenticate_user(db, data.email, data.password)
-    token = security.create_access_token(user.id)
+    
+   
+    token = security.create_access_token(user.id, role=user.role.value)
+    
     return TokenResponse(
         access_token=token,
         expires_in=security.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
@@ -108,24 +109,19 @@ async def update_user_profile(
 # ----------------------------------------------------------------------
 def _emitir_token_social(user: User, *, es_nuevo_usuario: bool) -> TokenSocialResponse:
     return TokenSocialResponse(
-        access_token=security.create_access_token(user.id),
+       
+        access_token=security.create_access_token(user.id, role=user.role.value),
         expires_in=security.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         es_nuevo_usuario=es_nuevo_usuario,
     )
 
 
 async def _vincular_cuenta_existente(db: AsyncSession, user: User, identidad: IdentidadSocial) -> User:
-    """Vincula el proveedor social a una cuenta de email ya registrada.
-
-    Decisión (Sprint 4, F1): `auth_provider` se conserva en `email` para que
-    la contraseña siga funcionando; solo se completa `provider_id`. Una tabla
-    `social_identities` queda para una futura iteración.
-    """
     user.provider_id = identidad.id_proveedor
     db.add(user)
     try:
         await db.commit()
-    except IntegrityError as exc:  # carrera con otra petición que vinculó el mismo `sub`
+    except IntegrityError as exc:
         await db.rollback()
         raise UserAlreadyExistsException(user.email) from exc
     await db.refresh(user)
@@ -141,12 +137,6 @@ async def autenticar_social(
     preferred_language: str | None = None,
     estrategias: Mapping[str, object] | None = None,
 ) -> tuple[User, bool]:
-    """Find-or-link-or-create de una identidad social. Devuelve `(usuario, es_nuevo)`.
-
-    - Busca por `provider_id` (`sub`); si existe, ese es el usuario.
-    - Si no, busca por email: con email verificado **vincula** la cuenta.
-    - Si no existe, crea un turista nuevo (requiere `consentimiento`).
-    """
     estrategia = (estrategias if estrategias is not None else ESTRATEGIAS_SOCIALES).get(proveedor)
     if estrategia is None:
         raise ProveedorSocialNoSoportadoException()
@@ -165,16 +155,14 @@ async def autenticar_social(
             raise InactiveUserException()
         if identidad.email_verificado:
             return await _vincular_cuenta_existente(db, existente, identidad), False
-        # Email sin verificar y cuenta existente: no se vincula ni se crea nada.
         raise EmailSocialNoVerificadoException()
 
     if not consentimiento:
-        # RN datos personales (Ley N° 29733): no se crea la cuenta sin consentimiento.
         raise ConsentimientoRequeridoException()
 
     usuario = User(
         email=identidad.email,
-        password_hash=None,  # cuenta social: nunca hay contraseña que comparar
+        password_hash=None,
         full_name=identidad.nombre_completo[:120],
         auth_provider=AuthProvider.GOOGLE if proveedor == "google" else AuthProvider.EMAIL,
         provider_id=identidad.id_proveedor,
@@ -185,7 +173,7 @@ async def autenticar_social(
     repository.add_user(db, usuario)
     try:
         await db.commit()
-    except IntegrityError as exc:  # carrera con otra petición que creó la misma cuenta
+    except IntegrityError as exc:
         await db.rollback()
         raise UserAlreadyExistsException(identidad.email) from exc
     await db.refresh(usuario)
@@ -197,7 +185,6 @@ async def login_con_google(
     data: GoogleLoginRequest,
     estrategias: Mapping[str, object] | None = None,
 ) -> TokenSocialResponse:
-    """Orquesta el login con Google: verifica el token, aprovisiona y emite el JWT."""
     usuario, es_nuevo = await autenticar_social(
         db,
         proveedor="google",

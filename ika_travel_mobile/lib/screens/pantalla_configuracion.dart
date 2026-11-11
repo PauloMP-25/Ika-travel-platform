@@ -8,6 +8,7 @@ import '../config/traducciones.dart';
 import '../config/traducciones_scope.dart';
 import '../services/auth_service.dart';
 import '../widgets/dialogo_preferencias_turista.dart';
+import 'pantalla_admin_dircetur.dart';
 import 'pantalla_login.dart';
 
 class PantallaConfiguracion extends StatefulWidget {
@@ -259,6 +260,43 @@ class _PantallaConfiguracionState extends State<PantallaConfiguracion> {
                     }
                   },
                 ),
+
+                if (AuthService().esAdmin) ...[
+                  Divider(
+                    height: 1,
+                    color: colorTextoSecundario.withValues(alpha: 0.15),
+                  ),
+                  ListTile(
+                    leading: const Icon(
+                      Icons.admin_panel_settings,
+                      color: Colors.blueAccent,
+                    ),
+                    title: Text(
+                      'Panel de DIRCETUR',
+                      style: TextStyle(
+                        color: colorTexto,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Acceso exclusivo para administradores',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colorTextoSecundario,
+                      ),
+                    ),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PantallaAdminDircetur(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+
                 Divider(
                   height: 1,
                   color: colorTextoSecundario.withValues(alpha: 0.15),

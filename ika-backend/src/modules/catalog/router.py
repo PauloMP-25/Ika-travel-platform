@@ -25,7 +25,7 @@ from src.modules.catalog.schemas import (
     TourResponse,
     TourUpdate,
 )
-from src.shared.admin import requerir_admin
+from src.modules.users.dependencies import CurrentDirceturAdmin, DbSession
 from src.shared.http_cache import responder_con_etag
 from src.shared.pagination import ParametrosPaginacion
 
@@ -34,7 +34,6 @@ router = APIRouter(prefix="/catalog")
 # ======================================================================
 # Endpoints públicos (RN-02: no requieren autenticación)
 # ======================================================================
-
 
 @router.get("/attractions", response_model=PaginatedAttractionsResponse, tags=["catalog"])
 async def listar_atractivos(
@@ -56,18 +55,13 @@ async def listar_atractivos(
         page=paginacion.page,
         page_size=paginacion.page_size,
     )
-    # Sprint 4, F3: ETag sobre el cuerpo ya filtrado y paginado (304 en revalidación).
     return responder_con_etag(request, resultado)
-
 
 @router.get("/categories", response_model=list[CategoryResponse], tags=["catalog"])
 async def listar_categorias(db: AsyncSession = Depends(obtener_bd)):
     return await service.list_categories(db)
 
-
-@router.get(
-    "/attractions/{attraction_id}", response_model=AttractionDetailResponse, tags=["catalog"]
-)
+@router.get("/attractions/{attraction_id}", response_model=AttractionDetailResponse, tags=["catalog"])
 async def detalle_atractivo(
     attraction_id: UUID,
     request: Request,
@@ -79,13 +73,9 @@ async def detalle_atractivo(
     await track_attraction_view(attraction_id, request, tasks, recorder)
     return result
 
-
-@router.get(
-    "/attractions/{attraction_id}/tours", response_model=list[TourResponse], tags=["catalog"]
-)
+@router.get("/attractions/{attraction_id}/tours", response_model=list[TourResponse], tags=["catalog"])
 async def tours_del_atractivo(attraction_id: UUID, db: AsyncSession = Depends(obtener_bd)):
     return await service.list_tours_by_attraction(db, attraction_id)
-
 
 @router.get("/agencies", response_model=list[AgencyListItem], tags=["catalog"])
 async def buscar_agencias(
@@ -95,11 +85,8 @@ async def buscar_agencias(
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(obtener_bd),
 ):
-    # RN-01 + F3: solo agencias validadas; si una deja de estarlo, el cuerpo
-    # cambia y el ETag cambia con él.
     agencias = await service.search_agencies(db, query=query, limit=limit, offset=offset)
     return responder_con_etag(request, agencias)
-
 
 @router.get("/agencies/{agency_id}", response_model=AgencyDetailResponse, tags=["catalog"])
 async def detalle_agencia(agency_id: UUID, db: AsyncSession = Depends(obtener_bd)):
@@ -107,82 +94,110 @@ async def detalle_agencia(agency_id: UUID, db: AsyncSession = Depends(obtener_bd
 
 
 # ======================================================================
-# Endpoints administrativos (header X-Admin-Key)
+# Endpoints administrativos (JWT con rol DIRCETUR)
 # ======================================================================
-admin = APIRouter(
-    prefix="/catalog/admin", tags=["catalog-admin"], dependencies=[Depends(requerir_admin)]
-)
 
+admin = APIRouter(prefix="/catalog/admin", tags=["catalog-admin"])
 
 @admin.post("/categories", response_model=CategoryResponse, status_code=status.HTTP_201_CREATED)
-async def crear_categoria(data: CategoryCreate, db: AsyncSession = Depends(obtener_bd)):
+async def crear_categoria(
+    data: CategoryCreate, 
+    db: DbSession,
+    _admin: CurrentDirceturAdmin 
+):
     return await service.create_category(db, data)
 
-
-@admin.post(
-    "/attractions", response_model=AttractionDetailResponse, status_code=status.HTTP_201_CREATED
-)
-async def crear_atractivo(data: AttractionCreate, db: AsyncSession = Depends(obtener_bd)):
+@admin.post("/attractions", response_model=AttractionDetailResponse, status_code=status.HTTP_201_CREATED)
+async def crear_atractivo(
+    data: AttractionCreate, 
+    db: DbSession,
+    _admin: CurrentDirceturAdmin
+):
     return await service.create_attraction(db, data)
-
 
 @admin.put("/attractions/{attraction_id}", response_model=AttractionDetailResponse)
 async def actualizar_atractivo(
-    attraction_id: UUID, data: AttractionUpdate, db: AsyncSession = Depends(obtener_bd)
+    attraction_id: UUID, 
+    data: AttractionUpdate, 
+    db: DbSession,
+    _admin: CurrentDirceturAdmin
 ):
     return await service.update_attraction(db, attraction_id, data)
 
-
 @admin.delete("/attractions/{attraction_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def eliminar_atractivo(attraction_id: UUID, db: AsyncSession = Depends(obtener_bd)):
+async def eliminar_atractivo(
+    attraction_id: UUID, 
+    db: DbSession,
+    _admin: CurrentDirceturAdmin
+):
     await service.delete_attraction(db, attraction_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-
-@admin.post(
-    "/agencies", response_model=AgencyAdminResponse, status_code=status.HTTP_201_CREATED
-)
-async def crear_agencia(data: AgencyCreate, db: AsyncSession = Depends(obtener_bd)):
+@admin.post("/agencies", response_model=AgencyAdminResponse, status_code=status.HTTP_201_CREATED)
+async def crear_agencia(
+    data: AgencyCreate, 
+    db: DbSession,
+    _admin: CurrentDirceturAdmin
+):
     return await service.create_agency(db, data)
-
 
 @admin.put("/agencies/{agency_id}", response_model=AgencyAdminResponse)
 async def actualizar_agencia(
-    agency_id: UUID, data: AgencyUpdate, db: AsyncSession = Depends(obtener_bd)
+    agency_id: UUID, 
+    data: AgencyUpdate, 
+    db: DbSession,
+    _admin: CurrentDirceturAdmin
 ):
     return await service.update_agency(db, agency_id, data)
 
-
 @admin.post("/agencies/{agency_id}/validate", response_model=AgencyAdminResponse)
 async def validar_agencia(
-    agency_id: UUID, data: AgencyValidationRequest, db: AsyncSession = Depends(obtener_bd)
+    agency_id: UUID, 
+    data: AgencyValidationRequest, 
+    db: DbSession,
+    _admin: CurrentDirceturAdmin
 ):
     return await service.set_agency_validation(
         db, agency_id, validated=True, registry_number=data.dircetur_registry_number
     )
 
-
 @admin.post("/agencies/{agency_id}/revoke", response_model=AgencyAdminResponse)
-async def revocar_agencia(agency_id: UUID, db: AsyncSession = Depends(obtener_bd)):
+async def revocar_agencia(
+    agency_id: UUID, 
+    db: DbSession,
+    _admin: CurrentDirceturAdmin
+):
     return await service.set_agency_validation(db, agency_id, validated=False)
 
-
 @admin.post("/agencies/sync-dircetur", response_model=DircerturSyncSummary)
-async def sincronizar_dircetur(db: AsyncSession = Depends(obtener_bd)):
+async def sincronizar_dircetur(
+    db: DbSession,
+    _admin: CurrentDirceturAdmin 
+):
     return await service.sync_dircetur_registry(db)
 
-
 @admin.post("/tours", response_model=TourResponse, status_code=status.HTTP_201_CREATED)
-async def crear_tour(data: TourCreate, db: AsyncSession = Depends(obtener_bd)):
+async def crear_tour(
+    data: TourCreate, 
+    db: DbSession,
+    _admin: CurrentDirceturAdmin
+):
     return await service.create_tour(db, data)
 
-
 @admin.put("/tours/{tour_id}", response_model=TourResponse)
-async def actualizar_tour(tour_id: UUID, data: TourUpdate, db: AsyncSession = Depends(obtener_bd)):
+async def actualizar_tour(
+    tour_id: UUID, 
+    data: TourUpdate, 
+    db: DbSession,
+    _admin: CurrentDirceturAdmin
+):
     return await service.update_tour(db, tour_id, data)
 
-
 @admin.delete("/tours/{tour_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def eliminar_tour(tour_id: UUID, db: AsyncSession = Depends(obtener_bd)):
+async def eliminar_tour(
+    tour_id: UUID, 
+    db: DbSession,
+    _admin: CurrentDirceturAdmin
+):
     await service.delete_tour(db, tour_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

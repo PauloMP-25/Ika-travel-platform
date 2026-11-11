@@ -1,6 +1,8 @@
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:jwt_decoder/jwt_decoder.dart';
 
 import '../config/api_config.dart';
 import '../models/usuario_modelo.dart';
@@ -80,7 +82,9 @@ class AuthService {
             )
             .timeout(const Duration(seconds: 4));
       } catch (errorRed) {
-        debugPrint('Servidor no disponible para login ($errorRed), usando fallback...');
+        debugPrint(
+          'Servidor no disponible para login ($errorRed), usando fallback...',
+        );
       }
 
       // 1. Si el servidor respondió
@@ -92,13 +96,15 @@ class AuthService {
           // Obtener perfil completo desde /api/v1/users/me
           UsuarioModelo usuario;
           try {
-            final respMe = await http.get(
-              Uri.parse(ApiConfig.usersMe),
-              headers: {
-                'Authorization': 'Bearer $token',
-                'Content-Type': 'application/json',
-              },
-            ).timeout(const Duration(seconds: 3));
+            final respMe = await http
+                .get(
+                  Uri.parse(ApiConfig.usersMe),
+                  headers: {
+                    'Authorization': 'Bearer $token',
+                    'Content-Type': 'application/json',
+                  },
+                )
+                .timeout(const Duration(seconds: 3));
 
             if (respMe.statusCode == 200) {
               final meData = jsonDecode(respMe.body) as Map<String, dynamic>;
@@ -206,10 +212,13 @@ class AuthService {
             )
             .timeout(const Duration(seconds: 4));
       } catch (e) {
-        debugPrint('Servidor no disponible para registro ($e), creando en modo local...');
+        debugPrint(
+          'Servidor no disponible para registro ($e), creando en modo local...',
+        );
       }
 
-      if (respuesta != null && (respuesta.statusCode == 201 || respuesta.statusCode == 200)) {
+      if (respuesta != null &&
+          (respuesta.statusCode == 201 || respuesta.statusCode == 200)) {
         // Registro exitoso en backend, iniciar sesión automáticamente
         cargandoNotifier.value = false;
         return await login(email, password);
@@ -306,6 +315,20 @@ class AuthService {
     );
     await _guardarSesion(actualizado);
     return true;
+  }
+
+  /// Verifica si el usuario actual tiene rol de administrador leyendo el JWT.
+  bool get esAdmin {
+    final token = usuarioNotifier.value?.token;
+    if (token == null || token.isEmpty || token == 'jwt_offline_token')
+      return false;
+
+    try {
+      final payload = JwtDecoder.decode(token);
+      return payload['role'] == 'dircetur_admin';
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> _guardarSesion(UsuarioModelo usuario) async {

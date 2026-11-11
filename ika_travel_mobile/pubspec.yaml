@@ -20,10 +20,11 @@ dependencies:
   http: ^1.2.0
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
+  jwt_decoder: ^2.0.1 # 
 
   flutter_localizations:
     sdk: flutter
-  intl: ^0.20.3  # 👈 Versión corregida para que coincida con flutter_localizations
+  intl: ^0.20.3  
   geolocator: ^14.1.2
   flutter_tts: ^4.2.5
   url_launcher: ^6.3.1
@@ -37,7 +38,7 @@ dev_dependencies:
   flutter_lints: ^6.0.0
 
 # For information on the generic Dart part of this file, see the
-# following page: https://dart.dev/tools/pub/pubspec
+# following page: https://dart.dev/tools/pubspec
 
 # The following section is specific to Flutter packages.
 flutter:

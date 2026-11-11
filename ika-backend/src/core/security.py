@@ -9,8 +9,6 @@ from passlib.context import CryptContext
 
 from src.modules.users.exceptions import InvalidCredentialsException
 
-# TODO(Paulo): migrar estas tres variables a `src.core.config.Settings` en
-# cuanto se amplíe. Hoy se leen del entorno para no tocar `config.py`.
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-cambiar-antes-de-produccion")
 ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
@@ -19,28 +17,22 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def hash_password(password: str) -> str:
-    """Devuelve el hash bcrypt de la contraseña en texto plano."""
     return pwd_context.hash(password)
 
 
 def verify_password(plain: str, hashed: str | None) -> bool:
-    """Compara una contraseña en texto plano contra su hash."""
     if not hashed:
         return False
     return pwd_context.verify(plain, hashed)
 
 
-def create_access_token(
-    user_id: UUID,
-    expires_minutes: int | None = None,
-) -> str:
-    """Firma un JWT con el `sub` igual al id del usuario."""
+def create_access_token(user_id: UUID, role: str, expires_minutes: int | None = None) -> str:
+    """Firma un JWT con el `sub` (id) y el `role` del usuario."""
     now = datetime.now(timezone.utc)
-    expire = now + timedelta(
-        minutes=expires_minutes or ACCESS_TOKEN_EXPIRE_MINUTES
-    )
+    expire = now + timedelta(minutes=expires_minutes or ACCESS_TOKEN_EXPIRE_MINUTES)
     payload: dict[str, object] = {
         "sub": str(user_id),
+        "role": role,  
         "iat": int(now.timestamp()),
         "exp": int(expire.timestamp()),
         "jti": str(uuid4()),
@@ -48,18 +40,12 @@ def create_access_token(
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def decode_access_token(token: str) -> UUID:
-    """Valida un JWT y devuelve el id del usuario.
-
-    Lanza `InvalidCredentialsException` si el token es inválido, está
-    manipulado o ya expiró (PyJWT valida `exp` automáticamente).
-    """
+def decode_access_token(token: str) -> dict:
+    """Valida un JWT y devuelve el payload (sub y role)."""
     try:
-        payload = jwt.decode(
-            token,
-            SECRET_KEY,
-            algorithms=[ALGORITHM],
-        )
-        return UUID(payload["sub"])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        if "sub" not in payload or "role" not in payload:
+            raise ValueError("Payload incompleto")
+        return payload  
     except (jwt.PyJWTError, KeyError, ValueError):
         raise InvalidCredentialsException("Token inválido o expirado")

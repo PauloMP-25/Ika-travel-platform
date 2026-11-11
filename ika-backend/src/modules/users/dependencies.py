@@ -20,12 +20,12 @@ async def get_current_user(
     db: Annotated[AsyncSession, Depends(obtener_bd)],
     token: Annotated[str, Depends(oauth2_scheme)],
 ) -> User:
-    """Resuelve el usuario a partir del JWT de la cabecera `Authorization`.
-
-    Lanza 401 si el token es inválido, el usuario no existe o está
-    desactivado.
-    """
-    user_id: UUID = decode_access_token(token)
+    """Resuelve el usuario a partir del JWT de la cabecera `Authorization`."""
+    
+   
+    payload = decode_access_token(token)
+    user_id = UUID(payload["sub"])
+    
     user = await db.get(User, user_id)
     if user is None or not user.is_active:
         raise InvalidCredentialsException("Usuario no encontrado o desactivado")
