@@ -49,6 +49,21 @@ class InactiveUserException(UsersException):
 
 
 # ----------------------------------------------------------------------
+# Recuperación de contraseña (RF-03)
+# ----------------------------------------------------------------------
+class ResetTokenInvalidoException(UsersException):
+    """Token de recuperación inválido, vencido, usado o invalidado (HTTP 400).
+
+    El mismo error genérico sirve para todos los casos: no revela si la
+    cuenta existe ni si el token estaba a punto de caducar.
+    """
+
+    status_code = 400
+    codigo = "RESET_TOKEN_INVALIDO"
+    default_detail = "El enlace de recuperación no es válido o ha expirado."
+
+
+# ----------------------------------------------------------------------
 # Autenticación social (Sprint 4, F1)
 # ----------------------------------------------------------------------
 class TokenSocialInvalidoException(UsersException):

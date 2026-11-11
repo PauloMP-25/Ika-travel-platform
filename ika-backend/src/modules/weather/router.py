@@ -5,7 +5,8 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import obtener_bd
-from src.core.security import decode_access_token
+from src.core.security import decode_access_token_payload
+from src.modules.users.dependencies import jwt_valido_para_el_usuario
 from src.modules.users.models import User
 from src.modules.weather import service
 from src.modules.weather.schemas import (
@@ -25,15 +26,24 @@ async def obtener_usuario_opcional(
     authorization: Annotated[str | None, Header()] = None,
     db: AsyncSession = Depends(obtener_bd),
 ) -> User | None:
-    """Extrae el usuario si se envía un Bearer token válido; de lo contrario devuelve None."""
+    """Extrae el usuario si se envía un Bearer token válido y vigente.
+
+    Los endpoints de clima son públicos (RN-02): si el token falta, está
+    manipulado o es anterior al último cambio de contraseña (RF-03), la
+    petición continúa en modo anónimo (devuelve `None`), igual que antes.
+    """
     if not authorization or not authorization.startswith("Bearer "):
         return None
     token = authorization.split(" ", 1)[1]
     try:
-        user_id = decode_access_token(token)
-        return await db.get(User, user_id)
+        payload = decode_access_token_payload(token)
+        user_id = UUID(str(payload["sub"]))
+        user = await db.get(User, user_id)
     except Exception:
         return None
+    if user is None or not jwt_valido_para_el_usuario(payload, user):
+        return None
+    return user
 
 
 @router.get("/current", response_model=ClimaActualResponse)

@@ -13,6 +13,33 @@ from src.redis_client import obtener_cliente_redis
 logger = logging.getLogger(__name__)
 
 
+async def limit_by_key(
+    redis_client: Redis,
+    scope: str,
+    clave: str,
+    maximum: int,
+    window_seconds: int,
+) -> None:
+    """Comprueba el límite de `scope` para una clave arbitraria (IP, correo…).
+
+    Ventana fija con contador en Redis y **falla abierto**: si Redis no está
+    disponible se omite el límite y se registra una advertencia, sin
+    interrumpir al usuario. Lanza `RateLimitExceededException` (429) al
+    superar el máximo.
+    """
+    key = f"limite:{scope}:{clave}"
+    try:
+        async with redis_client.pipeline(transaction=True) as pipe:
+            pipe.set(key, 0, ex=window_seconds, nx=True)
+            pipe.incr(key)
+            _, count = await pipe.execute()
+    except (RedisError, OSError):
+        logger.warning("Redis no disponible: rate limit omitido para %s", scope, exc_info=True)
+        return
+    if int(count) > maximum:
+        raise RateLimitExceededException(window_seconds)
+
+
 def limit_requests(
     scope: str, maximum: int, window_seconds: int
 ) -> Callable[..., Awaitable[None]]:
@@ -24,16 +51,6 @@ def limit_requests(
 
     async def dependency(request: Request, redis_client: Redis = Depends(obtener_cliente_redis)) -> None:
         client_ip = request.client.host if request.client else "desconocida"
-        key = f"limite:{scope}:{client_ip}"
-        try:
-            async with redis_client.pipeline(transaction=True) as pipe:
-                pipe.set(key, 0, ex=window_seconds, nx=True)
-                pipe.incr(key)
-                _, count = await pipe.execute()
-        except (RedisError, OSError):
-            logger.warning("Redis no disponible: rate limit omitido para %s", scope, exc_info=True)
-            return
-        if int(count) > maximum:
-            raise RateLimitExceededException(window_seconds)
+        await limit_by_key(redis_client, scope, client_ip, maximum, window_seconds)
 
     return dependency

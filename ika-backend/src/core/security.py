@@ -1,5 +1,6 @@
 """Primitivas de seguridad: hasheo de contraseñas y tokens JWT."""
 
+import hashlib
 import os
 from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
@@ -48,8 +49,24 @@ def create_access_token(
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def decode_access_token(token: str) -> UUID:
-    """Valida un JWT y devuelve el id del usuario.
+def segundos_enteros(momento: datetime) -> int:
+    """Convierte una marca de tiempo a **segundos enteros** (UTC si es naive).
+
+    Comparar en segundos enteros evita rechazar los tokens emitidos en el
+    mismo segundo en el que se cambió la contraseña (redondeo vs. truncado).
+    """
+    if momento.tzinfo is None:
+        momento = momento.replace(tzinfo=timezone.utc)
+    return int(momento.timestamp())
+
+
+def hash_token_reset(token: str) -> str:
+    """SHA-256 (hex, 64 chars) del token de recuperación: lo único que se persiste."""
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def decode_access_token_payload(token: str) -> dict[str, object]:
+    """Valida un JWT y devuelve su payload completo (incluye `iat`).
 
     Lanza `InvalidCredentialsException` si el token es inválido, está
     manipulado o ya expiró (PyJWT valida `exp` automáticamente).
@@ -60,6 +77,12 @@ def decode_access_token(token: str) -> UUID:
             SECRET_KEY,
             algorithms=[ALGORITHM],
         )
-        return UUID(payload["sub"])
+        return payload
     except (jwt.PyJWTError, KeyError, ValueError):
         raise InvalidCredentialsException("Token inválido o expirado")
+
+
+def decode_access_token(token: str) -> UUID:
+    """Valida un JWT y devuelve el id del usuario."""
+    payload = decode_access_token_payload(token)
+    return UUID(payload["sub"])

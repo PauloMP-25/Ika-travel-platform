@@ -1,31 +1,49 @@
 """Lógica de negocio del módulo `users` (registro, login y perfil)."""
 
+import hashlib
+import logging
+import secrets
 from collections.abc import Mapping
+from datetime import datetime, timedelta, timezone
 
+from redis.asyncio import Redis
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core import security
+from src.core.config import configuracion
+from src.core.rate_limit import limit_by_key
 from src.modules.users import repository
 from src.modules.users.auth_strategies import ESTRATEGIAS_SOCIALES
 from src.modules.users.auth_strategies.base import IdentidadSocial
+from src.modules.users.email import (
+    Correo,
+    EmailSender,
+    construir_enlace_reset,
+    contenido_plantilla,
+)
 from src.modules.users.exceptions import (
     ConsentimientoRequeridoException,
     EmailSocialNoVerificadoException,
     InactiveUserException,
     InvalidCredentialsException,
     ProveedorSocialNoSoportadoException,
+    ResetTokenInvalidoException,
     UserAlreadyExistsException,
 )
-from src.modules.users.models import AuthProvider, User, UserRole
+from src.modules.users.models import AuthProvider, PasswordResetToken, User, UserRole
 from src.modules.users.schemas import (
+    ForgotPasswordRequest,
     GoogleLoginRequest,
+    ResetPasswordRequest,
     TokenResponse,
     TokenSocialResponse,
     UserCreate,
     UserLogin,
     UserUpdate,
 )
+
+logger = logging.getLogger(__name__)
 
 
 async def register_user(db: AsyncSession, data: UserCreate) -> User:
@@ -207,3 +225,146 @@ async def login_con_google(
         estrategias=estrategias,
     )
     return _emitir_token_social(usuario, es_nuevo_usuario=es_nuevo)
+
+
+# ----------------------------------------------------------------------
+# Recuperación de contraseña (RF-03)
+# ----------------------------------------------------------------------
+MENSAJE_RECUPERACION_GENERICO = (
+    "Si el correo está registrado, recibirás instrucciones para recuperar tu cuenta."
+)
+
+
+def admite_password_local(usuario: User) -> bool:
+    """`False` solo para cuentas creadas **exclusivamente** con Google.
+
+    Esas cuentas no tienen contraseña local y este flujo no puede fijarles una.
+    """
+    return not (
+        usuario.auth_provider == AuthProvider.GOOGLE
+        and usuario.password_hash is None
+    )
+
+
+async def _enviar_correo(sender: EmailSender, correo: Correo) -> None:
+    """Envía el correo sin que un fallo de SMTP cambie la respuesta HTTP.
+
+    Si falla el envío se responde igual (202) para no revelar si la cuenta
+    existe. En logs solo va el tipo de error: nunca el cuerpo, el enlace ni
+    las credenciales.
+    """
+    try:
+        await sender.enviar(correo)
+    except Exception as exc:  # noqa: BLE001 - cualquier fallo de red/SMTP
+        logger.error(
+            "No se pudo enviar el correo de recuperación (%s)", type(exc).__name__
+        )
+
+
+async def solicitar_recuperacion(
+    db: AsyncSession,
+    data: ForgotPasswordRequest,
+    *,
+    sender: EmailSender,
+    redis_client: Redis | None = None,
+) -> None:
+    """RF-03: procesa `POST /auth/password/forgot`.
+
+    Termina **siempre** sin excepción para que el endpoint responda 202 con
+    el mismo mensaje exista o no el correo, esté la cuenta inactiva o sea
+    creada exclusivamente con Google.
+    """
+    # Límite por correo: 3 solicitudes cada hora. La clave vive solo en Redis.
+    if redis_client is not None:
+        await limit_by_key(
+            redis_client,
+            "password_reset_email",
+            data.email.lower(),
+            configuracion.PASSWORD_RESET_MAX_POR_CORREO,
+            configuracion.PASSWORD_RESET_VENTANA_CORREO_SEGUNDOS,
+        )
+
+    usuario = await repository.get_user_by_email(db, data.email)
+
+    if usuario is None or not usuario.is_active:
+        # Correo inexistente o cuenta inactiva: sin token, sin correo, mismo 202.
+        logger.info("Solicitud de recuperación sin efecto (cuenta no elegible)")
+        return
+
+    if not admite_password_local(usuario):
+        # Cuenta creada exclusivamente con Google: se avisa para que entre con
+        # Google. No se crea token ni se establece contraseña. Mismo 202.
+        asunto, cuerpo = contenido_plantilla("google", usuario.preferred_language)
+        await _enviar_correo(
+            sender, Correo(destino=usuario.email, asunto=asunto, cuerpo=cuerpo)
+        )
+        return
+
+    token_claro = secrets.token_urlsafe(32)
+    ahora = datetime.now(timezone.utc)
+    registro = PasswordResetToken(
+        user_id=usuario.id,
+        token_hash=security.hash_token_reset(token_claro),
+        created_at=ahora,
+        expires_at=ahora
+        + timedelta(minutes=configuracion.PASSWORD_RESET_TOKEN_TTL_MINUTES),
+    )
+
+    # Misma transacción: se invalidan los tokens anteriores y se guarda el nuevo.
+    await repository.invalidate_active_tokens(db, usuario.id)
+    repository.add_password_reset_token(db, registro)
+    await db.commit()
+
+    enlace = construir_enlace_reset(token_claro)
+    asunto, cuerpo = contenido_plantilla("reset", usuario.preferred_language)
+    await _enviar_correo(
+        sender,
+        Correo(
+            destino=usuario.email,
+            asunto=asunto,
+            cuerpo=cuerpo.format(enlace=enlace),
+        ),
+    )
+
+
+async def restablecer_password(
+    db: AsyncSession, data: ResetPasswordRequest
+) -> None:
+    """RF-03: procesa `POST /auth/password/reset`.
+
+    Un token inválido, vencido, usado o invalidado lanza **siempre** el mismo
+    error genérico (`RESET_TOKEN_INVALIDO`, HTTP 400) y nunca se devuelve el
+    token en la respuesta.
+    """
+    registro = await repository.get_password_reset_token_by_hash(
+        db, security.hash_token_reset(data.token)
+    )
+    ahora = datetime.now(timezone.utc)
+
+    if registro is None or registro.used_at is not None:
+        raise ResetTokenInvalidoException()
+    if (
+        security.segundos_enteros(registro.expires_at)
+        <= security.segundos_enteros(ahora)
+    ):
+        raise ResetTokenInvalidoException()
+
+    usuario = await repository.get_user_by_id(db, registro.user_id)
+    if (
+        usuario is None
+        or not usuario.is_active
+        or not admite_password_local(usuario)
+    ):
+        raise ResetTokenInvalidoException()
+
+    # Compare-and-set: ante dos peticiones simultáneas con el mismo token,
+    # solo una obtiene `rowcount == 1` y restablece la contraseña.
+    if not await repository.mark_token_used(db, registro.id):
+        raise ResetTokenInvalidoException()
+
+    usuario.password_hash = security.hash_password(data.new_password)
+    usuario.password_changed_at = ahora
+    db.add(usuario)
+    # El cambio deja sin efecto cualquier otro token activo del usuario.
+    await repository.invalidate_active_tokens(db, usuario.id)
+    await db.commit()

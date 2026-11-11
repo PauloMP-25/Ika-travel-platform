@@ -62,6 +62,22 @@ class TokenResponse(BaseModel):
     expires_in: int
 
 
+class ForgotPasswordRequest(BaseModel):
+    """Payload de `POST /auth/password/forgot` (RF-03).
+
+    Solo se pide el correo: la respuesta es idéntica exista o no la cuenta.
+    """
+
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    """Payload de `POST /auth/password/reset` (RF-03)."""
+
+    token: str = Field(min_length=10, max_length=512)
+    new_password: str = Field(min_length=8, max_length=128)
+
+
 class GoogleLoginRequest(BaseModel):
     """Payload del login con Google (`POST /auth/login/google`).
 
