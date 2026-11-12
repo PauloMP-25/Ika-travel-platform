@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../config/colores_tema.dart';
 import '../config/tema.dart';
+import '../config/traducciones_scope.dart';
 import '../models/prestador_servicio_modelo.dart';
 import '../services/prestadores_service.dart';
 
@@ -119,7 +120,7 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No se pudo abrir la llamada a $telefono')),
+          SnackBar(content: Text('${context.tr('no_pudo_llamar')}: \$telefono')),
         );
       }
     }
@@ -137,7 +138,7 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No se pudo abrir WhatsApp para $telefono')),
+          SnackBar(content: Text('${context.tr('no_pudo_whatsapp')}: \$telefono')),
         );
       }
     }
@@ -224,8 +225,8 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
                                 color: const Color(0xFF2E7D32).withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child: const Text(
-                                '✓ Empadronado y Validado por DIRCETUR',
+                              child: Text(
+                                context.tr('empadronado_validado'),
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
@@ -264,7 +265,7 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
 
                   const SizedBox(height: 20),
                   Text(
-                    'Canales Oficiales de Contacto',
+                    context.tr('canales_contacto'),
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: colorTexto),
                   ),
                   const SizedBox(height: 10),
@@ -294,7 +295,7 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
                             icon: const Icon(Icons.phone, size: 18),
-                            label: const Text('Llamar', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                            label: Text(context.tr('llamar'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                             onPressed: () => _llamarTelefono(prestador.contactPhone),
                           ),
                         ),
@@ -319,11 +320,11 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Servicios y Tours Certificados (${prestador.tours.length})',
+                        '${context.tr('servicios_tours_cert')} (${prestador.tours.length})',
                         style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: colorTexto),
                       ),
                       Text(
-                        'Precios referenciales',
+                        context.tr('precios_referenciales'),
                         style: TextStyle(fontSize: 11, color: colorTextoSec),
                       ),
                     ],
@@ -334,7 +335,7 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       child: Text(
-                        'Consulta directamente al prestador para conocer el itinerario y salidas del día.',
+                        context.tr('consulta_prestador'),
                         style: TextStyle(color: colorTextoSec, fontSize: 13),
                       ),
                     )
@@ -401,7 +402,7 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
                                 Icon(Icons.schedule, size: 14, color: colorTextoSec),
                                 const SizedBox(width: 4),
                                 Text(
-                                  'Duración aprox: ${tour.durationHours} ${tour.durationHours == 1 ? 'hora' : 'horas'}',
+                                  '${context.tr('duracion_aprox')} ${tour.durationHours} ${tour.durationHours == 1 ? context.tr('hora_u') : context.tr('horas_u')}',
                                   style: TextStyle(fontSize: 11, color: colorTextoSec),
                                 ),
                                 if (tour.attractionName != null) ...[
@@ -439,7 +440,7 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Ika Travel facilita el acceso directo a prestadores formalizados inscritos en DIRCETUR Ica. La contratación y pago se acuerdan directamente con la agencia sin intermediación de la app.',
+                            context.tr('nota_contratacion'),
                             style: TextStyle(fontSize: 11, color: Colors.brown.shade900, height: 1.3),
                           ),
                         ),
@@ -485,7 +486,7 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Servicios Formalizados',
+          context.tr('servicios_formalizados_titulo'),
           style: TextStyle(color: colorTexto, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
@@ -505,7 +506,7 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
                 },
                 style: TextStyle(color: colorTexto),
                 decoration: InputDecoration(
-                  hintText: 'Buscar agencia, tour o destino...',
+                  hintText: context.tr('buscar_agencia'),
                   hintStyle: TextStyle(color: colorTextoSec, fontSize: 13),
                   prefixIcon: Icon(Icons.search, color: colorTextoSec),
                   suffixIcon: _busquedaCtrl.text.isNotEmpty
@@ -584,7 +585,7 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
                                     foregroundColor: Colors.white,
                                   ),
                                   onPressed: _cargarPrestadores,
-                                  child: const Text('Reintentar'),
+                                  child: Text(context.tr('reintentar')),
                                 ),
                               ],
                             ),
@@ -600,13 +601,13 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
                                     Icon(Icons.search_off_rounded, size: 54, color: colorTextoSec),
                                     const SizedBox(height: 10),
                                     Text(
-                                      'No se encontraron prestadores validados para esta búsqueda.',
+                                      context.tr('no_prestadores'),
                                       textAlign: TextAlign.center,
                                       style: TextStyle(fontSize: 14, color: colorTextoSec),
                                     ),
                                     const SizedBox(height: 6),
                                     Text(
-                                      'Por seguridad (RN-01), solo se presentan empresas verificadas por DIRCETUR.',
+                                      context.tr('seguridad_verificadas'),
                                       textAlign: TextAlign.center,
                                       style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                                     ),
@@ -700,7 +701,7 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
                                             ),
                                             const SizedBox(height: 10),
                                             Text(
-                                              '${prestador.tours.length} ${prestador.tours.length == 1 ? 'servicio/tour homologado' : 'servicios/tours homologados'}',
+                                              '${prestador.tours.length} ${prestador.tours.length == 1 ? context.tr('servicio_homologado') : context.tr('servicios_homologados')}',
                                               style: TextStyle(
                                                 fontSize: 12,
                                                 color: colorTextoSec,
@@ -735,7 +736,7 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
                                                     padding: EdgeInsets.zero,
                                                   ),
                                                   icon: const Icon(Icons.arrow_forward, size: 16),
-                                                  label: const Text('Ver servicios', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                                  label: Text(context.tr('ver_servicios'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                                                   onPressed: () => _mostrarDetallePrestador(prestador),
                                                 ),
                                               ],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../config/colores_tema.dart';
 import '../config/tema.dart';
+import '../config/traducciones_scope.dart';
 import '../services/auth_service.dart';
 import 'main_scaffold.dart';
 
@@ -42,8 +43,8 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
 
     if (!_aceptaTerminos) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Debes aceptar los términos y condiciones para continuar'),
+        SnackBar(
+          content: Text(context.tr('debes_aceptar_terminos')),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
@@ -106,7 +107,7 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Crear cuenta',
+          context.tr('crear_cuenta'),
           style: TextStyle(
             color: colorTexto,
             fontWeight: FontWeight.bold,
@@ -126,7 +127,7 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Únete a Ika Travel',
+                      context.tr('unete_ika'),
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -135,7 +136,7 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Regístrate para guardar tus rutas, pronósticos y recibir alertas inteligentes.',
+                      context.tr('registrate_sub'),
                       style: TextStyle(
                         fontSize: 13,
                         color: colorTextoSec,
@@ -165,8 +166,8 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                             controller: _nameController,
                             textCapitalization: TextCapitalization.words,
                             decoration: InputDecoration(
-                              labelText: 'Nombre completo',
-                              hintText: 'Ej. Juan Pérez',
+                              labelText: context.tr('nombre_completo'),
+                              hintText: context.tr('hint_nombre'),
                               prefixIcon: const Icon(Icons.person_outline),
                               filled: true,
                               fillColor: colorFondo.withValues(alpha: 0.5),
@@ -177,7 +178,7 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                             ),
                             validator: (val) {
                               if (val == null || val.trim().isEmpty) {
-                                return 'Ingresa tu nombre completo';
+                                return context.tr('error_nombre');
                               }
                               return null;
                             },
@@ -189,8 +190,8 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
                             decoration: InputDecoration(
-                              labelText: 'Correo electrónico',
-                              hintText: 'ejemplo@correo.com',
+                              labelText: context.tr('correo_electronico'),
+                              hintText: context.tr('hint_correo'),
                               prefixIcon: const Icon(Icons.email_outlined),
                               filled: true,
                               fillColor: colorFondo.withValues(alpha: 0.5),
@@ -201,10 +202,10 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                             ),
                             validator: (val) {
                               if (val == null || val.trim().isEmpty) {
-                                return 'Ingresa tu correo';
+                                return context.tr('error_correo_corto');
                               }
                               if (!val.contains('@') || !val.contains('.')) {
-                                return 'Ingresa un correo electrónico válido';
+                                return context.tr('error_correo_invalido');
                               }
                               return null;
                             },
@@ -216,8 +217,8 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                             controller: _phoneController,
                             keyboardType: TextInputType.phone,
                             decoration: InputDecoration(
-                              labelText: 'Teléfono (opcional)',
-                              hintText: '+51 987 654 321',
+                              labelText: context.tr('telefono_opcional'),
+                              hintText: context.tr('hint_telefono'),
                               prefixIcon: const Icon(Icons.phone_outlined),
                               filled: true,
                               fillColor: colorFondo.withValues(alpha: 0.5),
@@ -233,7 +234,7 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                           DropdownButtonFormField<String>(
                             initialValue: _idiomaSeleccionado,
                             decoration: InputDecoration(
-                              labelText: 'Idioma preferido',
+                              labelText: context.tr('idioma_preferido'),
                               prefixIcon: const Icon(Icons.language),
                               filled: true,
                               fillColor: colorFondo.withValues(alpha: 0.5),
@@ -259,8 +260,8 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                             controller: _passwordController,
                             obscureText: _obscurePassword,
                             decoration: InputDecoration(
-                              labelText: 'Contraseña',
-                              helperText: 'Mínimo 8 caracteres',
+                              labelText: context.tr('contrasena'),
+                              helperText: context.tr('min_8_caracteres'),
                               prefixIcon: const Icon(Icons.lock_outline),
                               suffixIcon: IconButton(
                                 icon: Icon(
@@ -283,10 +284,10 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                             ),
                             validator: (val) {
                               if (val == null || val.isEmpty) {
-                                return 'Ingresa una contraseña';
+                                return context.tr('error_contrasena_vacia_2');
                               }
                               if (val.length < 8) {
-                                return 'La contraseña debe tener al menos 8 caracteres';
+                                return context.tr('error_contrasena_corta_8');
                               }
                               return null;
                             },
@@ -298,7 +299,7 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                             controller: _confirmPasswordController,
                             obscureText: _obscureConfirmPassword,
                             decoration: InputDecoration(
-                              labelText: 'Confirmar contraseña',
+                              labelText: context.tr('confirmar_contrasena'),
                               prefixIcon: const Icon(Icons.lock_clock_outlined),
                               suffixIcon: IconButton(
                                 icon: Icon(
@@ -322,7 +323,7 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                             ),
                             validator: (val) {
                               if (val != _passwordController.text) {
-                                return 'Las contraseñas no coinciden';
+                                return context.tr('error_contrasenas_no_coinciden');
                               }
                               return null;
                             },
@@ -350,7 +351,7 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'Acepto los términos de servicio y políticas de privacidad de Ika Travel.',
+                                  context.tr('acepto_terminos'),
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: colorTextoSec,
@@ -417,8 +418,8 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                                         ),
                                       ),
                                     )
-                                  : const Text(
-                                      'Registrarme',
+                                  : Text(
+                                      context.tr('registrarme'),
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
@@ -438,7 +439,7 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            '¿Ya tienes una cuenta? ',
+                            context.tr('ya_tienes_cuenta'),
                             style: TextStyle(
                               fontSize: 13,
                               color: colorTextoSec,
@@ -446,8 +447,8 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                           ),
                           GestureDetector(
                             onTap: () => Navigator.pop(context),
-                            child: const Text(
-                              'Inicia sesión',
+                            child: Text(
+                              context.tr('inicia_sesion_link'),
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
