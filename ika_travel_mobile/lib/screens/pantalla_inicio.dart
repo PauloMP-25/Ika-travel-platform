@@ -375,7 +375,6 @@ class _PantallaInicioState extends State<PantallaInicio> {
                     : Column(
                         children: [
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
                                 context.tr('ahora_en_ica'),
@@ -384,21 +383,26 @@ class _PantallaInicioState extends State<PantallaInicio> {
                                   color: colorTexto,
                                 ),
                               ),
-                              Text(
-                                _clima != null
-                                    ? (_clima!['descripcion_clima'] ??
-                                          'Desconocido')
-                                    : 'Soleado',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: colorTextoSecundario,
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  _clima != null
+                                      ? (_clima!['descripcion_clima'] ??
+                                            'Desconocido')
+                                      : 'Soleado',
+                                  textAlign: TextAlign.right,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: colorTextoSecundario,
+                                  ),
                                 ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 20),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Builder(
                                 builder: (context) {
@@ -421,21 +425,30 @@ class _PantallaInicioState extends State<PantallaInicio> {
                                   );
                                 },
                               ),
-                              Text(
-                                _clima != null
-                                    ? '${(_clima!['temperatura_actual'] as num).round()}°C'
-                                    : '26°C',
-                                style: TextStyle(
-                                  fontSize: 42,
-                                  fontWeight: FontWeight.bold,
-                                  color: colorTexto,
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    _clima != null
+                                        ? '${(_clima!['temperatura_actual'] as num).round()}°C'
+                                        : '26°C',
+                                    style: TextStyle(
+                                      fontSize: 42,
+                                      fontWeight: FontWeight.bold,
+                                      color: colorTexto,
+                                    ),
+                                  ),
                                 ),
                               ),
+                              const SizedBox(width: 8),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
-                                    '${context.tr('viento')}   ${_clima != null ? (_clima!['velocidad_viento'] as num).round() : '12'} km/h', // 👈
+                                    '${context.tr('viento')}  ${_clima != null ? (_clima!['velocidad_viento'] as num).round() : '12'} km/h',
                                     style: TextStyle(
                                       fontSize: 13,
                                       color: colorTextoSecundario,
@@ -443,7 +456,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    '${context.tr('humedad')}  ${_clima != null ? (_clima!['humedad'] as num).round() : '48'}%', // 👈
+                                    '${context.tr('humedad')}  ${_clima != null ? (_clima!['humedad'] as num).round() : '48'}%',
                                     style: TextStyle(
                                       fontSize: 13,
                                       color: colorTextoSecundario,
@@ -451,7 +464,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    '${context.tr('uv')}        ${_clima != null ? (_clima!['indice_uv'] as num).round() : 'Alto'}', // 👈
+                                    '${context.tr('uv')}  ${_clima != null ? (_clima!['indice_uv'] as num).round() : 'Alto'}',
                                     style: TextStyle(
                                       fontSize: 13,
                                       color: colorTextoSecundario,
@@ -479,26 +492,26 @@ class _PantallaInicioState extends State<PantallaInicio> {
                               );
                             },
                             child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.timeline,
-                                      size: 18,
-                                      color: AppColores.naranjaBoton,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      context.tr('seguimiento_destinos'),
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: colorTexto,
-                                      ),
-                                    ),
-                                  ],
+                                const Icon(
+                                  Icons.timeline,
+                                  size: 18,
+                                  color: AppColores.naranjaBoton,
                                 ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    context.tr('seguimiento_destinos'),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: colorTexto,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
                                 const Icon(
                                   Icons.arrow_forward_ios,
                                   size: 14,
