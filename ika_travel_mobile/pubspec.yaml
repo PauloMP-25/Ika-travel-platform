@@ -23,10 +23,13 @@ dependencies:
 
   flutter_localizations:
     sdk: flutter
-  intl: ^0.20.3  # 👈 Versión corregida para que coincida con flutter_localizations
+  intl: ^0.20.3  # 
   geolocator: ^14.1.2
   flutter_tts: ^4.2.5
   url_launcher: ^6.3.1
+
+ 
+  speech_to_text: ^7.0.0
 
 dev_dependencies:
   flutter_test:

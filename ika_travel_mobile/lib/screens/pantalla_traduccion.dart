@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'package:speech_to_text/speech_recognition_result.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
+
 import '../config/colores_tema.dart';
 import '../config/tema.dart';
 import '../config/traducciones_scope.dart';
@@ -31,6 +34,10 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
   bool _traduciendo = false;
   String? _errorTraduccion;
 
+  final stt.SpeechToText _speech = stt.SpeechToText();
+  bool _speechDisponible = false;
+  bool _escuchando = false;
+
   final List<Map<String, String>> _categorias = [
     {'id': '', 'nombre': 'Todas'},
     {'id': 'emergency', 'nombre': 'Emergencia'},
@@ -48,6 +55,87 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
     super.initState();
     _translationService = widget.translationService ?? TranslationService();
     _cargarFrases();
+    _initSpeech();
+  }
+
+  Future<void> _initSpeech() async {
+    try {
+      _speechDisponible = await _speech.initialize(
+        onStatus: (status) {
+          if (status == 'done' || status == 'notListening') {
+            if (mounted) setState(() => _escuchando = false);
+          }
+        },
+        onError: (error) {
+          if (mounted) {
+            setState(() => _escuchando = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error de voz: ${error.errorMsg}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        },
+      );
+      if (mounted) setState(() {});
+    } catch (_) {
+      _speechDisponible = false;
+    }
+  }
+
+  Future<void> _toggleEscucha() async {
+    if (!_speechDisponible) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'El reconocimiento de voz no está disponible en este dispositivo.',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_escuchando) {
+      await _speech.stop();
+      if (mounted) setState(() => _escuchando = false);
+      return;
+    }
+
+    // Limpia el texto previo antes de dictar
+    _textoController.clear();
+
+    // El idioma del dictado sigue al idioma de origen del traductor
+    final localeId = _sourceLang == 'es' ? 'es_ES' : 'en_US';
+
+    await _speech.listen(
+      onResult: _onSpeechResult,
+      localeId: localeId,
+      listenFor: const Duration(seconds: 30),
+      pauseFor: const Duration(seconds: 3),
+      partialResults: true,
+      cancelOnError: true,
+      listenMode: stt.ListenMode.confirmation,
+    );
+
+    if (mounted) setState(() => _escuchando = true);
+  }
+
+  void _onSpeechResult(SpeechRecognitionResult result) {
+    final texto = result.recognizedWords;
+    if (texto.isEmpty) return;
+
+    setState(() {
+      _textoController.text = texto;
+      _textoController.selection = TextSelection.fromPosition(
+        TextPosition(offset: texto.length),
+      );
+    });
+
+    if (result.finalResult) {
+      setState(() => _escuchando = false);
+    }
   }
 
   Future<void> _cargarFrases() async {
@@ -108,6 +196,8 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
 
   @override
   void dispose() {
+    _speech.stop();
+    _speech.cancel();
     _textoController.dispose();
     super.dispose();
   }
@@ -435,10 +525,14 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
             ),
           ),
           const SizedBox(height: 16),
+
           Container(
             decoration: BoxDecoration(
               color: colorTarjeta,
               borderRadius: BorderRadius.circular(16),
+              border: _escuchando
+                  ? Border.all(color: AppColores.naranjaBoton, width: 2)
+                  : null,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.04),
@@ -447,17 +541,54 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
                 ),
               ],
             ),
-            child: TextField(
-              controller: _textoController,
-              maxLines: 4,
-              maxLength: 500,
-              style: TextStyle(color: colorTexto),
-              decoration: InputDecoration(
-                hintText: context.tr('escribe_frase'),
-                hintStyle: TextStyle(color: colorTextoSecundario),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.all(16),
-              ),
+            child: Column(
+              children: [
+                TextField(
+                  controller: _textoController,
+                  maxLines: 4,
+                  maxLength: 500,
+                  style: TextStyle(color: colorTexto),
+                  decoration: InputDecoration(
+                    hintText: context.tr('escribe_frase'),
+                    hintStyle: TextStyle(color: colorTextoSecundario),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.all(16),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      if (_escuchando)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: Text(
+                            'Escuchando...',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontStyle: FontStyle.italic,
+                              color: AppColores.naranjaBoton,
+                            ),
+                          ),
+                        ),
+                      IconButton(
+                        tooltip: _escuchando
+                            ? 'Detener dictado'
+                            : 'Dictar por voz',
+                        onPressed: _toggleEscucha,
+                        icon: Icon(
+                          _escuchando ? Icons.stop_circle : Icons.mic,
+                          color: _escuchando
+                              ? Colors.red
+                              : AppColores.naranjaBoton,
+                          size: 28,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 14),
