@@ -6,6 +6,11 @@
     <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.VIBRATE" />
+
+   
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
     
     <application
         android:label="ika_travel_mobile"
@@ -71,6 +76,11 @@
         </intent>
         <intent>
             <action android:name="android.intent.action.TTS_SERVICE"/>
+        </intent>
+
+        
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
         </intent>
     </queries>
 </manifest>
