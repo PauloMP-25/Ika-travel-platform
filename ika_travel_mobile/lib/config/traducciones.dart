@@ -304,6 +304,9 @@ class Traducciones {
       'ya_tienes_cuenta': '¿Ya tienes una cuenta? ',
       'inicia_sesion': 'Inicia sesión',
       'ej_correo': 'ejemplo@correo.com',
+      'o': 'o',
+      'iniciar_con_google': 'Iniciar con Google',
+      'iniciando_google': 'Iniciando...',
     },
     'en': {
       'inicio': 'Home',
@@ -595,6 +598,9 @@ class Traducciones {
       'ya_tienes_cuenta': 'Already have an account? ',
       'inicia_sesion': 'Log in',
       'ej_correo': 'example@email.com',
+      'o': 'or',
+      'iniciar_con_google': 'Sign in with Google',
+      'iniciando_google': 'Signing in...',
     },
     'ja': {
       'inicio': 'ホーム',
@@ -876,6 +882,9 @@ class Traducciones {
       'ya_tienes_cuenta': 'すでにアカウントをお持ちですか？ ',
       'inicia_sesion': 'ログイン',
       'ej_correo': 'example@email.com',
+      'o': 'または',
+      'iniciar_con_google': 'Googleでログイン',
+      'iniciando_google': 'ログイン中...',
     },
   };
 

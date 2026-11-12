@@ -25,6 +25,7 @@ class _PantallaLoginState extends State<PantallaLogin> {
   bool _obscurePassword = true;
   bool _recordarme = true;
   String? _mensajeError;
+  bool _cargandoGoogle = false;
 
   @override
   void dispose() {
@@ -69,20 +70,43 @@ class _PantallaLoginState extends State<PantallaLogin> {
     }
   }
 
-  Future<void> _ingresarComoInvitado() async {
-    await AuthService().ingresarComoInvitado();
-    if (!mounted) return;
+  Future<void> _iniciarConGoogle() async {
+    setState(() {
+      _cargandoGoogle = true;
+      _mensajeError = null;
+    });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(context.tr('ingreso_invitado')),
-        backgroundColor: AppColores.marronOscuro,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
+    final resultado = await AuthService().loginConGoogle(
+      preferredLanguage: context.locale.languageCode,
+      aceptaPoliticaDatos: true,
     );
 
-    await _verificarPermisosYEntrar();
+    if (!mounted) return;
+
+    setState(() => _cargandoGoogle = false);
+
+    if (resultado.exitoso) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              Expanded(child: Text(resultado.mensaje)),
+            ],
+          ),
+          backgroundColor: const Color(0xFF2E7D32),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+
+      await _verificarPermisosYEntrar();
+    } else {
+      setState(() => _mensajeError = resultado.mensaje);
+    }
   }
 
   Future<void> _verificarPermisosYEntrar() async {
@@ -160,12 +184,6 @@ class _PantallaLoginState extends State<PantallaLogin> {
         MaterialPageRoute(builder: (_) => const MainScaffold()),
       );
     }
-  }
-
-  void _llenarCredencialesDemo() {
-    _emailController.text = 'paulo@gmail.com';
-    _passwordController.text = 'Zoodiaco2#';
-    setState(() => _mensajeError = null);
   }
 
   void _mostrarDialogoRecuperarPassword() {
@@ -258,6 +276,8 @@ class _PantallaLoginState extends State<PantallaLogin> {
         child: ValueListenableBuilder<bool>(
           valueListenable: AuthService().cargandoNotifier,
           builder: (context, cargando, _) {
+            final bool ocupado = cargando || _cargandoGoogle;
+
             return Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
@@ -332,7 +352,7 @@ class _PantallaLoginState extends State<PantallaLogin> {
                               keyboardType: TextInputType.emailAddress,
                               decoration: InputDecoration(
                                 labelText: context.tr('correo_electronico'),
-                                hintText: 'ejemplo@correo.com',
+                                hintText: context.tr('ej_correo'),
                                 prefixIcon: const Icon(Icons.email_outlined),
                                 filled: true,
                                 fillColor: colorFondo.withValues(alpha: 0.5),
@@ -500,7 +520,7 @@ class _PantallaLoginState extends State<PantallaLogin> {
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                 ),
-                                onPressed: cargando ? null : _iniciarSesion,
+                                onPressed: ocupado ? null : _iniciarSesion,
                                 child: cargando
                                     ? const SizedBox(
                                         height: 22,
@@ -528,54 +548,73 @@ class _PantallaLoginState extends State<PantallaLogin> {
 
                       const SizedBox(height: 18),
 
-                      OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(
-                            color: AppColores.naranjaBoton.withValues(
-                              alpha: 0.5,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Divider(
+                              color: colorTextoSec.withValues(alpha: 0.3),
                             ),
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Text(
+                              context.tr('o'),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: colorTextoSec,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10,
+                          Expanded(
+                            child: Divider(
+                              color: colorTextoSec.withValues(alpha: 0.3),
+                            ),
                           ),
-                        ),
-                        icon: const Icon(
-                          Icons.vpn_key_outlined,
-                          size: 18,
-                          color: AppColores.naranjaBoton,
-                        ),
-                        label: Text(
-                          context.tr('cargar_demo'),
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: AppColores.naranjaBoton,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        onPressed: _llenarCredencialesDemo,
+                        ],
                       ),
 
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 18),
 
-                      TextButton.icon(
-                        icon: Icon(
-                          Icons.person_outline,
-                          size: 18,
-                          color: colorTextoSec,
-                        ),
-                        label: Text(
-                          context.tr('continuar_invitado'),
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: colorTextoSec,
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: colorTarjeta,
+                            side: BorderSide(
+                              color: colorTextoSec.withValues(alpha: 0.25),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
                           ),
+                          icon: _cargandoGoogle
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    color: AppColores.naranjaBoton,
+                                  ),
+                                )
+                              : Image.asset(
+                                  'assets/images/google_logo.png',
+                                  height: 22,
+                                  width: 22,
+                                ),
+                          label: Text(
+                            _cargandoGoogle
+                                ? context.tr('iniciando_google')
+                                : context.tr('iniciar_con_google'),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: colorTexto,
+                            ),
+                          ),
+                          onPressed: ocupado ? null : _iniciarConGoogle,
                         ),
-                        onPressed: cargando ? null : _ingresarComoInvitado,
                       ),
 
                       const SizedBox(height: 16),

@@ -1,5 +1,7 @@
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 
 import '../config/api_config.dart';
@@ -80,7 +82,9 @@ class AuthService {
             )
             .timeout(const Duration(seconds: 4));
       } catch (errorRed) {
-        debugPrint('Servidor no disponible para login ($errorRed), usando fallback...');
+        debugPrint(
+          'Servidor no disponible para login ($errorRed), usando fallback...',
+        );
       }
 
       // 1. Si el servidor respondió
@@ -92,13 +96,15 @@ class AuthService {
           // Obtener perfil completo desde /api/v1/users/me
           UsuarioModelo usuario;
           try {
-            final respMe = await http.get(
-              Uri.parse(ApiConfig.usersMe),
-              headers: {
-                'Authorization': 'Bearer $token',
-                'Content-Type': 'application/json',
-              },
-            ).timeout(const Duration(seconds: 3));
+            final respMe = await http
+                .get(
+                  Uri.parse(ApiConfig.usersMe),
+                  headers: {
+                    'Authorization': 'Bearer $token',
+                    'Content-Type': 'application/json',
+                  },
+                )
+                .timeout(const Duration(seconds: 3));
 
             if (respMe.statusCode == 200) {
               final meData = jsonDecode(respMe.body) as Map<String, dynamic>;
@@ -176,6 +182,145 @@ class AuthService {
     }
   }
 
+  Future<ResultadoAuth> loginConGoogle({
+    String? preferredLanguage,
+    bool aceptaPoliticaDatos = true,
+  }) async {
+    cargandoNotifier.value = true;
+    try {
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        scopes: ['email', 'profile'],
+      );
+
+      // Forzar selección de cuenta (por si había una sesión previa)
+      await googleSignIn.signOut();
+
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+      if (googleUser == null) {
+        cargandoNotifier.value = false;
+        return const ResultadoAuth(
+          exitoso: false,
+          mensaje: 'Inicio de sesión con Google cancelado.',
+        );
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      final String? idToken = googleAuth.idToken;
+      if (idToken == null) {
+        cargandoNotifier.value = false;
+        return const ResultadoAuth(
+          exitoso: false,
+          mensaje: 'No se pudo obtener el token de Google.',
+        );
+      }
+
+      final url = Uri.parse(ApiConfig.authGoogle);
+      http.Response? respuesta;
+      try {
+        respuesta = await http
+            .post(
+              url,
+              headers: {
+                'Content-Type': 'application/json',
+                ...ApiConfig.defaultHeaders,
+              },
+              body: jsonEncode({
+                'id_token': idToken,
+                if (preferredLanguage != null)
+                  'preferred_language': preferredLanguage,
+                'acepta_politica_datos': aceptaPoliticaDatos,
+              }),
+            )
+            .timeout(const Duration(seconds: 10));
+      } catch (e) {
+        debugPrint('Servidor no disponible para Google ($e)');
+      }
+
+      if (respuesta != null && respuesta.statusCode == 200) {
+        final data = jsonDecode(respuesta.body) as Map<String, dynamic>;
+        final token = data['access_token']?.toString() ?? '';
+
+        // Obtener perfil completo desde /api/v1/users/me
+        UsuarioModelo usuario;
+        try {
+          final respMe = await http
+              .get(
+                Uri.parse(ApiConfig.usersMe),
+                headers: {
+                  'Authorization': 'Bearer $token',
+                  'Content-Type': 'application/json',
+                  ...ApiConfig.defaultHeaders,
+                },
+              )
+              .timeout(const Duration(seconds: 5));
+
+          if (respMe.statusCode == 200) {
+            final meData = jsonDecode(respMe.body) as Map<String, dynamic>;
+            usuario = UsuarioModelo.fromJson({
+              ...meData,
+              'token': token,
+              'es_invitado': false,
+            });
+          } else {
+            usuario = UsuarioModelo(
+              id: 'google_${googleUser.id}',
+              email: googleUser.email,
+              fullName:
+                  googleUser.displayName ?? googleUser.email.split('@').first,
+              token: token,
+            );
+          }
+        } catch (_) {
+          usuario = UsuarioModelo(
+            id: 'google_${googleUser.id}',
+            email: googleUser.email,
+            fullName:
+                googleUser.displayName ?? googleUser.email.split('@').first,
+            token: token,
+          );
+        }
+
+        await _guardarSesion(usuario);
+        cargandoNotifier.value = false;
+        return ResultadoAuth(
+          exitoso: true,
+          mensaje: 'Bienvenido a Ika Travel, ${usuario.fullName}',
+          usuario: usuario,
+        );
+      }
+
+      if (respuesta != null && respuesta.statusCode == 401) {
+        cargandoNotifier.value = false;
+        return const ResultadoAuth(
+          exitoso: false,
+          mensaje: 'Google rechazó las credenciales. Intenta de nuevo.',
+        );
+      }
+
+      if (respuesta != null && respuesta.statusCode == 422) {
+        cargandoNotifier.value = false;
+        return const ResultadoAuth(
+          exitoso: false,
+          mensaje: 'Debes aceptar la política de datos para crear tu cuenta con Google.',
+        );
+      }
+
+      cargandoNotifier.value = false;
+      return const ResultadoAuth(
+        exitoso: false,
+        mensaje: 'No se pudo iniciar sesión con Google. Intenta de nuevo.',
+      );
+    } catch (e) {
+      cargandoNotifier.value = false;
+      return ResultadoAuth(
+        exitoso: false,
+        mensaje: 'Error al iniciar con Google: $e',
+      );
+    }
+  }
+
   /// Registra una nueva cuenta en el backend.
   Future<ResultadoAuth> registrar({
     required String email,
@@ -206,10 +351,13 @@ class AuthService {
             )
             .timeout(const Duration(seconds: 4));
       } catch (e) {
-        debugPrint('Servidor no disponible para registro ($e), creando en modo local...');
+        debugPrint(
+          'Servidor no disponible para registro ($e), creando en modo local...',
+        );
       }
 
-      if (respuesta != null && (respuesta.statusCode == 201 || respuesta.statusCode == 200)) {
+      if (respuesta != null &&
+          (respuesta.statusCode == 201 || respuesta.statusCode == 200)) {
         // Registro exitoso en backend, iniciar sesión automáticamente
         cargandoNotifier.value = false;
         return await login(email, password);
@@ -271,6 +419,11 @@ class AuthService {
   Future<void> cerrarSesion() async {
     cargandoNotifier.value = true;
     try {
+      // 👇 NUEVO: también cerrar sesión de Google si estaba activa
+      try {
+        await GoogleSignIn().signOut();
+      } catch (_) {}
+
       await _persistencia.eliminar('sesion_usuario');
       usuarioNotifier.value = null;
     } catch (e) {

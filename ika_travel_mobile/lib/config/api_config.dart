@@ -57,6 +57,8 @@ class ApiConfig {
   // --- AUTH & USUARIOS ---
   static String get authLogin => '$baseUrl/api/v1/auth/login';
   static String get authRegister => '$baseUrl/api/v1/auth/register';
+
+  static String get authGoogle => '$baseUrl/api/v1/auth/login/google';
   static String get usersMe => '$baseUrl/api/v1/users/me';
 
   // --- IA & GEMINI ---
