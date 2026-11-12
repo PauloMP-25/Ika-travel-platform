@@ -7,7 +7,7 @@ import 'pantalla_inicio.dart';
 import 'pantalla_actividades.dart';
 import 'pantalla_pronostico.dart';
 import 'pantalla_mapa.dart';
-import 'pantalla_favoritos.dart';
+import 'pantalla_traduccion.dart';
 
 class MainScaffold extends StatefulWidget {
   const MainScaffold({super.key});
@@ -24,7 +24,8 @@ class _MainScaffoldState extends State<MainScaffold> {
       PantallaActividades(onVolverInicio: () => NavegacionService.irAInicio()),
       PantallaMapa(),
       PantallaPronostico(),
-      PantallaFavoritos(),
+      // Favoritos sigue accesible desde el menú "Más".
+      const PantallaTraduccion(comoPestana: true),
     ];
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -65,9 +66,9 @@ class _MainScaffoldState extends State<MainScaffold> {
                 label: context.tr('pronostico'),
               ),
               BottomNavigationBarItem(
-                icon: const Icon(Icons.favorite_border),
-                activeIcon: const Icon(Icons.favorite),
-                label: context.tr('favoritos'),
+                icon: const Icon(Icons.translate_outlined),
+                activeIcon: const Icon(Icons.translate),
+                label: context.tr('traducir'),
               ),
             ],
           ),

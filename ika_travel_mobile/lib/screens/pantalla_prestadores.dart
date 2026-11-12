@@ -493,43 +493,7 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
       body: SafeArea(
         child: Column(
           children: [
-            // Banner informativo DIRCETUR
-            Container(
-              margin: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2E7D32).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFF2E7D32).withValues(alpha: 0.3)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.verified, color: Color(0xFF2E7D32), size: 24),
-                  const SizedBox(width: 10),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Padrón Oficial DIRCETUR Ica (RN-01)',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF1B5E20),
-                          ),
-                        ),
-                        SizedBox(height: 2),
-                        Text(
-                          'Solo se listan agencias empadronadas y formalmente validadas.',
-                          style: TextStyle(fontSize: 11, color: Color(0xFF2E7D32)),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
+            const SizedBox(height: 8),
             // Buscador por texto
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),

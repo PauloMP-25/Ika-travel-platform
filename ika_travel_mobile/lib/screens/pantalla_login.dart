@@ -69,22 +69,6 @@ class _PantallaLoginState extends State<PantallaLogin> {
     }
   }
 
-  Future<void> _ingresarComoInvitado() async {
-    await AuthService().ingresarComoInvitado();
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(context.tr('ingreso_invitado')),
-        backgroundColor: AppColores.marronOscuro,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
-
-    await _verificarPermisosYEntrar();
-  }
-
   Future<void> _verificarPermisosYEntrar() async {
     bool gpsActivo = await Geolocator.isLocationServiceEnabled();
     if (!gpsActivo && mounted) {
@@ -557,25 +541,6 @@ class _PantallaLoginState extends State<PantallaLogin> {
                           ),
                         ),
                         onPressed: _llenarCredencialesDemo,
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      TextButton.icon(
-                        icon: Icon(
-                          Icons.person_outline,
-                          size: 18,
-                          color: colorTextoSec,
-                        ),
-                        label: Text(
-                          context.tr('continuar_invitado'),
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: colorTextoSec,
-                          ),
-                        ),
-                        onPressed: cargando ? null : _ingresarComoInvitado,
                       ),
 
                       const SizedBox(height: 16),

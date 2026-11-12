@@ -27,6 +27,7 @@ dependencies:
   geolocator: ^14.1.2
   flutter_tts: ^4.2.5
   url_launcher: ^6.3.1
+  speech_to_text: ^7.5.0
 
 dev_dependencies:
   flutter_test:

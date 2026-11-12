@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:speech_to_text/speech_to_text.dart';
 
 import '../config/colores_tema.dart';
 import '../config/tema.dart';
@@ -9,15 +11,29 @@ import '../services/translation_service.dart';
 class PantallaTraduccion extends StatefulWidget {
   final TranslationService? translationService;
 
-  const PantallaTraduccion({super.key, this.translationService});
+  /// Cuando es true se muestra como pestaña de la barra inferior (sin botón atrás).
+  final bool comoPestana;
+
+  const PantallaTraduccion({
+    super.key,
+    this.translationService,
+    this.comoPestana = false,
+  });
 
   @override
   State<PantallaTraduccion> createState() => _PantallaTraduccionState();
 }
 
 class _PantallaTraduccionState extends State<PantallaTraduccion> {
-  int _tabIndex = 0;
+  int _tabIndex = 1; // Inicia en el traductor libre (voz + texto)
   late final TranslationService _translationService;
+
+  // Voz: dictado (entrada) y lectura en voz alta (salida)
+  final SpeechToText _speech = SpeechToText();
+  final FlutterTts _tts = FlutterTts();
+  bool _speechDisponible = false;
+  bool _speechInit = false;
+  bool _escuchando = false;
 
   PhrasebookResponseModel? _phrasebook;
   bool _cargandoFrases = true;
@@ -106,8 +122,73 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
     }
   }
 
+  // ---------------- Voz ----------------
+
+  Future<void> _alternarDictado() async {
+    if (_escuchando) {
+      await _speech.stop();
+      if (mounted) setState(() => _escuchando = false);
+      return;
+    }
+    await _tts.stop();
+    if (!_speechInit) {
+      _speechInit = true;
+      try {
+        _speechDisponible = await _speech.initialize(
+          onStatus: (estado) {
+            if (!mounted) return;
+            final activo = estado == SpeechToText.listeningStatus;
+            if (activo != _escuchando) setState(() => _escuchando = activo);
+          },
+          onError: (_) {
+            if (mounted) setState(() => _escuchando = false);
+          },
+        );
+      } catch (_) {
+        _speechDisponible = false;
+      }
+    }
+    if (!_speechDisponible) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('sin_microfono'))),
+        );
+      }
+      return;
+    }
+    setState(() {
+      _escuchando = true;
+      _errorTraduccion = null;
+    });
+    final locale = _sourceLang == 'es' ? 'es_PE' : 'en_US';
+    await _speech.listen(
+      localeId: locale,
+      listenFor: const Duration(seconds: 30),
+      pauseFor: const Duration(seconds: 3),
+      onResult: (r) {
+        if (!mounted) return;
+        setState(() => _textoController.text = r.recognizedWords);
+        if (r.finalResult && r.recognizedWords.trim().isNotEmpty) {
+          _realizarTraduccion();
+        }
+      },
+    );
+  }
+
+  Future<void> _hablar(String texto, String lang) async {
+    if (texto.trim().isEmpty) return;
+    try {
+      await _tts.stop();
+      await _tts.setLanguage(lang == 'es' ? 'es-ES' : 'en-US');
+      await _tts.setSpeechRate(0.45);
+      await _tts.speak(texto);
+    } catch (_) {}
+  }
+
   @override
   void dispose() {
+    _speech.stop();
+    _tts.stop();
     _textoController.dispose();
     super.dispose();
   }
@@ -128,10 +209,13 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 children: [
-                  IconButton(
-                    icon: Icon(Icons.arrow_back, color: colorTexto, size: 28),
-                    onPressed: () => Navigator.pop(context),
-                  ),
+                  if (!widget.comoPestana)
+                    IconButton(
+                      icon: Icon(Icons.arrow_back, color: colorTexto, size: 28),
+                      onPressed: () => Navigator.pop(context),
+                    )
+                  else
+                    const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       context.tr('traductor_guia'),
@@ -461,6 +545,50 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
             ),
           ),
           const SizedBox(height: 14),
+          // Entrada por voz (dictado)
+          Center(
+            child: Column(
+              children: [
+                GestureDetector(
+                  onTap: _alternarDictado,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    width: _escuchando ? 76 : 64,
+                    height: _escuchando ? 76 : 64,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _escuchando
+                          ? const Color(0xFFD32F2F)
+                          : AppColores.naranjaBoton,
+                      boxShadow: [
+                        BoxShadow(
+                          color: (_escuchando
+                                  ? const Color(0xFFD32F2F)
+                                  : AppColores.naranjaBoton)
+                              .withValues(alpha: 0.3),
+                          blurRadius: _escuchando ? 18 : 10,
+                          spreadRadius: _escuchando ? 3 : 0,
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      _escuchando ? Icons.stop_rounded : Icons.mic,
+                      color: Colors.white,
+                      size: 32,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _escuchando
+                      ? context.tr('escuchando')
+                      : context.tr('toca_para_hablar'),
+                  style: TextStyle(fontSize: 12, color: colorTextoSecundario),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColores.naranjaBoton,
@@ -556,6 +684,19 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: colorTexto,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: () =>
+                          _hablar(_traduccionResultado, _targetLang),
+                      icon: const Icon(Icons.volume_up, size: 18),
+                      label: Text(context.tr('escuchar')),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColores.naranjaBoton,
+                      ),
                     ),
                   ),
                 ],
