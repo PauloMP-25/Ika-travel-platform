@@ -9,7 +9,7 @@ import '../config/traducciones_scope.dart';
 import '../services/auth_service.dart';
 import '../widgets/dialogo_preferencias_turista.dart';
 import 'pantalla_login.dart';
-import 'pantalla_admin_dircetur.dart'; // Importación para el panel DIRCETUR
+import 'pantalla_admin_dircetur.dart';
 
 class PantallaConfiguracion extends StatefulWidget {
   const PantallaConfiguracion({super.key});
@@ -27,6 +27,9 @@ class _PantallaConfiguracionState extends State<PantallaConfiguracion> {
     final colorTexto = TemaApp.texto(context);
     final colorFondoTarjeta = TemaApp.tarjeta(context);
     final colorTextoSecundario = TemaApp.textoSecundario(context);
+
+    final usuarioActual = AuthService().usuarioActual;
+    final esAdmin = usuarioActual?.email == 'admin@ikatravel.com';
 
     return Scaffold(
       backgroundColor: TemaApp.fondo(context),
@@ -261,38 +264,42 @@ class _PantallaConfiguracionState extends State<PantallaConfiguracion> {
                   height: 1,
                   color: colorTextoSecundario.withValues(alpha: 0.15),
                 ),
-                // --- NUEVO BOTÓN: PANEL DIRCETUR ---
-                ListTile(
-                  leading: const Icon(
-                    Icons.admin_panel_settings,
-                    color: Colors.blue,
-                  ),
-                  title: const Text(
-                    'Panel DIRCETUR',
-                    style: TextStyle(
+
+                // --- BOTÓN CONDICIONAL: SOLO PARA ADMINS ---
+                if (esAdmin) ...[
+                  ListTile(
+                    leading: const Icon(
+                      Icons.admin_panel_settings,
                       color: Colors.blue,
-                      fontWeight: FontWeight.bold,
                     ),
-                  ),
-                  subtitle: const Text(
-                    'Gestión de agencias y reportes',
-                    style: TextStyle(fontSize: 12),
-                  ),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const PantallaAdminDircetur(),
+                    title: const Text(
+                      'Panel DIRCETUR',
+                      style: TextStyle(
+                        color: Colors.blue,
+                        fontWeight: FontWeight.bold,
                       ),
-                    );
-                  },
-                ),
-                Divider(
-                  height: 1,
-                  color: colorTextoSecundario.withValues(alpha: 0.15),
-                ),
-                // -----------------------------------
+                    ),
+                    subtitle: const Text(
+                      'Gestión de agencias y reportes',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const PantallaAdminDircetur(),
+                        ),
+                      );
+                    },
+                  ),
+                  Divider(
+                    height: 1,
+                    color: colorTextoSecundario.withValues(alpha: 0.15),
+                  ),
+                ],
+                // -------------------------------------------
+
                 ListTile(
                   leading: const Icon(Icons.logout, color: Colors.redAccent),
                   title: Text(
