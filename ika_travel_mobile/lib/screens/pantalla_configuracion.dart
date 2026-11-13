@@ -54,11 +54,10 @@ class _PantallaConfiguracionState extends State<PantallaConfiguracion> {
             ),
           ),
           const SizedBox(height: 10),
-          Container(
-            decoration: BoxDecoration(
-              color: colorFondoTarjeta,
-              borderRadius: BorderRadius.circular(15),
-            ),
+          Material(
+            color: colorFondoTarjeta,
+            borderRadius: BorderRadius.circular(15),
+            clipBehavior: Clip.antiAlias,
             child: Column(
               children: [
                 SwitchListTile(
@@ -118,11 +117,10 @@ class _PantallaConfiguracionState extends State<PantallaConfiguracion> {
             ),
           ),
           const SizedBox(height: 10),
-          Container(
-            decoration: BoxDecoration(
-              color: colorFondoTarjeta,
-              borderRadius: BorderRadius.circular(15),
-            ),
+          Material(
+            color: colorFondoTarjeta,
+            borderRadius: BorderRadius.circular(15),
+            clipBehavior: Clip.antiAlias,
             child: ListTile(
               leading: Icon(Icons.language, color: colorTexto),
               title: Text(
@@ -208,11 +206,10 @@ class _PantallaConfiguracionState extends State<PantallaConfiguracion> {
             ),
           ),
           const SizedBox(height: 10),
-          Container(
-            decoration: BoxDecoration(
-              color: colorFondoTarjeta,
-              borderRadius: BorderRadius.circular(15),
-            ),
+          Material(
+            color: colorFondoTarjeta,
+            borderRadius: BorderRadius.circular(15),
+            clipBehavior: Clip.antiAlias,
             child: Column(
               children: [
                 ListTile(

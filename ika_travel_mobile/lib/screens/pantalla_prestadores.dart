@@ -87,26 +87,32 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
       if (t.contains('arena') || t.contains('buggy')) {
         return p.name.toLowerCase().contains('buggy') ||
             p.name.toLowerCase().contains('desert') ||
-            p.tours.any((tour) =>
-                tour.name.toLowerCase().contains('buggy') ||
-                tour.name.toLowerCase().contains('sandboarding') ||
-                tour.name.toLowerCase().contains('arena'));
+            p.tours.any(
+              (tour) =>
+                  tour.name.toLowerCase().contains('buggy') ||
+                  tour.name.toLowerCase().contains('sandboarding') ||
+                  tour.name.toLowerCase().contains('arena'),
+            );
       }
       if (t.contains('náutico') || t.contains('islas')) {
         return p.name.toLowerCase().contains('bahía') ||
             p.name.toLowerCase().contains('marina') ||
-            p.tours.any((tour) =>
-                tour.name.toLowerCase().contains('islas') ||
-                tour.name.toLowerCase().contains('paracas') ||
-                tour.name.toLowerCase().contains('marina'));
+            p.tours.any(
+              (tour) =>
+                  tour.name.toLowerCase().contains('islas') ||
+                  tour.name.toLowerCase().contains('paracas') ||
+                  tour.name.toLowerCase().contains('marina'),
+            );
       }
       if (t.contains('viñedo') || t.contains('pisco')) {
         return p.name.toLowerCase().contains('pisquera') ||
             p.name.toLowerCase().contains('viñedo') ||
-            p.tours.any((tour) =>
-                tour.name.toLowerCase().contains('pisco') ||
-                tour.name.toLowerCase().contains('bodega') ||
-                tour.name.toLowerCase().contains('vino'));
+            p.tours.any(
+              (tour) =>
+                  tour.name.toLowerCase().contains('pisco') ||
+                  tour.name.toLowerCase().contains('bodega') ||
+                  tour.name.toLowerCase().contains('vino'),
+            );
       }
       return true;
     }).toList();
@@ -120,7 +126,7 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${context.tr('no_pudo_llamar')}: \$telefono')),
+          SnackBar(content: Text('${context.tr('no_pudo_llamar')}: $telefono')),
         );
       }
     }
@@ -138,7 +144,9 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${context.tr('no_pudo_whatsapp')}: \$telefono')),
+          SnackBar(
+            content: Text('${context.tr('no_pudo_whatsapp')}: $telefono'),
+          ),
         );
       }
     }
@@ -196,7 +204,8 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF2E7D32).withValues(alpha: 0.12),
+                          color: const Color(0xFF2E7D32)
+                              .withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: const Icon(
@@ -220,14 +229,18 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
                             ),
                             const SizedBox(height: 4),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF2E7D32).withValues(alpha: 0.15),
+                                color: const Color(0xFF2E7D32)
+                                    .withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
                                 context.tr('empadronado_validado'),
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
                                   color: Color(0xFF2E7D32),
@@ -241,7 +254,6 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
                   ),
                   const SizedBox(height: 18),
 
-                  // Ficha técnica oficial DIRCETUR
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
@@ -254,11 +266,31 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
                     child: Column(
                       children: [
                         if (prestador.ruc != null)
-                          _filaDato('RUC:', prestador.ruc!, colorTexto, colorTextoSec),
+                          _filaDato(
+                            'RUC:',
+                            prestador.ruc!,
+                            colorTexto,
+                            colorTextoSec,
+                          ),
                         if (prestador.dirceturRegistryNumber != null)
-                          _filaDato('N° Padrón DIRCETUR:', prestador.dirceturRegistryNumber!, colorTexto, colorTextoSec),
-                        _filaDato('Estado en padrón:', 'Vigente y Validado', colorTexto, Colors.green.shade700),
-                        _filaDato('Intermediación de pagos:', 'No aplica (Contratación directa)', colorTexto, colorTextoSec),
+                          _filaDato(
+                            'N° Padrón DIRCETUR:',
+                            prestador.dirceturRegistryNumber!,
+                            colorTexto,
+                            colorTextoSec,
+                          ),
+                        _filaDato(
+                          'Estado en padrón:',
+                          'Vigente y Validado',
+                          colorTexto,
+                          Colors.green.shade700,
+                        ),
+                        _filaDato(
+                          'Intermediación de pagos:',
+                          'No aplica (Contratación directa)',
+                          colorTexto,
+                          colorTextoSec,
+                        ),
                       ],
                     ),
                   ),
@@ -266,7 +298,11 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
                   const SizedBox(height: 20),
                   Text(
                     context.tr('canales_contacto'),
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: colorTexto),
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: colorTexto,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   Row(
@@ -278,11 +314,22 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
                               backgroundColor: const Color(0xFF25D366),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 11),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                             icon: const Icon(Icons.chat, size: 18),
-                            label: const Text('WhatsApp', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                            onPressed: () => _abrirWhatsApp(prestador.contactPhone, prestador.name),
+                            label: const Text(
+                              'WhatsApp',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            onPressed: () => _abrirWhatsApp(
+                              prestador.contactPhone,
+                              prestador.name,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -290,13 +337,24 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
                           child: OutlinedButton.icon(
                             style: OutlinedButton.styleFrom(
                               foregroundColor: AppColores.naranjaBoton,
-                              side: const BorderSide(color: AppColores.naranjaBoton),
+                              side: const BorderSide(
+                                color: AppColores.naranjaBoton,
+                              ),
                               padding: const EdgeInsets.symmetric(vertical: 11),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                             icon: const Icon(Icons.phone, size: 18),
-                            label: Text(context.tr('llamar'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                            onPressed: () => _llamarTelefono(prestador.contactPhone),
+                            label: Text(
+                              context.tr('llamar'),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            onPressed: () =>
+                                _llamarTelefono(prestador.contactPhone),
                           ),
                         ),
                       ],
@@ -309,7 +367,10 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
                             foregroundColor: Colors.blue.shade700,
                           ),
                           icon: const Icon(Icons.email_outlined),
-                          onPressed: () => _enviarCorreo(prestador.contactEmail, prestador.name),
+                          onPressed: () => _enviarCorreo(
+                            prestador.contactEmail,
+                            prestador.name,
+                          ),
                         ),
                       ],
                     ],
@@ -319,10 +380,19 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        '${context.tr('servicios_tours_cert')} (${prestador.tours.length})',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: colorTexto),
+                      Expanded(
+                        child: Text(
+                          '${context.tr('servicios_tours_cert')} (${prestador.tours.length})',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: colorTexto,
+                          ),
+                        ),
                       ),
+                      const SizedBox(width: 8),
                       Text(
                         context.tr('precios_referenciales'),
                         style: TextStyle(fontSize: 11, color: colorTextoSec),
@@ -349,7 +419,9 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
                               ? const Color(0xFF2C2C2C)
                               : Colors.white,
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+                          border: Border.all(
+                            color: Colors.black.withValues(alpha: 0.06),
+                          ),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withValues(alpha: 0.03),
@@ -375,9 +447,14 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
                                   ),
                                 ),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 3,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: AppColores.naranjaBoton.withValues(alpha: 0.12),
+                                    color: AppColores.naranjaBoton.withValues(
+                                      alpha: 0.12,
+                                    ),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
@@ -394,25 +471,43 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
                             const SizedBox(height: 6),
                             Text(
                               tour.description,
-                              style: TextStyle(fontSize: 12, color: colorTextoSec, height: 1.3),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: colorTextoSec,
+                                height: 1.3,
+                              ),
                             ),
                             const SizedBox(height: 8),
                             Row(
                               children: [
-                                Icon(Icons.schedule, size: 14, color: colorTextoSec),
+                                Icon(
+                                  Icons.schedule,
+                                  size: 14,
+                                  color: colorTextoSec,
+                                ),
                                 const SizedBox(width: 4),
                                 Text(
                                   '${context.tr('duracion_aprox')} ${tour.durationHours} ${tour.durationHours == 1 ? context.tr('hora_u') : context.tr('horas_u')}',
-                                  style: TextStyle(fontSize: 11, color: colorTextoSec),
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: colorTextoSec,
+                                  ),
                                 ),
                                 if (tour.attractionName != null) ...[
                                   const SizedBox(width: 10),
-                                  Icon(Icons.place_outlined, size: 14, color: colorTextoSec),
+                                  Icon(
+                                    Icons.place_outlined,
+                                    size: 14,
+                                    color: colorTextoSec,
+                                  ),
                                   const SizedBox(width: 4),
                                   Expanded(
                                     child: Text(
                                       tour.attractionName!,
-                                      style: TextStyle(fontSize: 11, color: colorTextoSec),
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: colorTextoSec,
+                                      ),
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
@@ -425,7 +520,6 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
                     ),
 
                   const SizedBox(height: 10),
-                  // Nota legal / transparencia informativa
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -436,12 +530,20 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.info_outline, color: Colors.amber.shade800, size: 18),
+                        Icon(
+                          Icons.info_outline,
+                          color: Colors.amber.shade800,
+                          size: 18,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             context.tr('nota_contratacion'),
-                            style: TextStyle(fontSize: 11, color: Colors.brown.shade900, height: 1.3),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.brown.shade900,
+                              height: 1.3,
+                            ),
                           ),
                         ),
                       ],
@@ -456,14 +558,39 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
     );
   }
 
-  Widget _filaDato(String etiqueta, String valor, Color colorTxt, Color colorVal) {
+  Widget _filaDato(
+    String etiqueta,
+    String valor,
+    Color colorTxt,
+    Color colorVal,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(etiqueta, style: TextStyle(fontSize: 12, color: colorTxt)),
-          Text(valor, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: colorVal)),
+          Flexible(
+            child: Text(
+              etiqueta,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 12, color: colorTxt),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              valor,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: colorVal,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -487,7 +614,11 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
         ),
         title: Text(
           context.tr('servicios_formalizados_titulo'),
-          style: TextStyle(color: colorTexto, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(
+            color: colorTexto,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
         ),
         centerTitle: true,
       ),
@@ -495,7 +626,6 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
         child: Column(
           children: [
             const SizedBox(height: 8),
-            // Buscador por texto
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: TextField(
@@ -520,14 +650,19 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
                       : null,
                   filled: true,
                   fillColor: colorTarjeta,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 0,
+                    horizontal: 16,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
               ),
             ),
             const SizedBox(height: 10),
 
-            // Filtros rápidos de categoría
             SizedBox(
               height: 38,
               child: ListView.separated(
@@ -551,204 +686,278 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
                       color: activa ? Colors.white : colorTexto,
                     ),
                     backgroundColor: colorTarjeta,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
                   );
                 },
               ),
             ),
             const SizedBox(height: 12),
 
-            // Contenido principal: Lista / Carga / Error / Vacío
             Expanded(
               child: _cargando
                   ? const Center(
-                      child: CircularProgressIndicator(color: AppColores.naranjaBoton),
+                      child: CircularProgressIndicator(
+                        color: AppColores.naranjaBoton,
+                      ),
                     )
                   : _error != null
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(24),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.error_outline, size: 48, color: Colors.red.shade400),
-                                const SizedBox(height: 12),
-                                Text(
-                                  _error!,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(color: colorTexto, fontSize: 14),
-                                ),
-                                const SizedBox(height: 16),
-                                ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColores.naranjaBoton,
-                                    foregroundColor: Colors.white,
-                                  ),
-                                  onPressed: _cargarPrestadores,
-                                  child: Text(context.tr('reintentar')),
-                                ),
-                              ],
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              size: 48,
+                              color: Colors.red.shade400,
                             ),
+                            const SizedBox(height: 12),
+                            Text(
+                              _error!,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: colorTexto, fontSize: 14),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColores.naranjaBoton,
+                                foregroundColor: Colors.white,
+                              ),
+                              onPressed: _cargarPrestadores,
+                              child: Text(context.tr('reintentar')),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : lista.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.search_off_rounded,
+                              size: 54,
+                              color: colorTextoSec,
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              context.tr('no_prestadores'),
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: colorTextoSec,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              context.tr('seguridad_verificadas'),
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 8,
+                      ),
+                      itemCount: lista.length,
+                      itemBuilder: (context, index) {
+                        final prestador = lista[index];
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: colorTarjeta,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.04),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
                           ),
-                        )
-                      : lista.isEmpty
-                          ? Center(
+                          child: Material(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.circular(16),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(16),
+                              onTap: () => _mostrarDetallePrestador(prestador),
                               child: Padding(
-                                padding: const EdgeInsets.all(24),
+                                padding: const EdgeInsets.all(14),
                                 child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Icon(Icons.search_off_rounded, size: 54, color: colorTextoSec),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF2E7D32)
+                                                .withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                          ),
+                                          child: const Icon(
+                                            Icons.business_outlined,
+                                            color: Color(0xFF2E7D32),
+                                            size: 22,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                prestador.name,
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 15,
+                                                  color: colorTexto,
+                                                ),
+                                              ),
+                                              if (prestador
+                                                      .dirceturRegistryNumber !=
+                                                  null)
+                                                Text(
+                                                  prestador
+                                                      .dirceturRegistryNumber!,
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    color: colorTextoSec,
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 7,
+                                            vertical: 3,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF2E7D32)
+                                                .withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(
+                                              6,
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            'DIRCETUR ✓',
+                                            style: TextStyle(
+                                              color: Color(0xFF2E7D32),
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 10,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                     const SizedBox(height: 10),
                                     Text(
-                                      context.tr('no_prestadores'),
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(fontSize: 14, color: colorTextoSec),
+                                      '${prestador.tours.length} ${prestador.tours.length == 1 ? context.tr('servicio_homologado') : context.tr('servicios_homologados')}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: colorTextoSec,
+                                      ),
                                     ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      context.tr('seguridad_verificadas'),
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            if (prestador.contactPhone != null)
+                                              IconButton(
+                                                padding: EdgeInsets.zero,
+                                                constraints:
+                                                    const BoxConstraints(),
+                                                icon: const Icon(
+                                                  Icons.phone_outlined,
+                                                  size: 20,
+                                                  color:
+                                                      AppColores.naranjaBoton,
+                                                ),
+                                                onPressed: () =>
+                                                    _llamarTelefono(
+                                                      prestador.contactPhone,
+                                                    ),
+                                              ),
+                                            if (prestador.contactPhone != null)
+                                              const SizedBox(width: 12),
+                                            if (prestador.contactEmail != null)
+                                              IconButton(
+                                                padding: EdgeInsets.zero,
+                                                constraints:
+                                                    const BoxConstraints(),
+                                                icon: const Icon(
+                                                  Icons.email_outlined,
+                                                  size: 20,
+                                                  color: Colors.blue,
+                                                ),
+                                                onPressed: () => _enviarCorreo(
+                                                  prestador.contactEmail,
+                                                  prestador.name,
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                        Flexible(
+                                          child: TextButton.icon(
+                                            style: TextButton.styleFrom(
+                                              foregroundColor:
+                                                  AppColores.naranjaBoton,
+                                              padding: EdgeInsets.zero,
+                                              minimumSize: Size.zero,
+                                              tapTargetSize:
+                                                  MaterialTapTargetSize
+                                                      .shrinkWrap,
+                                            ),
+                                            icon: const Icon(
+                                              Icons.arrow_forward,
+                                              size: 16,
+                                            ),
+                                            label: Text(
+                                              context.tr('ver_servicios'),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            onPressed: () =>
+                                                _mostrarDetallePrestador(
+                                                  prestador,
+                                                ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
                               ),
-                            )
-                          : ListView.builder(
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                              itemCount: lista.length,
-                              itemBuilder: (context, index) {
-                                final prestador = lista[index];
-                                return Container(
-                                  margin: const EdgeInsets.only(bottom: 12),
-                                  decoration: BoxDecoration(
-                                    color: colorTarjeta,
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.04),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 3),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Material(
-                                    color: Colors.transparent,
-                                    borderRadius: BorderRadius.circular(16),
-                                    child: InkWell(
-                                      borderRadius: BorderRadius.circular(16),
-                                      onTap: () => _mostrarDetallePrestador(prestador),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(14),
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                Container(
-                                                  padding: const EdgeInsets.all(8),
-                                                  decoration: BoxDecoration(
-                                                    color: const Color(0xFF2E7D32).withValues(alpha: 0.1),
-                                                    borderRadius: BorderRadius.circular(10),
-                                                  ),
-                                                  child: const Icon(
-                                                    Icons.business_outlined,
-                                                    color: Color(0xFF2E7D32),
-                                                    size: 22,
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 10),
-                                                Expanded(
-                                                  child: Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                    children: [
-                                                      Text(
-                                                        prestador.name,
-                                                        style: TextStyle(
-                                                          fontWeight: FontWeight.bold,
-                                                          fontSize: 15,
-                                                          color: colorTexto,
-                                                        ),
-                                                      ),
-                                                      if (prestador.dirceturRegistryNumber != null)
-                                                        Text(
-                                                          prestador.dirceturRegistryNumber!,
-                                                          style: TextStyle(
-                                                            fontSize: 11,
-                                                            color: colorTextoSec,
-                                                          ),
-                                                        ),
-                                                    ],
-                                                  ),
-                                                ),
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                                                  decoration: BoxDecoration(
-                                                    color: const Color(0xFF2E7D32).withValues(alpha: 0.15),
-                                                    borderRadius: BorderRadius.circular(6),
-                                                  ),
-                                                  child: const Text(
-                                                    'DIRCETUR ✓',
-                                                    style: TextStyle(
-                                                      color: Color(0xFF2E7D32),
-                                                      fontWeight: FontWeight.bold,
-                                                      fontSize: 10,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 10),
-                                            Text(
-                                              '${prestador.tours.length} ${prestador.tours.length == 1 ? context.tr('servicio_homologado') : context.tr('servicios_homologados')}',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: colorTextoSec,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 8),
-                                            Row(
-                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                              children: [
-                                                Row(
-                                                  children: [
-                                                    if (prestador.contactPhone != null)
-                                                      IconButton(
-                                                        padding: EdgeInsets.zero,
-                                                        constraints: const BoxConstraints(),
-                                                        icon: const Icon(Icons.phone_outlined, size: 20, color: AppColores.naranjaBoton),
-                                                        onPressed: () => _llamarTelefono(prestador.contactPhone),
-                                                      ),
-                                                    if (prestador.contactPhone != null) const SizedBox(width: 12),
-                                                    if (prestador.contactEmail != null)
-                                                      IconButton(
-                                                        padding: EdgeInsets.zero,
-                                                        constraints: const BoxConstraints(),
-                                                        icon: const Icon(Icons.email_outlined, size: 20, color: Colors.blue),
-                                                        onPressed: () => _enviarCorreo(prestador.contactEmail, prestador.name),
-                                                      ),
-                                                  ],
-                                                ),
-                                                TextButton.icon(
-                                                  style: TextButton.styleFrom(
-                                                    foregroundColor: AppColores.naranjaBoton,
-                                                    padding: EdgeInsets.zero,
-                                                  ),
-                                                  icon: const Icon(Icons.arrow_forward, size: 16),
-                                                  label: Text(context.tr('ver_servicios'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                                                  onPressed: () => _mostrarDetallePrestador(prestador),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
                             ),
+                          ),
+                        );
+                      },
+                    ),
             ),
           ],
         ),
