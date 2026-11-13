@@ -306,31 +306,39 @@ class _PantallaActividadesState extends State<PantallaActividades> {
                               ),
                               subtitle: Row(
                                 children: [
-                                  Text(
-                                    actividad['subtitulo'] ?? 'Ica',
-                                    style: TextStyle(
-                                      color: colorTextoSecundario,
-                                      fontSize: 13,
+                                  Flexible(
+                                    child: Text(
+                                      actividad['subtitulo'] ?? 'Ica',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: colorTextoSecundario,
+                                        fontSize: 13,
+                                      ),
                                     ),
                                   ),
                                   if (actividad['categoria'] != null) ...[
                                     const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 6,
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: AppColores.naranjaBoton
-                                            .withValues(alpha: 0.12),
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Text(
-                                        actividad['categoria'].toString(),
-                                        style: const TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColores.naranjaBoton,
+                                    Flexible(
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppColores.naranjaBoton
+                                              .withValues(alpha: 0.12),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          actividad['categoria'].toString(),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColores.naranjaBoton,
+                                          ),
                                         ),
                                       ),
                                     ),

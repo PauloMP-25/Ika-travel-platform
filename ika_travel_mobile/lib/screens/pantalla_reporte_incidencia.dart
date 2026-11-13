@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/traducciones_scope.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -32,13 +33,13 @@ class _PantallaReporteIncidenciaState extends State<PantallaReporteIncidencia> {
   String? _mensajeResultado;
   bool? _envioExitoso;
 
-  final Map<String, String> _tiposIncidente = {
-    'informal_service': 'Prestador o servicio informal',
-    'information_error': 'Engaño / Error en información turística',
-    'route_obstruction': 'Obstrucción de acceso o ruta',
-    'safety_hazard': 'Riesgo de seguridad para turistas',
-    'other': 'Otro incidente',
-  };
+  Map<String, String> _tiposIncidente(BuildContext context) => {
+        'informal_service': context.tr('inc_informal'),
+        'information_error': context.tr('inc_engano'),
+        'route_obstruction': context.tr('inc_obstruccion'),
+        'safety_hazard': context.tr('inc_riesgo'),
+        'other': context.tr('inc_otro'),
+      };
 
   @override
   void initState() {
@@ -91,8 +92,8 @@ class _PantallaReporteIncidenciaState extends State<PantallaReporteIncidencia> {
             _adjuntarUbicacion = true;
           });
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Ubicación GPS capturada para el reporte.'),
+            SnackBar(
+              content: Text(context.tr('rep_ubicacion_capturada')),
               backgroundColor: Colors.green,
             ),
           );
@@ -101,8 +102,8 @@ class _PantallaReporteIncidenciaState extends State<PantallaReporteIncidencia> {
         if (mounted) {
           setState(() => _adjuntarUbicacion = false);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Permiso de GPS no concedido. Puedes enviar el reporte sin coordenadas.'),
+            SnackBar(
+              content: Text(context.tr('rep_gps_no_concedido')),
             ),
           );
         }
@@ -110,7 +111,7 @@ class _PantallaReporteIncidenciaState extends State<PantallaReporteIncidencia> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No fue posible obtener coordenadas GPS: $e')),
+          SnackBar(content: Text('${context.tr('rep_gps_error')}: $e')),
         );
       }
     }
@@ -174,7 +175,7 @@ class _PantallaReporteIncidenciaState extends State<PantallaReporteIncidencia> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Reporte de Incidencias',
+          context.tr('rep_titulo'),
           style: TextStyle(color: colorTexto, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
@@ -201,12 +202,12 @@ class _PantallaReporteIncidenciaState extends State<PantallaReporteIncidencia> {
                           children: [
                             const Icon(Icons.campaign_rounded, color: Color(0xFFC62828), size: 28),
                             const SizedBox(width: 12),
-                            const Expanded(
+                            Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'DIRCETUR Ica — Fiscalización Turística',
+                                    context.tr('rep_dircetur_fisc'),
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 13,
@@ -215,7 +216,7 @@ class _PantallaReporteIncidenciaState extends State<PantallaReporteIncidencia> {
                                   ),
                                   SizedBox(height: 2),
                                   Text(
-                                    'Tu reporte formal ayuda a combatir la informalidad y proteger a los visitantes en Ica.',
+                                    context.tr('rep_ayuda'),
                                     style: TextStyle(fontSize: 11, color: Color(0xFFC62828)),
                                   ),
                                 ],
@@ -228,7 +229,7 @@ class _PantallaReporteIncidenciaState extends State<PantallaReporteIncidencia> {
 
                       // Tipo de incidencia
                       Text(
-                        'Tipo de Incidencia',
+                        context.tr('rep_tipo'),
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: colorTexto),
                       ),
                       const SizedBox(height: 8),
@@ -245,7 +246,7 @@ class _PantallaReporteIncidenciaState extends State<PantallaReporteIncidencia> {
                             isExpanded: true,
                             dropdownColor: colorTarjeta,
                             style: TextStyle(color: colorTexto, fontSize: 13),
-                            items: _tiposIncidente.entries.map((e) {
+                            items: _tiposIncidente(context).entries.map((e) {
                               return DropdownMenuItem<String>(
                                 value: e.key,
                                 child: Text(e.value),
@@ -261,7 +262,7 @@ class _PantallaReporteIncidenciaState extends State<PantallaReporteIncidencia> {
 
                       // Título breve
                       Text(
-                        'Título breve del incidente',
+                        context.tr('rep_titulo_breve'),
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: colorTexto),
                       ),
                       const SizedBox(height: 8),
@@ -269,7 +270,7 @@ class _PantallaReporteIncidenciaState extends State<PantallaReporteIncidencia> {
                         controller: _tituloCtrl,
                         style: TextStyle(color: colorTexto, fontSize: 14),
                         decoration: InputDecoration(
-                          hintText: 'Ej. Cobro indebido o tubular sin placa en Huacachina',
+                          hintText: context.tr('rep_hint_titulo'),
                           hintStyle: TextStyle(color: colorTextoSec, fontSize: 13),
                           filled: true,
                           fillColor: colorTarjeta,
@@ -277,7 +278,7 @@ class _PantallaReporteIncidenciaState extends State<PantallaReporteIncidencia> {
                         ),
                         validator: (v) {
                           if (v == null || v.trim().length < 3) {
-                            return 'El título debe tener al menos 3 caracteres.';
+                            return context.tr('rep_error_titulo');
                           }
                           return null;
                         },
@@ -286,7 +287,7 @@ class _PantallaReporteIncidenciaState extends State<PantallaReporteIncidencia> {
 
                       // Nombre de la empresa / prestador
                       Text(
-                        'Nombre de la empresa o persona involucrada (opcional)',
+                        context.tr('rep_empresa'),
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: colorTexto),
                       ),
                       const SizedBox(height: 8),
@@ -294,7 +295,7 @@ class _PantallaReporteIncidenciaState extends State<PantallaReporteIncidencia> {
                         controller: _agenciaCtrl,
                         style: TextStyle(color: colorTexto, fontSize: 14),
                         decoration: InputDecoration(
-                          hintText: 'Ej. Operador informal en entrada a laguna',
+                          hintText: context.tr('rep_hint_empresa'),
                           hintStyle: TextStyle(color: colorTextoSec, fontSize: 13),
                           filled: true,
                           fillColor: colorTarjeta,
@@ -305,7 +306,7 @@ class _PantallaReporteIncidenciaState extends State<PantallaReporteIncidencia> {
 
                       // Detalle de los hechos
                       Text(
-                        'Descripción detallada de lo ocurrido',
+                        context.tr('rep_descripcion'),
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: colorTexto),
                       ),
                       const SizedBox(height: 8),
@@ -314,7 +315,7 @@ class _PantallaReporteIncidenciaState extends State<PantallaReporteIncidencia> {
                         maxLines: 4,
                         style: TextStyle(color: colorTexto, fontSize: 14),
                         decoration: InputDecoration(
-                          hintText: 'Describe el lugar exacto, hora aproximada, lo sucedido y cualquier detalle relevante.',
+                          hintText: context.tr('rep_hint_desc'),
                           hintStyle: TextStyle(color: colorTextoSec, fontSize: 13),
                           filled: true,
                           fillColor: colorTarjeta,
@@ -322,7 +323,7 @@ class _PantallaReporteIncidenciaState extends State<PantallaReporteIncidencia> {
                         ),
                         validator: (v) {
                           if (v == null || v.trim().length < 10) {
-                            return 'La descripción debe tener al menos 10 caracteres.';
+                            return context.tr('rep_error_desc');
                           }
                           return null;
                         },
@@ -350,13 +351,13 @@ class _PantallaReporteIncidenciaState extends State<PantallaReporteIncidencia> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Ubicación del incidente (RN-04)',
+                                    context.tr('ubicacion_incidente'),
                                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: colorTexto),
                                   ),
                                   Text(
                                     _posicionActual != null
                                         ? 'GPS: ${_posicionActual!.latitude.toStringAsFixed(4)}, ${_posicionActual!.longitude.toStringAsFixed(4)}'
-                                        : 'Sin coordenadas (opcional con tu consentimiento)',
+                                        : context.tr('rep_sin_coords'),
                                     style: TextStyle(fontSize: 11, color: colorTextoSec),
                                   ),
                                 ],
@@ -364,7 +365,7 @@ class _PantallaReporteIncidenciaState extends State<PantallaReporteIncidencia> {
                             ),
                             TextButton(
                               onPressed: _solicitarUbicacionManual,
-                              child: Text(_posicionActual == null ? 'Obtener GPS' : 'Actualizar', style: const TextStyle(fontSize: 12)),
+                              child: Text(_posicionActual == null ? context.tr('rep_obtener_gps') : 'Actualizar', style: const TextStyle(fontSize: 12)),
                             ),
                           ],
                         ),
@@ -424,7 +425,7 @@ class _PantallaReporteIncidenciaState extends State<PantallaReporteIncidencia> {
                                 )
                               : const Icon(Icons.send_rounded),
                           label: Text(
-                            _enviando ? 'Enviando a DIRCETUR...' : 'Emitir Reporte Formal',
+                            _enviando ? context.tr('rep_enviando') : context.tr('rep_emitir'),
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                           ),
                           onPressed: _enviando ? null : _enviarReporte,
@@ -434,7 +435,7 @@ class _PantallaReporteIncidenciaState extends State<PantallaReporteIncidencia> {
                       const SizedBox(height: 26),
                       // Números oficiales visibles de emergencia
                       Text(
-                        'Canales Oficiales de Asistencia Inmediata',
+                        context.tr('rep_canales'),
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: colorTexto),
                       ),
                       const SizedBox(height: 10),
@@ -467,12 +468,12 @@ class _PantallaReporteIncidenciaState extends State<PantallaReporteIncidencia> {
             ),
             const SizedBox(height: 18),
             Text(
-              'Autenticación Requerida',
+              context.tr('auth_requerida'),
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: colorTexto),
             ),
             const SizedBox(height: 8),
             Text(
-              'Para emitir reportes formales a DIRCETUR o enviar alertas SOS con respaldo legal, debes identificarte con tu cuenta de viajero.',
+              context.tr('auth_requerida_msg'),
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13, color: colorTextoSec, height: 1.4),
             ),
@@ -485,7 +486,7 @@ class _PantallaReporteIncidenciaState extends State<PantallaReporteIncidencia> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               icon: const Icon(Icons.login),
-              label: const Text('Iniciar sesión o registrarme', style: TextStyle(fontWeight: FontWeight.bold)),
+              label: Text(context.tr('iniciar_o_registrar'), style: const TextStyle(fontWeight: FontWeight.bold)),
               onPressed: () {
                 Navigator.push(
                   context,

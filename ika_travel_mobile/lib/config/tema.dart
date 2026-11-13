@@ -1,42 +1,51 @@
 import 'package:flutter/material.dart';
 
+/// Paleta de la app. Centralizada: cambiar aquí refresca toda la interfaz.
+///
+/// Identidad de Ica: dunas (naranja cálido) + oasis/laguna (turquesa).
+/// Look más vivo y limpio, manteniendo contraste accesible.
 class AppColores {
   // ===================== Base =====================
+  /// Texto principal en modo claro.
+  static const Color marronOscuro = Color(0xFF2E2723);
 
-  /// Marrón oscuro: texto principal en modo claro.
-  static const Color marronOscuro = Color(0xFF382E27);
+  /// Texto secundario en modo claro.
+  static const Color grisTexto = Color(0xFF6E6257);
 
-  /// Naranja: color de acento, botones primarios y foco de inputs.
-  static const Color naranjaBoton = Color(0xFFD97724);
+  /// Fondo de pantalla en modo claro.
+  static const Color arenaFondo = Color(0xFFFBF7F1);
 
-  /// Arena clara: fondo de pantalla en modo claro.
-  static const Color arenaFondo = Color(0xFFF7F2EB);
-
-  /// Blanco: fondo de tarjetas en modo claro.
+  /// Fondo de tarjetas en modo claro.
   static const Color blancoTarjeta = Colors.white;
 
-  /// Gris texto: texto secundario en modo claro.
-  static const Color grisTexto = Color(0xFF63564D);
+  // ===================== Acentos =====================
+  /// Naranja (dunas): acento, botones primarios y foco de inputs. Más vivo
+  /// que el anterior #D97724.
+  static const Color naranjaBoton = Color(0xFFF26419);
+
+  /// Fondo suave del acento naranja.
+  static const Color naranjaClaro = Color(0xFFFFE6D5);
+
+  /// Turquesa (laguna / oasis): acento secundario.
+  static const Color turquesaOasis = Color(0xFF0E9AA7);
+  static const Color turquesaClaro = Color(0xFFD6F1F3);
 
   // ===================== Semánticos =====================
-
   /// Verde oasis: éxito, confirmaciones, estados positivos.
-  static const Color verdeOasis = Color(0xFF2E7D32);
+  static const Color verdeOasis = Color(0xFF2E9E5B);
 
   /// Azul Paracas: información, enlaces, estados neutros.
   static const Color azulParacas = Color(0xFF1565C0);
 
+  /// Rojo: alertas y errores.
+  static const Color rojoAlerta = Color(0xFFE23B3B);
+
   // ===================== Modo oscuro =====================
-
-  /// Fondo de pantalla en modo oscuro.
   static const Color fondoOscuro = Color(0xFF1E1E1E);
-
-  /// Fondo de tarjetas en modo oscuro.
   static const Color tarjetaOscura = Color(0xFF2C2C2C);
 
   // ===================== Alias con opacidad =====================
   // Útiles para no repetir `withValues(alpha: ...)` en cada pantalla.
-
   /// Fondo de inputs en modo claro (arena al 60%).
   static Color get inputFillClaro => arenaFondo.withValues(alpha: 0.6);
 

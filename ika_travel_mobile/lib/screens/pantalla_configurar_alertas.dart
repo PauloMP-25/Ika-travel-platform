@@ -38,18 +38,22 @@ class _PantallaConfigurarAlertasState extends State<PantallaConfigurarAlertas> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   IconButton(
                     icon: Icon(Icons.arrow_back, color: colorTexto, size: 28),
                     onPressed: () => Navigator.pop(context),
                   ),
-                  Text(
-                    context.tr('configurar_alertas'),
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: colorTexto,
+                  Expanded(
+                    child: Text(
+                      context.tr('configurar_alertas'),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: colorTexto,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 48),

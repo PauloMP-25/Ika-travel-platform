@@ -521,14 +521,6 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                                     color: colorTexto,
                                   ),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  context.tr('recomendacion_ia_disponible'),
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: colorTextoSecundario,
-                                  ),
-                                ),
                               ],
                             ),
                           ),
@@ -547,70 +539,72 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
             const SizedBox(height: 20),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: colorTarjeta,
-                  borderRadius: BorderRadius.circular(15),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: colorTexto.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(Icons.timeline, color: colorTexto, size: 22),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${context.tr('seguimiento_de')} ${widget.subtitulo}',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: colorTexto,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            context.tr('historial_cambios_clima'),
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: colorTextoSecundario,
-                            ),
-                          ),
-                        ],
+              child: InkWell(
+                borderRadius: BorderRadius.circular(15),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PantallaSeguimientoDestino(
+                        nombreDestinoInicial: widget.titulo,
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: colorTarjeta,
+                    borderRadius: BorderRadius.circular(15),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: colorTexto.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(Icons.timeline, color: colorTexto, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${context.tr('seguimiento_de')} ${widget.subtitulo}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: colorTexto,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              context.tr('historial_cambios_clima'),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: colorTextoSecundario,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(
                         Icons.arrow_forward,
                         color: AppColores.naranjaBoton,
                       ),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => PantallaSeguimientoDestino(
-                              nombreDestinoInicial: widget.titulo,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

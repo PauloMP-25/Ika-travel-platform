@@ -27,11 +27,7 @@ dependencies:
   geolocator: ^14.1.2
   flutter_tts: ^4.2.5
   url_launcher: ^6.3.1
-
- 
-  speech_to_text: ^7.0.0
-
-
+  speech_to_text: ^7.5.0
   google_sign_in: ^6.2.1
 
 

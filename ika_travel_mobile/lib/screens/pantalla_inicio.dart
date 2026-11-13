@@ -375,7 +375,6 @@ class _PantallaInicioState extends State<PantallaInicio> {
                     : Column(
                         children: [
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
                                 context.tr('ahora_en_ica'),
@@ -384,21 +383,26 @@ class _PantallaInicioState extends State<PantallaInicio> {
                                   color: colorTexto,
                                 ),
                               ),
-                              Text(
-                                _clima != null
-                                    ? (_clima!['descripcion_clima'] ??
-                                          'Desconocido')
-                                    : 'Soleado',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: colorTextoSecundario,
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  _clima != null
+                                      ? (_clima!['descripcion_clima'] ??
+                                            'Desconocido')
+                                      : 'Soleado',
+                                  textAlign: TextAlign.right,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: colorTextoSecundario,
+                                  ),
                                 ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 20),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Builder(
                                 builder: (context) {
@@ -421,21 +425,30 @@ class _PantallaInicioState extends State<PantallaInicio> {
                                   );
                                 },
                               ),
-                              Text(
-                                _clima != null
-                                    ? '${(_clima!['temperatura_actual'] as num).round()}°C'
-                                    : '26°C',
-                                style: TextStyle(
-                                  fontSize: 42,
-                                  fontWeight: FontWeight.bold,
-                                  color: colorTexto,
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    _clima != null
+                                        ? '${(_clima!['temperatura_actual'] as num).round()}°C'
+                                        : '26°C',
+                                    style: TextStyle(
+                                      fontSize: 42,
+                                      fontWeight: FontWeight.bold,
+                                      color: colorTexto,
+                                    ),
+                                  ),
                                 ),
                               ),
+                              const SizedBox(width: 8),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
-                                    '${context.tr('viento')}   ${_clima != null ? (_clima!['velocidad_viento'] as num).round() : '12'} km/h', // 👈
+                                    '${context.tr('viento')}  ${_clima != null ? (_clima!['velocidad_viento'] as num).round() : '12'} km/h',
                                     style: TextStyle(
                                       fontSize: 13,
                                       color: colorTextoSecundario,
@@ -443,7 +456,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    '${context.tr('humedad')}  ${_clima != null ? (_clima!['humedad'] as num).round() : '48'}%', // 👈
+                                    '${context.tr('humedad')}  ${_clima != null ? (_clima!['humedad'] as num).round() : '48'}%',
                                     style: TextStyle(
                                       fontSize: 13,
                                       color: colorTextoSecundario,
@@ -451,7 +464,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    '${context.tr('uv')}        ${_clima != null ? (_clima!['indice_uv'] as num).round() : 'Alto'}', // 👈
+                                    '${context.tr('uv')}  ${_clima != null ? (_clima!['indice_uv'] as num).round() : 'Alto'}',
                                     style: TextStyle(
                                       fontSize: 13,
                                       color: colorTextoSecundario,
@@ -479,26 +492,26 @@ class _PantallaInicioState extends State<PantallaInicio> {
                               );
                             },
                             child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.timeline,
-                                      size: 18,
-                                      color: AppColores.naranjaBoton,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      context.tr('seguimiento_destinos'),
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: colorTexto,
-                                      ),
-                                    ),
-                                  ],
+                                const Icon(
+                                  Icons.timeline,
+                                  size: 18,
+                                  color: AppColores.naranjaBoton,
                                 ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    context.tr('seguimiento_destinos'),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: colorTexto,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
                                 const Icon(
                                   Icons.arrow_forward_ios,
                                   size: 14,
@@ -511,91 +524,20 @@ class _PantallaInicioState extends State<PantallaInicio> {
                       ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
 
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: InkWell(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const PantallaPlaner(),
-                    ),
-                  );
-                },
-                borderRadius: BorderRadius.circular(15),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF4A3B32), Color(0xFF6D5547)],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                    ),
-                    borderRadius: BorderRadius.circular(15),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF4A3B32).withValues(alpha: 0.3),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      const CircleAvatar(
-                        radius: 22,
-                        backgroundColor: Color(0xFFD98E3D),
-                        child: Icon(Icons.route, color: Colors.white, size: 22),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              context.tr('planificar_viaje'),
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              context.tr('rutas_destinos'),
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: Colors.white70,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Icon(
-                        Icons.arrow_forward_ios,
-                        size: 14,
-                        color: Colors.white54,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 14),
-
+            // CTA principal: recomendación del día
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: SizedBox(
                 width: double.infinity,
                 height: 52,
-                child: ElevatedButton(
+                child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColores.naranjaBoton,
+                    foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                     elevation: 2,
                   ),
@@ -611,171 +553,142 @@ class _PantallaInicioState extends State<PantallaInicio> {
                       ),
                     );
                   },
-                  child: Text(
+                  icon: const Icon(Icons.auto_awesome, size: 20),
+                  label: Text(
                     context.tr('ver_recomendacion'),
                     style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
+                        fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
             ),
-
-            const SizedBox(height: 14),
-
-            // BANNER PRESTADORES FORMALES
+            const SizedBox(height: 22),
+            // Accesos rápidos (cuadrícula compacta en vez de banners apilados)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: InkWell(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const PantallaPrestadores(),
-                    ),
-                  );
-                },
-                borderRadius: BorderRadius.circular(15),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? const Color(0xFF2C2C2C)
-                        : Colors.white,
-                    borderRadius: BorderRadius.circular(15),
-                    border: Border.all(
-                      color: const Color(0xFF2E7D32).withValues(alpha: 0.35),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      const CircleAvatar(
-                        radius: 18,
-                        backgroundColor: Color(0xFFE8F5E9),
-                        child: Icon(
-                          Icons.verified_user_rounded,
-                          color: Color(0xFF2E7D32),
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              context.tr('servicios_formalizados'),
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: colorTexto,
-                              ),
-                            ),
-                            Text(
-                              context.tr('agencias_guias'),
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: colorTextoSecundario,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Icon(
-                        Icons.arrow_forward_ios,
-                        size: 14,
-                        color: Color(0xFF2E7D32),
-                      ),
-                    ],
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  context.tr('accesos_rapidos'),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: colorTexto,
                   ),
                 ),
               ),
             ),
-
-            const SizedBox(height: 14),
-
+            const SizedBox(height: 12),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: InkWell(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const PantallaSos(),
-                    ),
-                  );
-                },
-                borderRadius: BorderRadius.circular(15),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
+              child: Row(
+                children: [
+                  _tileAcceso(
+                    icono: Icons.route,
+                    etiqueta: context.tr('acc_planificar'),
+                    color: AppColores.naranjaBoton,
+                    colorTexto: colorTexto,
+                    colorTarjeta: colorTarjeta,
+                    destino: const PantallaPlaner(),
                   ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(15),
-                    border: Border.all(
-                      color: const Color(0xFFE53935).withValues(alpha: 0.3),
-                    ),
+                  const SizedBox(width: 12),
+                  _tileAcceso(
+                    icono: Icons.verified_user_rounded,
+                    etiqueta: context.tr('acc_servicios'),
+                    color: AppColores.turquesaOasis,
+                    colorTexto: colorTexto,
+                    colorTarjeta: colorTarjeta,
+                    destino: const PantallaPrestadores(),
                   ),
-                  child: Row(
-                    children: [
-                      const CircleAvatar(
-                        radius: 18,
-                        backgroundColor: Color(0xFFFFEBEE),
-                        child: Icon(
-                          Icons.shield,
-                          color: Color(0xFFD32F2F),
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              context.tr('asistencia_sos'),
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: AppColores.marronOscuro,
-                              ),
-                            ),
-                            Text(
-                              context.tr('alerta_rapida'),
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: AppColores.grisTexto,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Icon(
-                        Icons.arrow_forward_ios,
-                        size: 14,
-                        color: AppColores.grisTexto,
-                      ),
-                    ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                children: [
+                  _tileAcceso(
+                    icono: Icons.notifications_active_rounded,
+                    etiqueta: context.tr('acc_alertas'),
+                    color: AppColores.azulParacas,
+                    colorTexto: colorTexto,
+                    colorTarjeta: colorTarjeta,
+                    destino: const PantallaAlertas(),
                   ),
-                ),
+                  const SizedBox(width: 12),
+                  _tileAcceso(
+                    icono: Icons.shield_rounded,
+                    etiqueta: context.tr('acc_sos'),
+                    color: AppColores.rojoAlerta,
+                    colorTexto: colorTexto,
+                    colorTarjeta: colorTarjeta,
+                    destino: const PantallaSos(),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 30),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _tileAcceso({
+    required IconData icono,
+    required String etiqueta,
+    required Color color,
+    required Color colorTexto,
+    required Color colorTarjeta,
+    required Widget destino,
+  }) {
+    return Expanded(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => destino),
+        ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+          decoration: BoxDecoration(
+            color: colorTarjeta,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icono, color: color, size: 22),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  etiqueta,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: colorTexto,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

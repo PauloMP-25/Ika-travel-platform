@@ -12,7 +12,14 @@ import '../services/translation_service.dart';
 class PantallaTraduccion extends StatefulWidget {
   final TranslationService? translationService;
 
-  const PantallaTraduccion({super.key, this.translationService});
+  /// Cuando es true se muestra como pestaña de la barra inferior (sin botón atrás).
+  final bool comoPestana;
+
+  const PantallaTraduccion({
+    super.key,
+    this.translationService,
+    this.comoPestana = false,
+  });
 
   @override
   State<PantallaTraduccion> createState() => _PantallaTraduccionState();
@@ -218,10 +225,13 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 children: [
-                  IconButton(
-                    icon: Icon(Icons.arrow_back, color: colorTexto, size: 28),
-                    onPressed: () => Navigator.pop(context),
-                  ),
+                  if (!widget.comoPestana)
+                    IconButton(
+                      icon: Icon(Icons.arrow_back, color: colorTexto, size: 28),
+                      onPressed: () => Navigator.pop(context),
+                    )
+                  else
+                    const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       context.tr('traductor_guia'),
