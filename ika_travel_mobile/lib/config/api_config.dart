@@ -1,19 +1,34 @@
 class ApiConfig {
-  // Permite sobreescribir la URL en compilación con --dart-define=API_URL=https://tu-ngrok.ngrok-free.app
-  // o modificar directamente esta variable cuando actives tu túnel.
   static String baseUrl = const String.fromEnvironment(
     'API_URL',
     defaultValue: 'https://dreary-flap-stole.ngrok-free.dev',
   );
 
-  /// Cabeceras predeterminadas para todas las peticiones HTTP de la app.
-  /// Incluye 'ngrok-skip-browser-warning' para evitar que Ngrok bloquee las
-  /// peticiones cuando la aplicación corre en Web (Chrome, Edge, etc.).
   static Map<String, String> get defaultHeaders => {
     'Accept': 'application/json',
     'Accept-Language': 'es-PE,es;q=0.9',
     'ngrok-skip-browser-warning': 'true',
   };
+
+  // --- ADMIN DIRCETUR ---
+  static const String adminKey = 'secreto';
+
+  static Map<String, String> get adminHeaders => {
+    ...defaultHeaders,
+    'X-Admin-Key': adminKey,
+    'Content-Type': 'application/json',
+  };
+
+  static String get adminAgencies => '$baseUrl/api/v1/catalog/admin/agencies';
+  static String get adminSyncDircetur =>
+      '$baseUrl/api/v1/catalog/admin/agencies/sync-dircetur';
+  static String adminValidateAgency(String id) =>
+      '$baseUrl/api/v1/catalog/admin/agencies/$id/validate';
+  static String adminRevokeAgency(String id) =>
+      '$baseUrl/api/v1/catalog/admin/agencies/$id/revoke';
+
+  static String get adminEmergencyReports =>
+      '$baseUrl/api/v1/emergency/reports';
 
   // --- GEO & ATRACTIVOS CERCANOS ---
   static String geoNearby({
@@ -40,14 +55,17 @@ class ApiConfig {
       '$weatherBase/recommendation-of-the-day';
   static String get recommendations => '$weatherBase/recommendations';
 
-  // --- AGENCIES & PRESTADORES FORMALES (RF-03 / RN-01) ---
+  // --- AGENCIES & PRESTADORES FORMALES ---
   static String get agencies => '$baseUrl/api/v1/catalog/agencies';
   static String agencyDetail(String id) =>
       '$baseUrl/api/v1/catalog/agencies/$id';
 
-  // --- EMERGENCY & SOS & REPORTES DIRCETUR (RF-05) ---
+  // --- EMERGENCY & SOS ---
   static String get emergencyContacts => '$baseUrl/api/v1/emergency/contacts';
   static String get emergencySos => '$baseUrl/api/v1/emergency/sos';
+
+  // (Opcional: si usas esta ruta en otra pantalla pública, déjala.
+  // Si solo la usas en el panel admin, puedes borrarla y dejar solo adminEmergencyReports)
   static String get emergencyReports => '$baseUrl/api/v1/emergency/reports';
 
   // --- FAVORITES ---
@@ -62,27 +80,19 @@ class ApiConfig {
   static String get usersMe => '$baseUrl/api/v1/users/me';
 
   // --- IA & GEMINI ---
-  /// Clave API configurable para Gemini (Google Generative AI).
-  /// Permite consultar Gemini directamente en frontend o pruebas (--dart-define=GEMINI_API_KEY=tu_clave).
   static const String geminiApiKey = String.fromEnvironment(
     'GEMINI_API_KEY',
     defaultValue: '',
   );
 
-  // --- TRAFFIC & INCIDENTS (Tráfico e Incidentes Viales) ---
-  /// Clave API configurable para tráfico real (TomTom Developer).
-  /// Se inyecta mediante `--dart-define=TOMTOM_API_KEY=tu_clave` o en runtime.
+  // --- TRAFFIC & INCIDENTS ---
   static const String tomtomApiKey = String.fromEnvironment(
     'TOMTOM_API_KEY',
     defaultValue: '',
   );
 
-  /// Bounding Box representativo del área metropolitana de Ica y Panamericana Sur
-  /// Formato requerido por TomTom: minLon,minLat,maxLon,maxLat
   static const String bboxIca = '-75.82,-14.15,-75.65,-13.95';
 
-  /// URI oficial para consultar incidentes viales reales en TomTom Traffic v5
-  /// Utiliza Uri.https para codificación segura según RFC 3986 y filtra incidentes activos (present).
   static Uri tomtomIncidentDetailsUri({
     required String apiKey,
     String bbox = bboxIca,
@@ -96,7 +106,6 @@ class ApiConfig {
     });
   }
 
-  /// URL en formato String para retrocompatibilidad
   static String tomtomIncidentDetailsUrl({
     required String apiKey,
     String bbox = bboxIca,

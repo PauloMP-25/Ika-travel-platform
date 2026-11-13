@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 /// Modelos de Prestador de Servicios Turísticos y Tours para Ika Travel.
 /// Cumple con la regla RN-01: Exclusivamente prestadores empadronados y validados por DIRCETUR.
 class TourPrestadorModel {
@@ -71,7 +73,6 @@ class PrestadorServicioModel {
     this.tours = const [],
   });
 
-  /// Regla RN-01: Solo se considera formal si tiene la bandera de validación explícita
   bool get esFormalValidado => isValidated;
 
   factory PrestadorServicioModel.fromJson(Map<String, dynamic> json) {
@@ -107,94 +108,100 @@ class PrestadorServicioModel {
     };
   }
 
-  /// Lista oficial de prestadores formalizados pre-verificados por DIRCETUR Ica
-  /// utilizada como respaldo cuando el dispositivo no tiene conexión a internet.
-  static List<PrestadorServicioModel> get prestadoresVerificadosLocales => [
-        const PrestadorServicioModel(
-          id: 'ag-dircetur-001',
-          name: 'Ica Desert & Dune Buggy Tours S.A.C.',
-          isValidated: true,
-          ruc: '20601234567',
-          dirceturRegistryNumber: 'DIRCETUR-ICA-AG-2024-042',
-          contactPhone: '+51 956 123 456',
-          contactEmail: 'operaciones@icadesert.pe',
-          tourCount: 2,
-          tours: [
-            TourPrestadorModel(
-              id: 't-01',
-              name: 'Circuito Safari Buggy & Sandboarding Huacachina',
-              description: 'Paseo en carros tubulares certificados con chofer profesional y tablas de arena reglamentarias.',
-              price: 55.0,
-              durationHours: 2,
-              agencyId: 'ag-dircetur-001',
-              agencyName: 'Ica Desert & Dune Buggy Tours S.A.C.',
-              attractionName: 'Huacachina Sandboarding & Buggy',
-            ),
-            TourPrestadorModel(
-              id: 't-02',
-              name: 'Expedición Cañón de los Perdidos en 4x4',
-              description: 'Travesía guiada al cañón fósil con guía oficial de turismo y equipo de auxilio.',
-              price: 140.0,
-              durationHours: 7,
-              agencyId: 'ag-dircetur-001',
-              agencyName: 'Ica Desert & Dune Buggy Tours S.A.C.',
-              attractionName: 'Cañón de los Perdidos',
-            ),
-          ],
-        ),
-        const PrestadorServicioModel(
-          id: 'ag-dircetur-002',
-          name: 'Paracas Bahía Marina Travel',
-          isValidated: true,
-          ruc: '20534567891',
-          dirceturRegistryNumber: 'DIRCETUR-ICA-AG-2023-118',
-          contactPhone: '+51 987 654 321',
-          contactEmail: 'informes@paracasmarina.pe',
-          tourCount: 2,
-          tours: [
-            TourPrestadorModel(
-              id: 't-03',
-              name: 'Navegación Islas Ballestas en Deslizador Homologado',
-              description: 'Zarpe desde el muelle El Chaco con chalecos salvavidas y avistamiento de lobos marinos y pingüinos.',
-              price: 50.0,
-              durationHours: 2,
-              agencyId: 'ag-dircetur-002',
-              agencyName: 'Paracas Bahía Marina Travel',
-              attractionName: 'Islas Ballestas',
-            ),
-            TourPrestadorModel(
-              id: 't-04',
-              name: 'Reserva Nacional de Paracas: Playas y Miradores',
-              description: 'Recorrido terrestre por Playa Roja, La Mina y el Centro de Interpretación.',
-              price: 60.0,
-              durationHours: 4,
-              agencyId: 'ag-dircetur-002',
-              agencyName: 'Paracas Bahía Marina Travel',
-              attractionName: 'Reserva Nacional de Paracas',
-            ),
-          ],
-        ),
-        const PrestadorServicioModel(
-          id: 'ag-dircetur-003',
-          name: 'Ruta Pisquera & Viñedos Tradicionales E.I.R.L.',
-          isValidated: true,
-          ruc: '20498765432',
-          dirceturRegistryNumber: 'DIRCETUR-ICA-AG-2024-009',
-          contactPhone: '+51 956 789 123',
-          contactEmail: 'tours@rutapisqueraica.com',
-          tourCount: 1,
-          tours: [
-            TourPrestadorModel(
-              id: 't-05',
-              name: 'Cata guiada y vendimia en bodegas históricas de Ica',
-              description: 'Visita a la bodega más antigua de Sudamérica y destilerías artesanales con degustación.',
-              price: 75.0,
-              durationHours: 4,
-              agencyId: 'ag-dircetur-003',
-              agencyName: 'Ruta Pisquera & Viñedos Tradicionales E.I.R.L.',
-              attractionName: 'Ruta del Pisco y Viñedos',
-            ),
-          ],
-        ),
-      ];
+  PrestadorServicioModel copyWith({
+    String? id,
+    String? name,
+    bool? isValidated,
+    String? ruc,
+    String? dirceturRegistryNumber,
+    String? contactPhone,
+    String? contactEmail,
+    int? tourCount,
+    List<TourPrestadorModel>? tours,
+  }) {
+    return PrestadorServicioModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      isValidated: isValidated ?? this.isValidated,
+      ruc: ruc ?? this.ruc,
+      dirceturRegistryNumber:
+          dirceturRegistryNumber ?? this.dirceturRegistryNumber,
+      contactPhone: contactPhone ?? this.contactPhone,
+      contactEmail: contactEmail ?? this.contactEmail,
+      tourCount: tourCount ?? this.tourCount,
+      tours: tours ?? this.tours,
+    );
+  }
 }
+
+/// Notificador global para que el Panel DIRCETUR y la Pantalla de Prestadores
+/// compartan los mismos datos en tiempo real.
+final ValueNotifier<List<PrestadorServicioModel>> prestadoresGlobales =
+    ValueNotifier<List<PrestadorServicioModel>>([
+      const PrestadorServicioModel(
+        id: 'ag-dircetur-001',
+        name: 'Ica Desert & Dune Buggy Tours S.A.C.',
+        isValidated: true,
+        ruc: '20601234567',
+        dirceturRegistryNumber: 'DIRCETUR-ICA-AG-2024-042',
+        contactPhone: '+51 956 123 456',
+        contactEmail: 'operaciones@icadesert.pe',
+        tourCount: 2,
+        tours: [
+          TourPrestadorModel(
+            id: 't-01',
+            name: 'Circuito Safari Buggy',
+            description: 'Paseo en tubulares.',
+            price: 55.0,
+            durationHours: 2,
+            agencyId: 'ag-dircetur-001',
+            agencyName: 'Ica Desert',
+            attractionName: 'Huacachina',
+          ),
+        ],
+      ),
+      const PrestadorServicioModel(
+        id: 'ag-dircetur-002',
+        name: 'Paracas Bahía Marina Travel',
+        isValidated: true,
+        ruc: '20534567891',
+        dirceturRegistryNumber: 'DIRCETUR-ICA-AG-2023-118',
+        contactPhone: '+51 987 654 321',
+        contactEmail: 'informes@paracasmarina.pe',
+        tourCount: 1,
+        tours: [
+          TourPrestadorModel(
+            id: 't-03',
+            name: 'Navegación Islas Ballestas',
+            description: 'Zarpe desde El Chaco.',
+            price: 50.0,
+            durationHours: 2,
+            agencyId: 'ag-dircetur-002',
+            agencyName: 'Paracas',
+            attractionName: 'Islas Ballestas',
+          ),
+        ],
+      ),
+      const PrestadorServicioModel(
+        id: 'ag-dircetur-003',
+        name: 'Ruta Pisquera & Viñedos Tradicionales E.I.R.L.',
+        isValidated: true,
+        ruc: '20498765432',
+        dirceturRegistryNumber: 'DIRCETUR-ICA-AG-2024-009',
+        contactPhone: '+51 956 789 123',
+        contactEmail: 'tours@rutapisqueraica.com',
+        tourCount: 1,
+        tours: [
+          TourPrestadorModel(
+            id: 't-05',
+            name: 'Cata guiada en bodegas',
+            description: 'Visita a bodega histórica.',
+            price: 75.0,
+            durationHours: 4,
+            agencyId: 'ag-dircetur-003',
+            agencyName: 'Ruta Pisquera',
+            attractionName: 'Ruta del Pisco',
+          ),
+        ],
+      ),
+    ]);
