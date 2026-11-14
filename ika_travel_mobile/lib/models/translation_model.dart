@@ -17,8 +17,8 @@ class PhraseItemModel {
     return PhraseItemModel(
       id: json['id']?.toString() ?? '',
       category: json['category'] as String? ?? 'general',
-      spanish: json['spanish'] as String? ?? '',
-      english: json['english'] as String? ?? '',
+      spanish: json['es'] as String? ?? '',
+      english: json['en'] as String? ?? '',
       phonetic: json['phonetic'] as String?,
     );
   }

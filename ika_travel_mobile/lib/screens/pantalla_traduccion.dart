@@ -47,14 +47,14 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
 
   final List<Map<String, String>> _categorias = [
     {'id': '', 'nombre': 'Todas'},
-    {'id': 'emergency', 'nombre': 'Emergencia'},
-    {'id': 'health', 'nombre': 'Salud'},
-    {'id': 'transport', 'nombre': 'Transporte'},
-    {'id': 'services', 'nombre': 'Servicios'},
-    {'id': 'directions', 'nombre': 'Direcciones'},
-    {'id': 'lodging', 'nombre': 'Hospedaje'},
-    {'id': 'food', 'nombre': 'Comida'},
-    {'id': 'courtesy', 'nombre': 'Cortesía'},
+    {'id': 'saludos', 'nombre': 'Saludos'},
+    {'id': 'emergencia', 'nombre': 'Emergencia'},
+    {'id': 'transporte', 'nombre': 'Transporte'},
+    {'id': 'alimentacion', 'nombre': 'Alimentación'},
+    {'id': 'actividades', 'nombre': 'Actividades'},
+    {'id': 'orientacion', 'nombre': 'Orientación'},
+    {'id': 'salud', 'nombre': 'Salud'},
+    {'id': 'servicios_formales', 'nombre': 'Servicios formales'},
   ];
 
   @override
@@ -66,14 +66,20 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
   }
 
   Future<void> _initSpeech() async {
+    debugPrint('🎙️ [VOZ] Inicializando SpeechToText...');
     try {
       _speechDisponible = await _speech.initialize(
         onStatus: (status) {
+          debugPrint('🎙️ [VOZ] Cambio de estado: $status');
           if (status == 'done' || status == 'notListening') {
-            if (mounted) setState(() => _escuchando = false);
+            if (mounted) {
+              setState(() => _escuchando = false);
+              debugPrint('🎙️ [VOZ] Escucha detenida (status: $status)');
+            }
           }
         },
         onError: (error) {
+          debugPrint('🎙️ [VOZ] ERROR: ${error.errorMsg}');
           if (mounted) {
             setState(() => _escuchando = false);
             ScaffoldMessenger.of(context).showSnackBar(
@@ -85,14 +91,21 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
           }
         },
       );
+      debugPrint(
+        '🎙️ [VOZ] Inicialización terminada. Disponible: $_speechDisponible',
+      );
       if (mounted) setState(() {});
-    } catch (_) {
+    } catch (e) {
+      debugPrint('🎙️ [VOZ] Excepción al inicializar: $e');
       _speechDisponible = false;
     }
   }
 
   Future<void> _toggleEscucha() async {
+    debugPrint('🎙️ [VOZ] Botón de micrófono presionado.');
+
     if (!_speechDisponible) {
+      debugPrint('🎙️ [VOZ] No se puede escuchar: _speechDisponible es false.');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -105,32 +118,46 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
     }
 
     if (_escuchando) {
+      debugPrint('🎙️ [VOZ] Deteniendo escucha...');
       await _speech.stop();
       if (mounted) setState(() => _escuchando = false);
       return;
     }
 
-    // Limpia el texto previo antes de dictar
+    debugPrint('🎙️ [VOZ] Iniciando escucha...');
     _textoController.clear();
 
-    // El idioma del dictado sigue al idioma de origen del traductor
-    final localeId = _sourceLang == 'es' ? 'es_ES' : 'en_US';
+    // Usamos español de Perú (o inglés si está en inglés)
+    final localeId = _sourceLang == 'es' ? 'es_PE' : 'en_US';
+    debugPrint('🎙️ [VOZ] Idioma de dictado configurado: $localeId');
 
-    await _speech.listen(
-      onResult: _onSpeechResult,
-      localeId: localeId,
-      listenFor: const Duration(seconds: 30),
-      pauseFor: const Duration(seconds: 3),
-      partialResults: true,
-      cancelOnError: true,
-      listenMode: stt.ListenMode.confirmation,
-    );
+    try {
+      await _speech.listen(
+        onResult: _onSpeechResult,
+        localeId: localeId,
+        listenFor: const Duration(seconds: 30),
+        pauseFor: const Duration(
+          seconds: 5,
+        ), // 5 segundos para hacer pausas al hablar
+        partialResults: true,
+        cancelOnError: false, // NO cancelar al primer error
+        listenMode: stt.ListenMode.dictation, // Modo dictado (más flexible)
+      );
 
-    if (mounted) setState(() => _escuchando = true);
+      debugPrint('🎙️ [VOZ] Comando listen() enviado.');
+      if (mounted) setState(() => _escuchando = true);
+    } catch (e) {
+      debugPrint('🎙️ [VOZ] Error al intentar escuchar: $e');
+      if (mounted) setState(() => _escuchando = false);
+    }
   }
 
   void _onSpeechResult(SpeechRecognitionResult result) {
     final texto = result.recognizedWords;
+    debugPrint(
+      '🎙️ [VOZ] Resultado recibido: "$texto" | Final: ${result.finalResult}',
+    );
+
     if (texto.isEmpty) return;
 
     setState(() {
@@ -141,6 +168,7 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
     });
 
     if (result.finalResult) {
+      debugPrint('🎙️ [VOZ] Frase finalizada. Deteniendo icono de escucha.');
       setState(() => _escuchando = false);
     }
   }
@@ -170,7 +198,18 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
 
   Future<void> _realizarTraduccion() async {
     final texto = _textoController.text.trim();
-    if (texto.isEmpty) return;
+    debugPrint('🤖 [IA] Botón Traducir presionado. Texto a traducir: "$texto"');
+
+    if (texto.isEmpty) {
+      debugPrint('🤖 [IA] Abortado: El texto está vacío.');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor, habla o escribe un texto para traducir.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
 
     setState(() {
       _traduciendo = true;
@@ -178,12 +217,21 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
       _traduccionResultado = '';
     });
 
+    debugPrint(
+      '🤖 [IA] Llamando a _translationService.translate (Origen: $_sourceLang, Destino: $_targetLang)...',
+    );
+
     try {
       final res = await _translationService.translate(
         text: texto,
         sourceLang: _sourceLang,
         targetLang: _targetLang,
       );
+
+      debugPrint(
+        '🤖 [IA] Respuesta exitosa: "${res.translatedText}" | Origen: ${res.origin}',
+      );
+
       if (mounted) {
         setState(() {
           _traduccionResultado = res.translatedText;
@@ -191,7 +239,10 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
           _traduciendo = false;
         });
       }
-    } catch (e) {
+    } catch (e, stacktrace) {
+      debugPrint('🤖 [IA] ERROR EN TRADUCCIÓN: $e');
+      debugPrint('🤖 [IA] Stacktrace: $stacktrace');
+
       if (mounted) {
         setState(() {
           _errorTraduccion = context.tr('error_traduccion');
@@ -331,7 +382,7 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
     return Column(
       children: [
         SizedBox(
-          height: 42,
+          height: 48,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -342,41 +393,55 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
 
               String nombreCat = cat['nombre']!;
               if (cat['id'] == '') nombreCat = context.tr('categoria_todas');
-              if (cat['id'] == 'emergency')
+              if (cat['id'] == 'saludos') nombreCat = context.tr('cat_saludos');
+              if (cat['id'] == 'emergencia')
                 nombreCat = context.tr('cat_emergencia');
-              if (cat['id'] == 'health') nombreCat = context.tr('cat_salud');
-              if (cat['id'] == 'transport')
+              if (cat['id'] == 'transporte')
                 nombreCat = context.tr('cat_transporte');
-              if (cat['id'] == 'services')
-                nombreCat = context.tr('cat_servicios');
-              if (cat['id'] == 'directions')
-                nombreCat = context.tr('cat_direcciones');
-              if (cat['id'] == 'lodging')
-                nombreCat = context.tr('cat_hospedaje');
-              if (cat['id'] == 'food') nombreCat = context.tr('cat_comida');
-              if (cat['id'] == 'courtesy')
-                nombreCat = context.tr('cat_cortesia');
+              if (cat['id'] == 'alimentacion')
+                nombreCat = context.tr('cat_alimentacion');
+              if (cat['id'] == 'actividades')
+                nombreCat = context.tr('cat_actividades');
+              if (cat['id'] == 'orientacion')
+                nombreCat = context.tr('cat_orientacion');
+              if (cat['id'] == 'salud') nombreCat = context.tr('cat_salud');
+              if (cat['id'] == 'servicios_formales')
+                nombreCat = context.tr('cat_servicios_formales');
 
               return Padding(
                 padding: const EdgeInsets.only(right: 8),
-                child: ChoiceChip(
-                  label: Text(nombreCat),
-                  selected: seleccionada,
-                  selectedColor: AppColores.naranjaBoton,
-                  backgroundColor: colorTarjeta,
-                  labelStyle: TextStyle(
-                    color: seleccionada ? Colors.white : colorTexto,
-                    fontWeight: seleccionada
-                        ? FontWeight.bold
-                        : FontWeight.normal,
-                    fontSize: 12,
+                child: Center(
+                  child: ChoiceChip(
+                    label: Text(nombreCat),
+                    selected: seleccionada,
+                    selectedColor: AppColores.naranjaBoton,
+                    backgroundColor: Colors.transparent,
+                    elevation: 0,
+                    pressElevation: 0,
+                    showCheckmark: false,
+                    side: BorderSide(
+                      color: seleccionada
+                          ? Colors.transparent
+                          : colorTextoSecundario.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    labelStyle: TextStyle(
+                      color: seleccionada ? Colors.white : colorTexto,
+                      fontWeight: seleccionada
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      fontSize: 13,
+                    ),
+                    onSelected: (val) {
+                      setState(() {
+                        _filtroCategoria = val ? cat['id']! : '';
+                      });
+                      _cargarFrases();
+                    },
                   ),
-                  onSelected: (val) {
-                    setState(() {
-                      _filtroCategoria = val ? cat['id']! : '';
-                    });
-                    _cargarFrases();
-                  },
                 ),
               );
             },

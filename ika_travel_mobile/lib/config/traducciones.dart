@@ -53,8 +53,10 @@ class Traducciones {
       'consulta_prestador': 'Consulta directamente al prestador para conocer el itinerario y salidas del día.',
       'nota_contratacion': 'Ika Travel facilita el acceso directo a prestadores formalizados inscritos en DIRCETUR Ica. La contratación y pago se acuerdan directamente con la agencia sin intermediación de la app.',
       'servicios_formalizados_titulo': 'Servicios Formalizados',
-      'no_prestadores': 'No se encontraron prestadores validados para esta búsqueda.',
-      'seguridad_verificadas': 'Por seguridad, solo se muestran empresas verificadas por DIRCETUR.',
+      'no_prestadores':
+          'No se encontraron prestadores validados para esta búsqueda.',
+      'seguridad_verificadas':
+          'Por seguridad, solo se muestran empresas verificadas por DIRCETUR.',
       'empadronado_validado': '✓ Empadronado y Validado por DIRCETUR',
       'servicios_tours_cert': 'Servicios y Tours Certificados',
       'duracion_aprox': 'Duración aprox:',
@@ -77,11 +79,13 @@ class Traducciones {
       'idioma_preferido': 'Idioma preferido',
       'min_8_caracteres': 'Mínimo 8 caracteres',
       'error_contrasena_vacia_2': 'Ingresa una contraseña',
-      'error_contrasena_corta_8': 'La contraseña debe tener al menos 8 caracteres',
+      'error_contrasena_corta_8':
+          'La contraseña debe tener al menos 8 caracteres',
       'confirmar_contrasena': 'Confirmar contraseña',
       'error_contrasenas_no_coinciden': 'Las contraseñas no coinciden',
       'acepto_terminos': 'Acepto los términos de servicio y políticas de privacidad de Ika Travel.',
-      'debes_aceptar_terminos': 'Debes aceptar los términos y condiciones para continuar',
+      'debes_aceptar_terminos':
+          'Debes aceptar los términos y condiciones para continuar',
       'registrarme': 'Registrarme',
       'ya_tienes_cuenta': '¿Ya tienes una cuenta? ',
       'inicia_sesion_link': 'Inicia sesión',
@@ -95,7 +99,7 @@ class Traducciones {
       'toca_para_hablar': 'Toca el micrófono para hablar',
       'sin_microfono': 'El reconocimiento de voz no está disponible o falta el permiso del micrófono.',
       'escuchar': 'Escuchar',
-      // --- Claves agregadas: faltaban y salían como texto crudo ---
+      // --- Claves agregadas ---
       'de': 'de',
       'temp_de': 'Temperatura de',
       'y_humedad_de': 'y humedad de',
@@ -117,7 +121,8 @@ class Traducciones {
       'recomendacion_ia_default_2': 'las condiciones son propicias para disfrutar de las actividades al aire libre.',
       'dias_disponibles': 'Días disponibles',
       'factores_estadisticos': 'Factores estadísticos',
-      'historial_cambios_clima': 'Historial de cambios climáticos y aptitud de actividades.',
+      'historial_cambios_clima':
+          'Historial de cambios climáticos y aptitud de actividades.',
       'horario_visita_operacion': 'Horario de visita / operación',
       'horarios_atencion': 'Horarios de Atención',
       'inicia_sesion_favoritos': 'Inicia sesión para guardar tus favoritos.',
@@ -265,14 +270,17 @@ class Traducciones {
       'traductor_guia': 'Traductor y Guía Bilingüe',
       'frases_oficiales': 'Frases oficiales',
       'traductor_libre': 'Traductor libre',
+
+      // CATEGORÍAS (LIMPIAS Y CORREGIDAS)
+      'cat_saludos': 'Saludos',
       'cat_emergencia': 'Emergencia',
-      'cat_salud': 'Salud',
       'cat_transporte': 'Transporte',
-      'cat_servicios': 'Servicios',
-      'cat_direcciones': 'Direcciones',
-      'cat_hospedaje': 'Hospedaje',
-      'cat_comida': 'Comida',
-      'cat_cortesia': 'Cortesía',
+      'cat_alimentacion': 'Alimentación',
+      'cat_actividades': 'Actividades',
+      'cat_orientacion': 'Orientación',
+      'cat_salud': 'Salud',
+      'cat_servicios_formales': 'Servicios formales',
+
       'error_traduccion': 'No se pudo traducir. Intente con frases oficiales.',
       'escribe_frase': 'Escribe aquí la consulta o frase...',
       'traducir_ia': 'Traducir con IA',
@@ -392,8 +400,6 @@ class Traducciones {
       'leida': 'Leída',
       'recomendacion_para_actividad': 'Recomendación para esta actividad',
       'ver_recomendacion_actividad': 'Ver recomendaciones para esta actividad',
-
-      // ===== Registro =====
       'subtitulo_registro': 'Regístrate para guardar tus rutas, pronósticos y recibir alertas inteligentes.',
       'ej_juan_perez': 'Ej. Juan Pérez',
       'ingresa_nombre': 'Ingresa tu nombre completo',
@@ -445,11 +451,13 @@ class Traducciones {
       'canales_contacto': 'Official contact channels',
       'llamar': 'Call',
       'precios_referenciales': 'Reference prices',
-      'consulta_prestador': 'Ask the provider directly about the itinerary and daily departures.',
+      'consulta_prestador':
+          'Ask the provider directly about the itinerary and daily departures.',
       'nota_contratacion': 'Ika Travel provides direct access to formal providers registered with DIRCETUR Ica. Booking and payment are arranged directly with the agency without app intermediation.',
       'servicios_formalizados_titulo': 'Formal providers',
       'no_prestadores': 'No validated providers found for this search.',
-      'seguridad_verificadas': 'For safety, only DIRCETUR-verified companies are shown.',
+      'seguridad_verificadas':
+          'For safety, only DIRCETUR-verified companies are shown.',
       'empadronado_validado': '✓ Registered and validated by DIRCETUR',
       'servicios_tours_cert': 'Certified services and tours',
       'duracion_aprox': 'Approx. duration:',
@@ -461,7 +469,8 @@ class Traducciones {
       'horas_u': 'hours',
       'crear_cuenta': 'Create account',
       'unete_ika': 'Join Ika Travel',
-      'registrate_sub': 'Sign up to save your routes, forecasts and get smart alerts.',
+      'registrate_sub':
+          'Sign up to save your routes, forecasts and get smart alerts.',
       'nombre_completo': 'Full name',
       'hint_nombre': 'E.g. John Smith',
       'error_nombre': 'Enter your full name',
@@ -475,8 +484,10 @@ class Traducciones {
       'error_contrasena_corta_8': 'Password must be at least 8 characters',
       'confirmar_contrasena': 'Confirm password',
       'error_contrasenas_no_coinciden': 'Passwords do not match',
-      'acepto_terminos': 'I accept Ika Travel terms of service and privacy policy.',
-      'debes_aceptar_terminos': 'You must accept the terms and conditions to continue',
+      'acepto_terminos':
+          'I accept Ika Travel terms of service and privacy policy.',
+      'debes_aceptar_terminos':
+          'You must accept the terms and conditions to continue',
       'registrarme': 'Sign up',
       'ya_tienes_cuenta': 'Already have an account? ',
       'inicia_sesion_link': 'Sign in',
@@ -490,7 +501,7 @@ class Traducciones {
       'toca_para_hablar': 'Tap the mic to speak',
       'sin_microfono': 'Speech recognition is unavailable or microphone permission is missing.',
       'escuchar': 'Listen',
-      // --- Claves agregadas: faltaban y salían como texto crudo ---
+      // --- Claves agregadas ---
       'de': 'of',
       'temp_de': 'Temperature of',
       'y_humedad_de': 'and humidity of',
@@ -509,10 +520,12 @@ class Traducciones {
       'alerta_climatica': 'Weather alert',
       'recomendacion_ia_titulo': 'Smart recommendation',
       'recomendacion_ia_default_1': 'With a temperature of',
-      'recomendacion_ia_default_2': 'conditions are ideal to enjoy outdoor activities.',
+      'recomendacion_ia_default_2':
+          'conditions are ideal to enjoy outdoor activities.',
       'dias_disponibles': 'Available days',
       'factores_estadisticos': 'Statistical factors',
-      'historial_cambios_clima': 'History of weather changes and activity suitability.',
+      'historial_cambios_clima':
+          'History of weather changes and activity suitability.',
       'horario_visita_operacion': 'Visiting / operating hours',
       'horarios_atencion': 'Opening hours',
       'inicia_sesion_favoritos': 'Sign in to save your favorites.',
@@ -661,14 +674,17 @@ class Traducciones {
       'traductor_guia': 'Translator & Bilingual Guide',
       'frases_oficiales': 'Official phrases',
       'traductor_libre': 'Free translator',
+
+      // CATEGORÍAS (LIMPIAS Y CORREGIDAS)
+      'cat_saludos': 'Greetings',
       'cat_emergencia': 'Emergency',
-      'cat_salud': 'Health',
       'cat_transporte': 'Transport',
-      'cat_servicios': 'Services',
-      'cat_direcciones': 'Directions',
-      'cat_hospedaje': 'Lodging',
-      'cat_comida': 'Food',
-      'cat_cortesia': 'Courtesy',
+      'cat_alimentacion': 'Food',
+      'cat_actividades': 'Activities',
+      'cat_orientacion': 'Directions',
+      'cat_salud': 'Health',
+      'cat_servicios_formales': 'Formal services',
+
       'error_traduccion': 'Could not translate. Try official phrases.',
       'escribe_frase': 'Write your query or phrase here...',
       'traducir_ia': 'Translate with AI',
@@ -785,8 +801,6 @@ class Traducciones {
       'leida': 'Read',
       'recomendacion_para_actividad': 'Recommendation for this activity',
       'ver_recomendacion_actividad': 'See recommendations for this activity',
-
-      // ===== Register =====
       'subtitulo_registro':
           'Sign up to save your routes, forecasts and receive smart alerts.',
       'ej_juan_perez': 'e.g. John Doe',
@@ -817,7 +831,8 @@ class Traducciones {
       'ubicacion_incidente': 'インシデントの場所',
       'rep_canales': '公式の緊急支援窓口',
       'auth_requerida': '認証が必要です',
-      'auth_requerida_msg': 'DIRCETURへの正式な報告や法的裏付けのあるSOS送信には、旅行者アカウントでの認証が必要です。',
+      'auth_requerida_msg':
+          'DIRCETURへの正式な報告や法的裏付けのあるSOS送信には、旅行者アカウントでの認証が必要です。',
       'iniciar_o_registrar': 'ログインまたは登録',
       'rep_hint_titulo': '例：ワカチナでの過剰請求やナンバーなしのバギー',
       'rep_hint_empresa': '例：ラグーン入口の非正規事業者',
@@ -884,7 +899,7 @@ class Traducciones {
       'toca_para_hablar': 'マイクをタップして話す',
       'sin_microfono': '音声認識が利用できないか、マイクの権限がありません。',
       'escuchar': '読み上げ',
-      // --- Claves agregadas: faltaban y salían como texto crudo ---
+      // --- Claves agregadas ---
       'de': '',
       'temp_de': '気温',
       'y_humedad_de': '、湿度',
@@ -1049,14 +1064,17 @@ class Traducciones {
       'traductor_guia': '翻訳者とバイリンガルガイド',
       'frases_oficiales': '公式フレーズ',
       'traductor_libre': '無料翻訳者',
+
+      // CATEGORÍAS (LIMPIAS Y CORREGIDAS)
+      'cat_saludos': '挨拶',
       'cat_emergencia': '緊急',
-      'cat_salud': '健康',
       'cat_transporte': '交通',
-      'cat_servicios': 'サービス',
-      'cat_direcciones': '道順',
-      'cat_hospedaje': '宿泊',
-      'cat_comida': '食べ物',
-      'cat_cortesia': '礼儀',
+      'cat_alimentacion': '食べ物',
+      'cat_actividades': 'アクティビティ',
+      'cat_orientacion': '道順',
+      'cat_salud': '健康',
+      'cat_servicios_formales': '正式なサービス',
+
       'error_traduccion': '翻訳できませんでした。公式フレーズをお試しください。',
       'escribe_frase': 'ここに質問やフレーズを入力してください...',
       'traducir_ia': 'AIで翻訳する',
@@ -1172,8 +1190,6 @@ class Traducciones {
       'leida': '既読',
       'recomendacion_para_actividad': 'このアクティビティのおすすめ',
       'ver_recomendacion_actividad': 'このアクティビティのおすすめを見る',
-
-      // ===== 登録 =====
       'subtitulo_registro': '登録してルートや予報を保存し、スマートアラートを受け取りましょう。',
       'ej_juan_perez': '例：山田 太郎',
       'ingresa_nombre': '氏名を入力してください',
