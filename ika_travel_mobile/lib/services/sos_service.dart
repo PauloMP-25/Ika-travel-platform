@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
+import 'auth_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
@@ -395,11 +396,68 @@ class SosService {
     }
   }
 
-  /// Envía la alerta automática multicanal (SMS Silencioso Directo + WhatsApp)
+  /// Registra el reporte de emergencia y sus notificaciones en la base de datos del backend (Corrección N° 7 / RF-05)
+  Future<bool> registrarEmergenciaEnBackend({
+    required double latitud,
+    required double longitud,
+    required String descripcion,
+    ContactoEmergencia? contacto,
+  }) async {
+    final usuario = AuthService().usuarioActual;
+    final token = usuario?.token ?? '';
+    final url = Uri.parse(ApiConfig.emergencySos);
+
+    final bodyMap = <String, dynamic>{
+      'latitude': latitud,
+      'longitude': longitud,
+      'description': descripcion.trim(),
+      if (contacto != null) ...{
+        'contact_name': contacto.nombre.trim(),
+        'contact_phone': contacto.telefono.trim(),
+      },
+    };
+
+    final headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'ngrok-skip-browser-warning': 'true',
+      if (token.isNotEmpty) 'Authorization': 'Bearer $token',
+      'Idempotency-Key': 'sos_${DateTime.now().millisecondsSinceEpoch}_${usuario?.id ?? "anon"}',
+    };
+
+    try {
+      final response = await http
+          .post(url, headers: headers, body: jsonEncode(bodyMap))
+          .timeout(const Duration(seconds: 8));
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        debugPrint('[SosService] Emergencia y notificaciones guardadas en BD con éxito (HTTP ${response.statusCode})');
+        return true;
+      } else {
+        debugPrint('[SosService] Error al guardar emergencia en backend (HTTP ${response.statusCode}): ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('[SosService] Excepción al registrar emergencia en backend: $e');
+      return false;
+    }
+  }
+
+  /// Envía la alerta automática multicanal (SMS Silencioso Directo + WhatsApp + Backend / BD)
   Future<bool> enviarAlertaAutomatica({
     required String telefono,
     required String mensaje,
+    ContactoEmergencia? contacto,
+    String? descripcionAccidente,
   }) async {
+    // 0. Registrar reporte SOS y notificaciones en la BD PostgreSQL (Corrección N° 7)
+    registrarEmergenciaEnBackend(
+      latitud: _latitud,
+      longitud: _longitud,
+      descripcion: descripcionAccidente ?? mensaje,
+      contacto: contacto ?? contactoNotifier.value,
+    );
+
     // 1. Envío de SMS silencioso nativo (sin abrir ventanas ni clics)
     final okSms = await enviarSmsSilenciosoDirecto(telefono: telefono, mensaje: mensaje);
     // 2. Breve pausa para asegurar el despacho
@@ -421,6 +479,7 @@ class SosService {
   Future<ResultadoRegistroSos> registrarAlertaSos({
     String? mensajeAlerta,
     String? motivo,
+    ContactoEmergencia? contacto,
   }) async {
     final usuario = AuthService().usuarioActual;
     if (usuario == null || usuario.esInvitado) {
@@ -439,12 +498,17 @@ class SosService {
     final textoAlerta = (motivo != null && motivo.trim().isNotEmpty)
         ? motivo.trim()
         : (mensajeAlerta ?? '').trim();
+    final contactoActual = contacto ?? contactoNotifier.value;
     final body = <String, dynamic>{
       'latitude': _latitud,
       'longitude': _longitud,
       if (textoAlerta.isNotEmpty)
         'description':
             textoAlerta.length > 2000 ? textoAlerta.substring(0, 2000) : textoAlerta,
+      if (contactoActual != null) ...{
+        'contact_name': contactoActual.nombre.trim(),
+        'contact_phone': contactoActual.telefono.trim(),
+      },
     };
 
     try {

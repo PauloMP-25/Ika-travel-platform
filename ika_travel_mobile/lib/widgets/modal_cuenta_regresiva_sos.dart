@@ -90,6 +90,14 @@ class _ModalCuentaRegresivaSosState extends State<ModalCuentaRegresivaSos>
     Navigator.of(context).pop();
     widget.onDespachado();
 
+    // 0. Registrar reporte de emergencia y notificaciones en backend (Corrección N° 7)
+    _sosService.registrarEmergenciaEnBackend(
+      latitud: _sosService.latitudActual,
+      longitud: _sosService.longitudActual,
+      descripcion: widget.mensaje,
+      contacto: widget.contacto,
+    );
+
     // 1. Envío silencioso nativo de SMS por red celular
     await _sosService.enviarSmsSilenciosoDirecto(
       telefono: widget.contacto.telefono,

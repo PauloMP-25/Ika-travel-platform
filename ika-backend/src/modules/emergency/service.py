@@ -7,6 +7,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from src.modules.emergency import tasks
 from src.modules.emergency.exceptions import (
@@ -59,9 +60,9 @@ def _validate_location(data: SOSCreate) -> tuple[float, float]:
 
 
 def _build_notifications(
-    user: User, report: SOSReport
+    user: User, report: SOSReport, contact_phone: str | None = None
 ) -> list[EmergencyNotification]:
-    """Crea las notificaciones `queued` para los canales disponibles del usuario."""
+    """Crea las notificaciones `queued` para los canales disponibles del usuario y su contacto."""
     notifications = [
         EmergencyNotification(
             sos_report_id=report.id,
@@ -85,6 +86,15 @@ def _build_notifications(
                 status=NotificationStatus.QUEUED,
             )
         )
+    if contact_phone and contact_phone.strip() and contact_phone.strip() != user.phone:
+        notifications.append(
+            EmergencyNotification(
+                sos_report_id=report.id,
+                channel=NotificationChannel.SMS,
+                recipient=contact_phone.strip(),
+                status=NotificationStatus.QUEUED,
+            )
+        )
     return notifications
 
 
@@ -102,12 +112,14 @@ def _dispatch_notifications(report_id: UUID) -> None:
 async def _buscar_sos_por_clave(
     db: AsyncSession, user_id: UUID, clave: str
 ) -> SOSReport | None:
-    """Consulta por la clave de idempotencia **dentro del ámbito del usuario**."""
+    """Consulta por la clave de idempotencia **dentro del ámbito del usuario** con sus notificaciones."""
     resultado = await db.execute(
-        select(SOSReport).where(
+        select(SOSReport)
+        .where(
             SOSReport.user_id == user_id,
             SOSReport.idempotency_key == clave,
         )
+        .options(selectinload(SOSReport.notifications))
     )
     return resultado.scalars().first()
 
@@ -159,7 +171,7 @@ async def crear_reporte_sos(
         # caso típico de dos peticiones simultáneas con la misma clave.
         await db.flush()  # obtiene el id antes de crear las notificaciones
 
-        for notification in _build_notifications(user, report):
+        for notification in _build_notifications(user, report, contact_phone=data.contact_phone):
             db.add(notification)
 
         await db.commit()
@@ -173,7 +185,13 @@ async def crear_reporte_sos(
                 return _validar_repeticion_sos(previo, huella), True
         raise
 
-    await db.refresh(report)
+    # Cargar el reporte con sus notificaciones recién persistidas en la BD
+    resultado = await db.execute(
+        select(SOSReport)
+        .where(SOSReport.id == report.id)
+        .options(selectinload(SOSReport.notifications))
+    )
+    report = resultado.scalar_one()
 
     # El despacho se encola solo en la creación real, nunca en un replay.
     _dispatch_notifications(report.id)
@@ -214,6 +232,23 @@ async def get_report_for_user(
     if report.user_id != user.id:
         raise UnauthorizedIncidentAccessException()
     return report
+
+
+async def get_sos_notifications(
+    db: AsyncSession, report_id: UUID, user: User
+) -> list[EmergencyNotification]:
+    """Devuelve la lista de notificaciones generadas para un reporte SOS del usuario (Corrección N° 7)."""
+    report = await db.get(SOSReport, report_id)
+    if report is None:
+        raise SOSReportNotFoundException()
+    if report.user_id != user.id:
+        raise UnauthorizedIncidentAccessException()
+    resultado = await db.execute(
+        select(EmergencyNotification)
+        .where(EmergencyNotification.sos_report_id == report_id)
+        .order_by(EmergencyNotification.channel)
+    )
+    return list(resultado.scalars().all())
 
 
 async def resolve_sos_report(

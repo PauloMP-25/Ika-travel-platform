@@ -127,6 +127,44 @@ def test_create_sos_queues_notifications(
     )
 
 
+def test_create_sos_with_contact_phone_queues_contact_sms(
+    client: TestClient, db_session: AsyncSession
+) -> None:
+    """Corrección N° 7: El contacto de emergencia recibe notificación SMS guardada en BD."""
+    _sign_up(client, "contacto-sos@ika.pe")
+    headers = _headers(client, "contacto-sos@ika.pe")
+
+    res = client.post(
+        f"{API}/emergency/sos",
+        json={
+            "latitude": -14.089,
+            "longitude": -75.697,
+            "description": "Accidente vehicular en Panamericana Sur",
+            "contact_name": "Carlos Emergencia",
+            "contact_phone": "+51956123456",
+        },
+        headers=headers,
+    )
+    assert res.status_code == 201
+    data = res.json()
+    assert "notifications" in data
+    # push + email + sms_contacto
+    assert len(data["notifications"]) == 3
+    destinatarios = [n["recipient"] for n in data["notifications"]]
+    assert "+51956123456" in destinatarios
+    assert "contacto-sos@ika.pe" in destinatarios
+
+    # Probar endpoint GET /emergency/sos/{id}/notifications
+    report_id = data["id"]
+    notif_res = client.get(
+        f"{API}/emergency/sos/{report_id}/notifications", headers=headers
+    )
+    assert notif_res.status_code == 200
+    notifs = notif_res.json()
+    assert len(notifs) == 3
+    assert any(n["recipient"] == "+51956123456" and n["channel"] == "sms" for n in notifs)
+
+
 def test_incidents_history_only_shows_own_reports(
     client: TestClient,
 ) -> None:

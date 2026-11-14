@@ -627,6 +627,8 @@ class _PantallaSosState extends State<PantallaSos> {
                       await _sosService.enviarAlertaAutomatica(
                         telefono: contacto.telefono,
                         mensaje: mensaje,
+                        contacto: contacto,
+                        descripcionAccidente: _motivoDetalleCtrl.text,
                       );
                     },
                   ),
@@ -648,7 +650,7 @@ class _PantallaSosState extends State<PantallaSos> {
                         label: const Text('WhatsApp', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                         onPressed: () async {
                           Navigator.pop(ctx);
-                          // Corrección N.º 10: registrar también el despacho manual.
+                          // Corrección N.º 10 y N.º 7: registrar también el despacho manual en BD.
                           _registrarAlertaEnBackend();
                           await _sosService.abrirWhatsApp(
                             telefono: contacto.telefono,
@@ -670,7 +672,7 @@ class _PantallaSosState extends State<PantallaSos> {
                         label: const Text('SMS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                         onPressed: () async {
                           Navigator.pop(ctx);
-                          // Corrección N.º 10: registrar también el despacho manual.
+                          // Corrección N.º 10 y N.º 7: registrar también el despacho manual en BD.
                           _registrarAlertaEnBackend();
                           await _sosService.abrirSms(
                             telefono: contacto.telefono,
