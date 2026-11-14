@@ -80,7 +80,7 @@ Documento de cambios del módulo RF-03. Se actualiza **al final de cada etapa**.
 
 | Archivo | Contenido |
 |---|---|
-| `alembic/versions/e5c1a7b93f28_add_password_reset_tokens.py` | Migración reversible encadenada a `d4af4f66c370` (head nuevo) |
+| `alembic/versions/e5c1a7b93f28_add_password_reset_tokens.py` | Migración reversible encadenada a `d4af4f66c370` (head en esa fecha; luego `b7c9e1f4a2d6`, Corrección N.º 14) |
 
 ### Archivos modificados
 

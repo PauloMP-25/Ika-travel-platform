@@ -60,6 +60,32 @@ def _enum_values(enum_cls: enum.EnumMeta) -> list[str]:
     return [member.value for member in enum_cls]
 
 
+# UUIDs fijos de los roles semilla (Corrección N.º 14). Son deterministas
+# para poder asignarlos sin consultar la tabla en cada alta de usuario y
+# para que la migración, el modelo y los tests usen exactamente los mismos.
+ROLE_TOURIST_ID = UUID("11111111-1111-4111-8111-111111111111")
+ROLE_DIRCETUR_ADMIN_ID = UUID("22222222-2222-4222-8222-222222222222")
+
+
+class Role(Base):
+    """Catálogo de roles de negocio (`roles`, Corrección N.º 14).
+
+    Cada fila es un actor del informe del proyecto. `users.role_id` es la
+    llave foránea hacia esta tabla (fuente de verdad de los permisos) y el
+    enum `users.role` queda como espejo de compatibilidad para la API.
+    """
+
+    __tablename__ = "roles"
+    __table_args__ = (UniqueConstraint("name", name="uq_roles_name"),)
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    name: Mapped[str] = mapped_column(String(50), nullable=False)
+    description: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
 class User(Base):
     """Cuenta de usuario de la plataforma."""
 
@@ -88,11 +114,23 @@ class User(Base):
         default=AuthProvider.EMAIL,
     )
     provider_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # Espejo de compatibilidad (API/cliente): la fuente de verdad de los
+    # permisos es `role_id` -> `roles.name` (Corrección N.º 14).
     role: Mapped[UserRole] = mapped_column(
         Enum(UserRole, name="user_role", values_callable=_enum_values),
         nullable=False,
         default=UserRole.TOURIST,
         server_default="tourist",
+    )
+    # Llave foránea hacia el catálogo de roles de negocio. El `server_default`
+    # apunta al UUID fijo del rol `tourist` sembrado en la migración, de modo
+    # que también los INSERT crudos (scripts) cumplan la FK.
+    role_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("roles.id"),
+        nullable=False,
+        default=ROLE_TOURIST_ID,
+        server_default=text("'11111111-1111-4111-8111-111111111111'"),
     )
     preferred_language: Mapped[str] = mapped_column(
         String(5), nullable=False, default="es", server_default="es"

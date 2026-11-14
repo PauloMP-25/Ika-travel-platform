@@ -27,7 +27,7 @@ from src.modules.users.dependencies import (
     CurrentUser,
     DbSession,
 )
-from src.modules.users.models import UserRole
+from src.modules.users.models import ROLE_DIRCETUR_ADMIN_ID
 
 reviews_router = APIRouter()
 
@@ -124,7 +124,7 @@ async def delete_review(
     db: DbSession,
 ) -> None:
     """Elimina la reseña y las imágenes asociadas."""
-    is_admin = current_user.role == UserRole.DIRCETUR_ADMIN
+    is_admin = current_user.role_id == ROLE_DIRCETUR_ADMIN_ID
     await service.delete_review(
         db, review_id, current_user.id, is_admin=is_admin
     )

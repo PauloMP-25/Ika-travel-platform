@@ -115,6 +115,30 @@ class _PantallaSosState extends State<PantallaSos> {
     return true;
   }
 
+  /// Registra la alerta SOS en el backend (`sos_reports`) sin bloquear el
+  /// despacho por SMS/WhatsApp (Corrección N.º 10).
+  ///
+  /// Devuelve el resultado para que la UI pueda informar éxito o error.
+  Future<ResultadoRegistroSos> _registrarAlertaEnBackend(
+      {String? motivo}) async {
+    final resultado = await _sosService.registrarAlertaSos(
+      mensajeAlerta: _obtenerMensajeSos(esPrueba: false),
+      motivo: motivo ??
+          '$_motivoSeleccionado${_motivoDetalleCtrl.text.trim().isNotEmpty ? ' (${_motivoDetalleCtrl.text.trim()})' : ''}',
+    );
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor:
+              resultado.exitoso ? const Color(0xFF2E7D32) : const Color(0xFFE65100),
+          content: Text(resultado.mensaje),
+        ),
+      );
+    }
+    return resultado;
+  }
+
   Future<void> _iniciarCuentaRegresivaSos({bool esModoChoque = false}) async {
     if (!esModoChoque && !_verificarAutenticacionOpcion()) return;
     final contacto = _sosService.contactoNotifier.value;
@@ -144,6 +168,13 @@ class _PantallaSosState extends State<PantallaSos> {
         );
       },
       onDespachado: () {
+        // Corrección N.º 10: persistir la alerta en `sos_reports` (fire-and-forget
+        // con feedback: el despacho por SMS/WhatsApp ya está en marcha).
+        _registrarAlertaEnBackend(
+          motivo: esModoChoque
+              ? 'Posible impacto vehicular detectado (modo choque): $_motivoSeleccionado'
+              : null,
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             backgroundColor: Color(0xFFD32F2F),
@@ -593,6 +624,8 @@ class _PantallaSosState extends State<PantallaSos> {
                     onPressed: () async {
                       Navigator.pop(ctx);
                       Clipboard.setData(ClipboardData(text: mensaje));
+                      // Corrección N.º 10: registrar la alerta en `sos_reports`.
+                      _registrarAlertaEnBackend();
                       await _sosService.enviarAlertaAutomatica(
                         telefono: contacto.telefono,
                         mensaje: mensaje,
@@ -617,6 +650,8 @@ class _PantallaSosState extends State<PantallaSos> {
                         label: const Text('WhatsApp', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                         onPressed: () async {
                           Navigator.pop(ctx);
+                          // Corrección N.º 10: registrar también el despacho manual.
+                          _registrarAlertaEnBackend();
                           await _sosService.abrirWhatsApp(
                             telefono: contacto.telefono,
                             mensaje: mensaje,
@@ -637,6 +672,8 @@ class _PantallaSosState extends State<PantallaSos> {
                         label: const Text('SMS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                         onPressed: () async {
                           Navigator.pop(ctx);
+                          // Corrección N.º 10: registrar también el despacho manual.
+                          _registrarAlertaEnBackend();
                           await _sosService.abrirSms(
                             telefono: contacto.telefono,
                             mensaje: mensaje,

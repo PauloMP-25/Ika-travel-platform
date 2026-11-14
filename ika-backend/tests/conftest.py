@@ -18,7 +18,7 @@ from uuid import UUID
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import select
+from sqlalchemy import insert, select
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -39,6 +39,12 @@ import src.modules.users.models  # noqa: F401
 import src.modules.weather.models  # noqa: F401
 import src.modules.reviews.models  # noqa: F401
 import src.modules.analytics.models  # noqa: F401
+
+from src.modules.users.models import (  # noqa: E402
+    ROLE_DIRCETUR_ADMIN_ID,
+    ROLE_TOURIST_ID,
+    Role,
+)
 
 # Misma URL de la BD de trabajo, pero con el esquema de pruebas.
 TEST_DATABASE_URL = os.getenv(
@@ -124,6 +130,34 @@ def _clean_database() -> None:
         async with TEST_ENGINE.begin() as conn:
             await conn.run_sync(Base.metadata.drop_all)
             await conn.run_sync(Base.metadata.create_all)
+            # Corrección N.º 14: los tests usan `create_all` (no Alembic), así
+            # que el seed de `roles` se hace aquí para que la FK `users.role_id`
+            # tenga a qué apuntar.
+            await conn.execute(
+                insert(Role).values(
+                    [
+                        {
+                            "id": ROLE_TOURIST_ID,
+                            "name": "tourist",
+                            "description": (
+                                "Turista: usuario final que explora la "
+                                "plataforma, guarda favoritos, emite reseñas "
+                                "y usa el botón SOS."
+                            ),
+                        },
+                        {
+                            "id": ROLE_DIRCETUR_ADMIN_ID,
+                            "name": "dircetur_admin",
+                            "description": (
+                                "Administrador DIRCETUR Ica: personal "
+                                "autorizado para fiscalizar reportes de "
+                                "informalidad, gestionar reseñas y consultar "
+                                "analítica."
+                            ),
+                        },
+                    ]
+                )
+            )
 
     run(_recreate())
 

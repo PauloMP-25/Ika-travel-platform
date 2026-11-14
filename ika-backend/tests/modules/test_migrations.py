@@ -26,14 +26,18 @@ def test_hay_un_solo_head_de_alembic() -> None:
     )
 
 
-def test_la_ultima_revision_es_la_del_rf_03() -> None:
-    """La migración RF-03 (tokens de recuperación) cierra la cadena actual."""
+def test_la_ultima_revision_es_la_de_la_correccion_14() -> None:
+    """La migración Corrección N.º 14 (tabla `roles`) cierra la cadena actual.
+
+    Antes esta prueba fijaba el head de RF-03 (`e5c1a7b93f28`); la cadena
+    avanzó con `b7c9e1f4a2d6` (tabla `roles` + FK `users.role_id`).
+    """
     config = Config(str(RAIZ_BACKEND / "alembic.ini"))
     scripts = ScriptDirectory.from_config(config)
 
     head = scripts.get_current_head()
 
-    assert head == "e5c1a7b93f28", (
+    assert head == "b7c9e1f4a2d6", (
         f"El head cambió ({head}); actualiza este test y documenta la nueva "
-        "revisión en docs/rf-03_recuperacion_cuenta.md."
+        "revisión en docs/modelo_datos.md."
     )

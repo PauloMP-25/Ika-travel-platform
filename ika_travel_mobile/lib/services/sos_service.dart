@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
@@ -5,7 +6,23 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'auth_service.dart';
 import 'persistencia_service.dart';
+
+/// Resultado del registro de una alerta SOS en el backend (`sos_reports`).
+class ResultadoRegistroSos {
+  final bool exitoso;
+  final String mensaje;
+  final String? reportId;
+  final String? status;
+
+  const ResultadoRegistroSos({
+    required this.exitoso,
+    required this.mensaje,
+    this.reportId,
+    this.status,
+  });
+}
 
 class ContactoEmergencia {
   final String nombre;
@@ -390,6 +407,108 @@ class SosService {
     // 3. Abrir WhatsApp directamente con el texto y contacto listo
     final okWsp = await abrirWhatsApp(telefono: telefono, mensaje: mensaje);
     return okSms || okWsp;
+  }
+
+  /// Registra la alerta/alerta SOS en el backend (`POST /api/v1/emergency/sos`)
+  /// para persistirla en la tabla `sos_reports` (Corrección N.º 10).
+  ///
+  /// - Requiere usuario autenticado (JWT); devuelve `exitoso=false` como invitado.
+  /// - Envía coordenadas GPS reales (o las últimas conocidas) y el mensaje de
+  ///   alerta como `description`.
+  /// - Usa `Idempotency-Key` para no duplicar reportes si el usuario reintentas.
+  /// - Nunca lanza excepciones: en una emergencia el fallo de red no debe
+  ///   romper el flujo de despacho por SMS/WhatsApp.
+  Future<ResultadoRegistroSos> registrarAlertaSos({
+    String? mensajeAlerta,
+    String? motivo,
+  }) async {
+    final usuario = AuthService().usuarioActual;
+    if (usuario == null || usuario.esInvitado) {
+      return const ResultadoRegistroSos(
+        exitoso: false,
+        mensaje: 'Debes iniciar sesión para registrar la alerta SOS en el sistema.',
+      );
+    }
+
+    // Asegurar coordenadas lo más recientes posible antes de reportar.
+    if (permisoUbicacionConcedido.value) {
+      await actualizarUbicacionReal();
+    }
+
+    final token = usuario.token ?? '';
+    final textoAlerta = (motivo != null && motivo.trim().isNotEmpty)
+        ? motivo.trim()
+        : (mensajeAlerta ?? '').trim();
+    final body = <String, dynamic>{
+      'latitude': _latitud,
+      'longitude': _longitud,
+      if (textoAlerta.isNotEmpty)
+        'description':
+            textoAlerta.length > 2000 ? textoAlerta.substring(0, 2000) : textoAlerta,
+    };
+
+    try {
+      final url = Uri.parse(ApiConfig.emergencySos);
+      // La clave debe cumplir el patrón del backend:^[A-Za-z0-9_-]{8,64}$.
+      var claveIdempotencia =
+          'sos_${DateTime.now().millisecondsSinceEpoch}_${usuario.id}';
+      if (claveIdempotencia.length > 64) {
+        claveIdempotencia = claveIdempotencia.substring(0, 64);
+      }
+      final response = await http
+          .post(
+            url,
+            headers: {
+              'Content-Type': 'application/json',
+              ...ApiConfig.defaultHeaders,
+              if (token.isNotEmpty) 'Authorization': 'Bearer $token',
+              'Idempotency-Key': claveIdempotencia,
+            },
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 8));
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final data =
+            jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        debugPrint('[SosService] Alerta SOS registrada: ${data['id']}');
+        return ResultadoRegistroSos(
+          exitoso: true,
+          mensaje: 'Alerta SOS registrada en el sistema (estado: ${data['status'] ?? 'pending'}).',
+          reportId: data['id']?.toString(),
+          status: data['status']?.toString(),
+        );
+      }
+      if (response.statusCode == 401) {
+        return const ResultadoRegistroSos(
+          exitoso: false,
+          mensaje: 'Tu sesión ha expirado: la alerta no se registró en el sistema.',
+        );
+      }
+      if (response.statusCode == 400 || response.statusCode == 422) {
+        return const ResultadoRegistroSos(
+          exitoso: false,
+          mensaje: 'Sin coordenadas GPS válidas: la alerta no se registró (RN-04).',
+        );
+      }
+      debugPrint('[SosService] Error SOS ${response.statusCode}: ${response.body}');
+      return ResultadoRegistroSos(
+        exitoso: false,
+        mensaje: 'El servidor no registró la alerta (código ${response.statusCode}).',
+      );
+    } on TimeoutException catch (e) {
+      debugPrint('[SosService] Timeout registrando alerta SOS: $e');
+      return const ResultadoRegistroSos(
+        exitoso: false,
+        mensaje: 'Sin conexión con la central: la alerta no se registró en el sistema.',
+      );
+    } catch (e) {
+      debugPrint('[SosService] Error de red registrando alerta SOS: $e');
+      return const ResultadoRegistroSos(
+        exitoso: false,
+        mensaje: 'No hubo conexión con la central de emergencias ($e).',
+      );
+    }
   }
 }
 
