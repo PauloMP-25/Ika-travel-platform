@@ -82,12 +82,15 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
           debugPrint('🎙️ [VOZ] ERROR: ${error.errorMsg}');
           if (mounted) {
             setState(() => _escuchando = false);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Error de voz: ${error.errorMsg}'),
-                backgroundColor: Colors.red,
-              ),
-            );
+            // Ignoramos el error de timeout para que no muestre alertas rojas molestas
+            if (error.errorMsg != 'error_speech_timeout') {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Error de voz: ${error.errorMsg}'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
           }
         },
       );
@@ -126,19 +129,24 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
 
     debugPrint('🎙️ [VOZ] Iniciando escucha...');
     _textoController.clear();
+    setState(() {
+      _traduccionResultado = ''; // Limpiamos resultado anterior
+      _errorTraduccion = null;
+    });
 
-    // Usamos español de Perú (o inglés si está en inglés)
-    final localeId = _sourceLang == 'es' ? 'es_PE' : 'en_US';
+    // CAMBIO CLAVE: Usamos es_ES (España) que siempre está en Android,
+    // si no, usamos es_US (Latinoamérica) o en_US.
+    final localeId = _sourceLang == 'es' ? 'es_ES' : 'en_US';
     debugPrint('🎙️ [VOZ] Idioma de dictado configurado: $localeId');
 
     try {
       await _speech.listen(
         onResult: _onSpeechResult,
         localeId: localeId,
-        listenFor: const Duration(seconds: 30),
+        listenFor: const Duration(minutes: 5), // Escucha hasta 5 minutos máximo
         pauseFor: const Duration(
-          seconds: 5,
-        ), // 5 segundos para hacer pausas al hablar
+          seconds: 15,
+        ), // Espera 15 segundos de silencio antes de cortarse
         partialResults: true,
         cancelOnError: false, // NO cancelar al primer error
         listenMode: stt.ListenMode.dictation, // Modo dictado (más flexible)
@@ -191,9 +199,16 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
       final tmp = _sourceLang;
       _sourceLang = _targetLang;
       _targetLang = tmp;
-      _traduccionResultado = '';
       _errorTraduccion = null;
     });
+
+    // Si hay texto escrito, traducimos automáticamente
+    if (_textoController.text.trim().isNotEmpty) {
+      debugPrint(
+        '🔄 [IA] Idioma intercambiado. Traduciendo texto existente...',
+      );
+      _realizarTraduccion();
+    }
   }
 
   Future<void> _realizarTraduccion() async {
