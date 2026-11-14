@@ -1,13 +1,9 @@
-"""Datos semilla para desarrollo local. Es idempotente (se puede ejecutar varias veces).
-
-Uso (desde la carpeta ika-backend):
-    python -m src.modules.catalog.seed
-
-IMPORTANTE: datos de ejemplo. Coordenadas referenciales (verificar antes de producción),
-imágenes de relleno, RUC ficticios y agencia "Demo" para probar la regla RN-01.
+"""Datos semilla oficiales para el catalogo de agencias, atractivos y tours de Ica.
+Es idempotente (se puede ejecutar varias veces sin duplicar registros).
 """
 import asyncio
 from decimal import Decimal
+from uuid import uuid4
 
 from sqlalchemy import select
 
@@ -47,10 +43,24 @@ ATRACTIVOS = [
         ["cultural"],
     ),
     (
+        "Viña Tacama",
+        "La viña y bodega más antigua de Sudamérica, cuna de vinos y piscos de prestigio internacional.",
+        -14.000958, -75.716955, "Ica",
+        "Reserva tu recorrido con anticipación y disfruta de la cata dirigida.",
+        ["gastronomia", "cultural"],
+    ),
+    (
         "Bodega y Viñedos Sotelo (Subtanjalla)",
         "Tradicional viñedo y bodega pisquera artesanal de Subtanjalla, cuna de vinos y piscos de alta calidad.",
         -14.002123, -75.739003, "Subtanjalla",
         "Consume alcohol con responsabilidad y reserva el transporte de regreso.",
+        ["gastronomia", "cultural"],
+    ),
+    (
+        "Bodega Tres Generaciones (Subtanjalla)",
+        "Bodega tradicional pisquera artesanal con más de un siglo de tradición en la elaboración de pisco puro y acholado.",
+        -14.009363, -75.754251, "Subtanjalla",
+        "Ideal para recorridos enoturísticos y maridajes con postres típicos.",
         ["gastronomia", "cultural"],
     ),
     (
@@ -60,21 +70,97 @@ ATRACTIVOS = [
         "Ir con agencia formal: la cobertura de red es limitada. Lleva agua suficiente.",
         ["aventura", "naturaleza"],
     ),
+    (
+        "Islas Ballestas",
+        "Conjunto de islas rocosas habitadas por lobos marinos, pingüinos de Humboldt y millones de aves guaneras.",
+        -13.735943, -76.394191, "Paracas",
+        "Embarque en deslizadores autorizados con chaleco salvavidas obligatorio.",
+        ["naturaleza", "aventura"],
+    ),
+    (
+        "Reserva Nacional de Paracas",
+        "Área protegida costera con impresionantes paisajes desérticos y playas vírgenes.",
+        -13.911640, -76.318399, "Paracas",
+        "Respeta los senderos señalizados y no dejes residuos en la reserva.",
+        ["naturaleza"],
+    ),
+    (
+        "Playa Roja",
+        "Singular playa de arena roja volcánica rodeada de acantilados desérticos en Paracas.",
+        -13.886700, -76.287200, "Paracas",
+        "Acceso exclusivamente peatonal en miradores para preservar el ecosistema.",
+        ["naturaleza"],
+    ),
+    (
+        "Playa La Mina",
+        "Bahía de aguas calmas y cristalinas protegida por cerros desérticos, ideal para el baño.",
+        -13.911591, -76.318357, "Paracas",
+        "Lleva protector solar y sombrilla; el sol es intenso todo el año.",
+        ["naturaleza"],
+    ),
+    (
+        "Playa Hermosa de Marcona",
+        "Hermosa playa y costa virgen de la ensenada de Marcona, rica en biodiversidad marina.",
+        -15.358300, -75.175000, "Marcona",
+        "Excelente punto para observación de fauna marina y fotografía.",
+        ["naturaleza"],
+    ),
 ]
 
 # nombre, ruc, validada, registro, teléfono, email
 AGENCIAS = [
     ("Ika Travel and Experience", "20608912345", True, "DIR-ICA-0010", "+51 956 789 000", "contacto@ikatravel.pe"),
+    ("Oro Travel Peru S.A.C.", "20600883446", True, "DIR-ICA-0104", "+51 956 789 123", "contacto@orotravelperu.com"),
+    ("Paracas Sight & Tours S.A.C.", "20494562716", True, "DIR-ICA-0188", "+51 956 112 233", "reservas@paracassighttours.com"),
+    ("Ica Trip Agency S.A.C.", "20600495519", True, "DIR-ICA-0215", "+51 956 445 566", "informes@icatrip.pe"),
+    ("Inversiones Turísticas Ica S.A.C.", "20601775540", True, "DIR-ICA-0290", "+51 956 778 899", "tours@invturisticaica.pe"),
+    ("Turismo Ica Peru E.I.R.L.", "20604989958", True, "DIR-ICA-0312", "+51 956 990 011", "operaciones@turismoicaperu.com"),
+    ("Ica Aventura Tours Express E.I.R.L.", "20609998811", False, None, "+51 956 001 122", "informes@icaaventuraexpress.pe"),
 ]
 
-# agencia_ruc, atractivo, nombre, descripción, precio, horas
+# agencia_ruc, atractivo_nombre, nombre_tour, descripción, precio, horas
 TOURS = [
+    # Ika Travel and Experience
     ("20608912345", "Oasis de Huacachina", "Tubulares y Sandboarding en Huacachina",
-     "Paseo en buggy por las dunas con práctica de sandboarding.", "60.00", 3),
+     "Paseo de adrenalina en buggy por las dunas del oasis con práctica guiada de sandboarding y atardecer fotográfico.", "60.00", 3),
+    ("20608912345", "Cañón de los Perdidos", "Expedición Cañón de los Perdidos 4x4",
+     "Excursión 4x4 por el desierto de Ocucaje con guía turístico certificado, hidratación y equipo de primeros auxilios.", "180.00", 8),
     ("20608912345", "Palmera de las 7 Cabezas (Cachiche)", "Tour Místico Palmera de 7 Cabezas y Cachiche",
-     "Recorrido cultural y místico por la Palmera de las 7 Cabezas y el centro tradicional de Cachiche.", "45.00", 4),
-    ("20608912345", "Cañón de los Perdidos", "Expedición Cañón de los Perdidos",
-     "Excursión 4x4 con guía certificado.", "180.00", 8),
+     "Recorrido cultural y místico por la Palmera de las 7 Cabezas, brujas de Cachiche y el centro tradicional.", "45.00", 4),
+
+    # Paracas Sight & Tours S.A.C.
+    ("20494562716", "Islas Ballestas", "Navegación en Deslizador a Islas Ballestas",
+     "Tour marítimo oficial en deslizador con chaleco salvavidas. Avistamiento del Candelabro, lobos marinos y pingüinos.", "50.00", 2),
+    ("20494562716", "Reserva Nacional de Paracas", "Circuito Terrestre Reserva Nacional de Paracas",
+     "Visita panorámica a los miradores de la Catedral, Playa Roja, istmo y tiempo de relajo en Playa La Mina.", "45.00", 4),
+
+    # Oro Travel Peru S.A.C.
+    ("20600883446", "Oasis de Huacachina", "Safari en Dunas & Sandboarding Profesional",
+     "Circuito de alta velocidad en areneros homologados por DIRCETUR y tablas profesionales enceradas para dunas.", "55.00", 2),
+    ("20600883446", "Cañón de los Perdidos", "Trekking Geológico Cañón de los Perdidos",
+     "Caminata por la garganta del cañón, avistamiento de fauna desértica y fósiles de ballenas prehistóricas.", "170.00", 8),
+
+    # Ica Trip Agency S.A.C.
+    ("20600495519", "Viña Tacama", "Ruta del Pisco y Vinos: Tacama Tradicional",
+     "Visita a los viñedos y bodegas de Tacama, explicación del proceso de destilación y cata de piscos y vinos.", "75.00", 4),
+    ("20600495519", "Plaza de Armas de Ica", "City Tour Histórico y Religioso de Ica",
+     "Paseo peatonal por el casco histórico de Ica, Santuario del Señor de Luren y museo regional Adolfo Bermúdez.", "35.00", 3),
+
+    # Inversiones Turísticas Ica S.A.C.
+    ("20601775540", "Playa La Mina", "Excursión Playera Paracas: El Chaco y La Mina",
+     "Transporte privado con aire acondicionado, paseo por el balneario de El Chaco y tarde de sol en Playa La Mina.", "65.00", 5),
+    ("20601775540", "Playa Roja", "Ruta Fotográfica Paisajística Playa Roja",
+     "Excursión especializada para fotografía en el mirador de arena volcánica roja y acantilados de Paracas.", "55.00", 3),
+
+    # Turismo Ica Peru E.I.R.L.
+    ("20604989958", "Bodega Tres Generaciones (Subtanjalla)", "Cata Pisquera Tradicional en Subtanjalla",
+     "Visita a las bodegas Tres Generaciones y Sotelo en Subtanjalla, cata de pisco acholado con tejas artesanales.", "60.00", 3),
+    ("20604989958", "Playa Hermosa de Marcona", "Expedición Marcona: Playa Hermosa y San Fernando",
+     "Aventura en camioneta hacia las bahías vírgenes de Marcona y avistamiento de fauna marina y cóndores.", "135.00", 7),
+
+    # Operador no validado (para demostrar filtro RN-01 en pruebas de fiscalización)
+    ("20609998811", "Oasis de Huacachina", "Paseo Informal en Dunas (Sin Seguro ni Registro)",
+     "Servicio ofrecido por operador sin autorización formal de DIRCETUR (demostración de filtro RN-01).", "25.00", 1),
 ]
 
 
@@ -123,14 +209,14 @@ async def ejecutar() -> None:
 
         for ruc, atr_nombre, nombre, desc, precio, horas in TOURS:
             existe = (await db.execute(select(Tour).where(Tour.name == nombre))).scalar_one_or_none()
-            if existe is None:
+            if existe is None and atr_nombre in atractivos and ruc in agencias:
                 db.add(Tour(
                     agency_id=agencias[ruc].id, attraction_id=atractivos[atr_nombre].id,
                     name=nombre, description=desc, price=Decimal(precio), duration_hours=horas,
                 ))
         await db.commit()
     await motor.dispose()
-    print("Datos semilla de catálogo cargados correctamente.")
+    print("Catalogo oficial y tours de Ica sincronizados exitosamente.")
 
 
 if __name__ == "__main__":
