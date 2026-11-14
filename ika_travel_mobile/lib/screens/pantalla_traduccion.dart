@@ -47,14 +47,14 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
 
   final List<Map<String, String>> _categorias = [
     {'id': '', 'nombre': 'Todas'},
-    {'id': 'emergency', 'nombre': 'Emergencia'},
-    {'id': 'health', 'nombre': 'Salud'},
-    {'id': 'transport', 'nombre': 'Transporte'},
-    {'id': 'services', 'nombre': 'Servicios'},
-    {'id': 'directions', 'nombre': 'Direcciones'},
-    {'id': 'lodging', 'nombre': 'Hospedaje'},
-    {'id': 'food', 'nombre': 'Comida'},
-    {'id': 'courtesy', 'nombre': 'Cortesía'},
+    {'id': 'saludos', 'nombre': 'Saludos'},
+    {'id': 'emergencia', 'nombre': 'Emergencia'},
+    {'id': 'transporte', 'nombre': 'Transporte'},
+    {'id': 'alimentacion', 'nombre': 'Alimentación'},
+    {'id': 'actividades', 'nombre': 'Actividades'},
+    {'id': 'orientacion', 'nombre': 'Orientación'},
+    {'id': 'salud', 'nombre': 'Salud'},
+    {'id': 'servicios_formales', 'nombre': 'Servicios Formales'},
   ];
 
   @override

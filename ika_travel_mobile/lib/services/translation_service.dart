@@ -29,31 +29,31 @@ class TranslationService {
       phrases: [
         PhraseItemModel(
           id: '1',
-          category: 'emergency',
+          category: 'emergencia',
           spanish: '¿Dónde está el hospital más cercano?',
           english: 'Where is the nearest hospital?',
         ),
         PhraseItemModel(
           id: '2',
-          category: 'transport',
+          category: 'transporte',
           spanish: '¿Cuánto cuesta el taxi a la Huacachina?',
           english: 'How much is the taxi fare to Huacachina?',
         ),
         PhraseItemModel(
           id: '3',
-          category: 'food',
+          category: 'alimentacion',
           spanish: '¿Tiene opciones sin gluten o vegetarianas?',
           english: 'Do you have gluten-free or vegetarian options?',
         ),
         PhraseItemModel(
           id: '4',
-          category: 'directions',
+          category: 'orientacion',
           spanish: '¿Cómo llego a la Plaza de Armas?',
           english: 'How do I get to the Main Square?',
         ),
         PhraseItemModel(
           id: '5',
-          category: 'courtesy',
+          category: 'saludos',
           spanish: 'Muchas gracias por su hospitalidad.',
           english: 'Thank you very much for your hospitality.',
         ),
