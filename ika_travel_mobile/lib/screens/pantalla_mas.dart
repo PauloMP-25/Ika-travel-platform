@@ -19,6 +19,53 @@ import 'pantalla_traduccion.dart';
 import '../widgets/dialogo_preferencias_turista.dart';
 
 class PantallaMas extends StatelessWidget {
+  void _mostrarModalEducativoInvitado(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: TemaApp.tarjeta(ctx),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Row(
+          children: [
+            Icon(Icons.gavel_rounded, color: AppColores.naranjaBoton, size: 26),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                "Respaldo Legal Requerido",
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          "Para denunciar formalmente a un operador informal necesitas una cuenta. Esto garantiza el respaldo legal de tu testimonio ante DIRCETUR Ica.",
+          style: TextStyle(fontSize: 13, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cancelar"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColores.naranjaBoton,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PantallaLogin(abrirComoModal: true)),
+              );
+            },
+            child: const Text("Crear cuenta o ingresar"),
+          ),
+        ],
+      ),
+    );
+  }
+
   const PantallaMas({super.key});
 
   void _mostrarInfo(BuildContext context, String titulo, String contenido) {
@@ -507,7 +554,13 @@ class PantallaMas extends StatelessWidget {
                     icono: Icons.campaign_outlined,
                     titulo: context.tr('reporte_incidencias'),
                     subtitulo: context.tr('reporte_incidencias_sub'),
+                    esBloqueado: AuthService().usuarioActual?.esInvitado ?? true,
                     onTap: () {
+                      final usuario = AuthService().usuarioActual;
+                      if (usuario == null || usuario.esInvitado) {
+                        _mostrarModalEducativoInvitado(context);
+                        return;
+                      }
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -665,6 +718,7 @@ class PantallaMas extends StatelessWidget {
     required IconData icono,
     required String titulo,
     String? subtitulo,
+    bool esBloqueado = false,
     required VoidCallback onTap,
   }) {
     final colorTexto = TemaApp.texto(context);
@@ -694,10 +748,19 @@ class PantallaMas extends StatelessWidget {
               style: TextStyle(fontSize: 12, color: colorTextoSecundario),
             )
           : null,
-      trailing: Icon(
-        Icons.arrow_forward_ios,
-        size: 14,
-        color: colorTextoSecundario,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (esBloqueado) ...[
+            const Icon(Icons.lock_outline_rounded, size: 16, color: Colors.orange),
+            const SizedBox(width: 6),
+          ],
+          Icon(
+            Icons.arrow_forward_ios,
+            size: 14,
+            color: colorTextoSecundario,
+          ),
+        ],
       ),
       onTap: onTap,
     );

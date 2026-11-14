@@ -38,10 +38,12 @@ class ApiClient {
 
   Future<dynamic> get(String endpoint, {Map<String, String>? headers}) async {
     final uri = Uri.parse('$baseUrl$endpoint');
-    final response = await _client.get(
-      uri,
-      headers: _buildHeaders(headers),
-    );
+    final response = await _client
+        .get(
+          uri,
+          headers: _buildHeaders(headers),
+        )
+        .timeout(const Duration(seconds: 12));
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return jsonDecode(utf8.decode(response.bodyBytes));
@@ -59,14 +61,16 @@ class ApiClient {
     Map<String, String>? headers,
   }) async {
     final uri = Uri.parse('$baseUrl$endpoint');
-    final response = await _client.post(
-      uri,
-      headers: {
-        'Content-Type': 'application/json',
-        ..._buildHeaders(headers),
-      },
-      body: body != null ? jsonEncode(body) : null,
-    );
+    final response = await _client
+        .post(
+          uri,
+          headers: {
+            'Content-Type': 'application/json',
+            ..._buildHeaders(headers),
+          },
+          body: body != null ? jsonEncode(body) : null,
+        )
+        .timeout(const Duration(seconds: 12));
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (response.body.isEmpty) return {};

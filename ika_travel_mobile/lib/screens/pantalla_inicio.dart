@@ -466,16 +466,45 @@ class _PantallaInicioState extends State<PantallaInicio> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    '${context.tr('uv')}  ${_clima != null ? (_clima!['indice_uv'] as num).round() : 'Alto'}',
+                                    '${context.tr('uv')}  ${_clima != null ? (_clima!['indice_uv'] as num).round() : 'Alto'}${_clima != null && ((_clima!['indice_uv'] as num?) ?? 0) >= 11 ? ' (EXTREMO)' : ''}',
                                     style: TextStyle(
                                       fontSize: 13,
-                                      color: colorTextoSecundario,
+                                      fontWeight: _clima != null && ((_clima!['indice_uv'] as num?) ?? 0) >= 11 ? FontWeight.bold : FontWeight.normal,
+                                      color: _clima != null && ((_clima!['indice_uv'] as num?) ?? 0) >= 11 ? const Color(0xFFD32F2F) : colorTextoSecundario,
                                     ),
                                   ),
                                 ],
                               ),
                             ],
                           ),
+                          if (_clima != null && ((_clima!['indice_uv'] as num?) ?? 0) >= 11) ...[
+                            const SizedBox(height: 10),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFEBEE),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: const Color(0xFFD32F2F)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.warning_amber_rounded, color: Color(0xFFD32F2F), size: 20),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Alerta RN-13: Radiación UV Extrema (${(_clima!['indice_uv'] as num).round()}). Protección solar obligatoria e hidratación continua.',
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFFB71C1C),
+                                        height: 1.3,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: 14),
                           Divider(
                             height: 1,

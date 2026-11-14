@@ -513,27 +513,65 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
     Color colorTarjeta,
     Color colorTextoSecundario,
   ) {
+    final uvStr = (data['uv']?.toString() ?? '').toLowerCase();
+    final uvNum = double.tryParse(RegExp(r'[0-9]+(\.[0-9]+)?').firstMatch(uvStr)?.group(0) ?? '') ?? 0;
+    final esUvExtremo = uvStr.contains('extremo') || uvNum >= 11;
+
     final items = [
       (Icons.air, data['viento'], context.tr('viento'), AppColores.turquesaOasis),
       (Icons.water_drop, data['humedad'], context.tr('humedad'),
           AppColores.azulParacas),
       (Icons.umbrella, data['lluvia'] ?? '0%', context.tr('lluvia'),
           const Color(0xFF3D9BE9)),
-      (Icons.wb_sunny, data['uv'], context.tr('uv'), AppColores.naranjaBoton),
+      (Icons.wb_sunny, data['uv'], context.tr('uv'),
+          esUvExtremo ? const Color(0xFFD32F2F) : AppColores.naranjaBoton),
     ];
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (var i = 0; i < items.length; i++) ...[
-          if (i > 0) const SizedBox(width: 10),
-          Expanded(
-            child: _MetricaChip(
-              icono: items[i].$1,
-              valor: items[i].$2,
-              etiqueta: items[i].$3,
-              colorAcento: items[i].$4,
-              colorTexto: colorTexto,
-              colorTextoSecundario: colorTextoSecundario,
-              colorTarjeta: colorTarjeta,
+        Row(
+          children: [
+            for (var i = 0; i < items.length; i++) ...[
+              if (i > 0) const SizedBox(width: 10),
+              Expanded(
+                child: _MetricaChip(
+                  icono: items[i].$1,
+                  valor: items[i].$2,
+                  etiqueta: items[i].$3,
+                  colorAcento: items[i].$4,
+                  colorTexto: colorTexto,
+                  colorTextoSecundario: colorTextoSecundario,
+                  colorTarjeta: colorTarjeta,
+                ),
+              ),
+            ],
+          ],
+        ),
+        if (esUvExtremo) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFEBEE),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFD32F2F)),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Color(0xFFD32F2F), size: 22),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '⚠️ Alerta RN-13: Radiación UV Extrema (11+). Evitar exposición solar entre 10:00 y 16:00 hrs. Uso obligatorio de bloqueador FPS 50+ e hidratación constante.',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFB71C1C),
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

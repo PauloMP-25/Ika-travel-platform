@@ -24,7 +24,7 @@ class PantallaSos extends StatefulWidget {
 
 class _PantallaSosState extends State<PantallaSos> {
   final SosService _sosService = SosService();
-  bool _detectorChoqueActivo = true;
+  bool _detectorChoqueActivo = false; // R-19: Desactivado por defecto
 
   String _motivoSeleccionado = 'accidente en el recorrido turístico';
   final TextEditingController _motivoDetalleCtrl = TextEditingController();
@@ -37,6 +37,69 @@ class _PantallaSosState extends State<PantallaSos> {
     'varado / extraviado en zona desértica',
     'emergencia general y auxilio',
   ];
+
+  void _onToggleDetectorChoque(bool val) {
+    if (!val) {
+      setState(() => _detectorChoqueActivo = false);
+      return;
+    }
+    if (_sosService.contactoPrincipal == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "⚠️ Configura primero un contacto de confianza antes de activar la detección de impactos (R-19).",
+          ),
+          backgroundColor: Color(0xFFD32F2F),
+        ),
+      );
+      return;
+    }
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.security_rounded, color: Color(0xFFD32F2F)),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                "Monitoreo de Impactos",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          "La app utilizará los sensores de aceleración del dispositivo para detectar posibles colisiones o vuelcos en dunas/carretera. Si se detecta un impacto brusco (>5.2g), se despachará una alerta automática a tu contacto de emergencia tras 10 segundos.\n\n¿Deseas activar este monitoreo continuo?",
+          style: TextStyle(fontSize: 13, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cancelar"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFD32F2F),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              setState(() => _detectorChoqueActivo = true);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("✅ Detección de choques e impactos activada."),
+                  backgroundColor: Color(0xFF2E7D32),
+                ),
+              );
+            },
+            child: const Text("Aceptar y Activar"),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   void dispose() {
@@ -1124,11 +1187,7 @@ class _PantallaSosState extends State<PantallaSos> {
                             Switch(
                               value: _detectorChoqueActivo,
                               activeColor: const Color(0xFFD32F2F),
-                              onChanged: (val) {
-                                setState(() {
-                                  _detectorChoqueActivo = val;
-                                });
-                              },
+                              onChanged: _onToggleDetectorChoque,
                             ),
                           ],
                         ),

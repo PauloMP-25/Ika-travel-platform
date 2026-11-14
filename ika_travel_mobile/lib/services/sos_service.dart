@@ -411,11 +411,20 @@ class SosService {
       'https://wa.me/$cleanPhone?text=${Uri.encodeComponent(mensaje)}',
     );
     try {
-      return await launchUrl(uriWeb, mode: LaunchMode.externalApplication);
+      if (await canLaunchUrl(uriWeb)) {
+        return await launchUrl(uriWeb, mode: LaunchMode.externalApplication);
+      }
     } catch (e) {
-      debugPrint('[SosService] Error abriendo WhatsApp: $e');
-      return false;
+      debugPrint('[SosService] Error abriendo enlace WhatsApp web: $e');
     }
+
+    // R-02 Fallback en cadena: Si WhatsApp no está disponible, enviar SMS nativo o llamada directa
+    debugPrint('[SosService] Fallback R-02: WhatsApp no disponible. Activando SMS y llamada.');
+    try {
+      final smsOk = await abrirSms(telefono: telefono, mensaje: mensaje);
+      if (smsOk) return true;
+    } catch (_) {}
+    return await llamarNumero(telefono: telefono);
   }
 
   /// Abre la aplicación de mensajería SMS predeterminada
