@@ -29,6 +29,7 @@ dependencies:
   url_launcher: ^6.3.1
   speech_to_text: ^7.5.0
   google_sign_in: ^6.2.1
+  permission_handler: 11.3.1
 
 
 dev_dependencies:

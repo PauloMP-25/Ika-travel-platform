@@ -27,6 +27,11 @@ class _PantallaLoginState extends State<PantallaLogin> {
   String? _mensajeError;
   bool _cargandoGoogle = false;
 
+  // Paleta viva para el login (celeste, verde, amarillo).
+  static const Color _celeste = Color(0xFF2BB7E3);
+  static const Color _verde = Color(0xFF27C06B);
+  static const Color _amarillo = Color(0xFFFFC93C);
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -263,16 +268,121 @@ class _PantallaLoginState extends State<PantallaLogin> {
     );
   }
 
+  /// Encabezado vivo con degradado celeste→verde, acento amarillo y el logo
+  /// real de la app. Da color y vida al login (ya no es blanco y estático).
+  Widget _heroLogin(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(24, 26, 24, 24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [_celeste, AppColores.turquesaOasis, _verde],
+        ),
+        borderRadius: BorderRadius.circular(26),
+        boxShadow: [
+          BoxShadow(
+            color: _celeste.withValues(alpha: 0.35),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // Acento amarillo decorativo
+          Positioned(
+            right: -6,
+            top: -6,
+            child: Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: _amarillo.withValues(alpha: 0.9),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: _amarillo.withValues(alpha: 0.5),
+                    blurRadius: 14,
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.wb_sunny_rounded,
+                  color: Colors.white, size: 26),
+            ),
+          ),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 84,
+                height: 84,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.6), width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.15),
+                      blurRadius: 14,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Image.asset('assets/images/logo_ika.png',
+                    fit: BoxFit.cover),
+              ),
+              const SizedBox(height: 14),
+              const Text(
+                'Ika Travel',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                context.tr('eslogan_login'),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  height: 1.4,
+                  color: Colors.white.withValues(alpha: 0.95),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorFondo = TemaApp.fondo(context);
     final colorTarjeta = TemaApp.tarjeta(context);
     final colorTexto = TemaApp.texto(context);
     final colorTextoSec = TemaApp.textoSecundario(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: colorFondo,
-      body: SafeArea(
+      body: Container(
+        decoration: isDark
+            ? null
+            : const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0xFFE6F8FF), Color(0xFFFFFDF4)],
+                ),
+              ),
+        child: SafeArea(
         child: ValueListenableBuilder<bool>(
           valueListenable: AuthService().cargandoNotifier,
           builder: (context, cargando, _) {
@@ -289,37 +399,8 @@ class _PantallaLoginState extends State<PantallaLogin> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColores.naranjaBoton.withValues(
-                            alpha: 0.12,
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.travel_explore,
-                          size: 58,
-                          color: AppColores.naranjaBoton,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Ika Travel',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: colorTexto,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        context.tr('eslogan_login'),
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 14, color: colorTextoSec),
-                      ),
-                      const SizedBox(height: 28),
+                      _heroLogin(context),
+                      const SizedBox(height: 24),
 
                       Container(
                         padding: const EdgeInsets.all(22),
@@ -511,35 +592,53 @@ class _PantallaLoginState extends State<PantallaLogin> {
                               height: 52,
                               child: ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColores.naranjaBoton,
-                                  foregroundColor: Colors.white,
-                                  elevation: 2,
-                                  shadowColor: AppColores.naranjaBoton
-                                      .withValues(alpha: 0.35),
+                                  padding: EdgeInsets.zero,
+                                  backgroundColor: Colors.transparent,
+                                  shadowColor: Colors.transparent,
+                                  elevation: 0,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                 ),
                                 onPressed: ocupado ? null : _iniciarSesion,
-                                child: cargando
-                                    ? const SizedBox(
-                                        height: 22,
-                                        width: 22,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2.5,
-                                          valueColor:
-                                              AlwaysStoppedAnimation<Color>(
+                                child: Ink(
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [_celeste, _verde],
+                                    ),
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: _verde.withValues(alpha: 0.35),
+                                        blurRadius: 14,
+                                        offset: const Offset(0, 6),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Container(
+                                    alignment: Alignment.center,
+                                    child: cargando
+                                        ? const SizedBox(
+                                            height: 22,
+                                            width: 22,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2.5,
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
                                                 Colors.white,
                                               ),
-                                        ),
-                                      )
-                                    : Text(
-                                        context.tr('iniciar_sesion'),
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
+                                            ),
+                                          )
+                                        : Text(
+                                            context.tr('iniciar_sesion'),
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                  ),
+                                ),
                               ),
                             ),
                           ],
@@ -631,7 +730,7 @@ class _PantallaLoginState extends State<PantallaLogin> {
                           ),
                           GestureDetector(
                             onTap: () {
-                              Navigator.push(
+                              Navigator.pushReplacement(
                                 context,
                                 MaterialPageRoute(
                                   builder: (_) => const PantallaRegistro(),
@@ -656,6 +755,7 @@ class _PantallaLoginState extends State<PantallaLogin> {
               ),
             );
           },
+        ),
         ),
       ),
     );

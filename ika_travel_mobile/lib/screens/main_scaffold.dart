@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../config/tema.dart';
 import '../config/navegacion_service.dart';
 import '../config/traducciones_scope.dart';
+import '../services/preferencias_service.dart';
+import '../widgets/modal_preferencias.dart';
 import 'pantalla_inicio.dart';
 import 'pantalla_actividades.dart';
 import 'pantalla_pronostico.dart';
@@ -17,6 +19,24 @@ class MainScaffold extends StatefulWidget {
 }
 
 class _MainScaffoldState extends State<MainScaffold> {
+  // Evita que el modal de preferencias se abra dos veces si se montan varias
+  // instancias de MainScaffold durante la transición de login.
+  static bool _preferenciasPreguntadas = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // La primera vez que el usuario entra, le preguntamos sus gustos para
+    // que la IA personalice las recomendaciones.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (!PreferenciasService().yaCompletado && !_preferenciasPreguntadas) {
+        _preferenciasPreguntadas = true;
+        ModalPreferencias.mostrar(context);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final List<Widget> pantallas = [

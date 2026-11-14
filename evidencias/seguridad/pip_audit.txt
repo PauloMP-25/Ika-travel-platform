@@ -1,0 +1,3 @@
+# pip-audit sobre ika-backend/requirements.txt
+
+No known vulnerabilities found

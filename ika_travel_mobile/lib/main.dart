@@ -8,12 +8,15 @@ import 'config/traducciones.dart';
 import 'config/traducciones_scope.dart';
 import 'models/usuario_modelo.dart';
 import 'screens/main_scaffold.dart';
-import 'screens/pantalla_login.dart';
+import 'screens/pantalla_bienvenida.dart';
+import 'screens/pantalla_permisos.dart';
 import 'services/auth_service.dart';
+import 'services/preferencias_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AuthService().inicializar();
+  await PreferenciasService().cargar();
   runApp(const IkaTravelApp());
 }
 
@@ -61,20 +64,45 @@ class IkaTravelApp extends StatelessWidget {
                     brightness: Brightness.dark,
                   ),
                 ),
-                // Tu lógica de sesión intacta
-                home: ValueListenableBuilder<UsuarioModelo?>(
-                  valueListenable: AuthService().usuarioNotifier,
-                  builder: (context, usuario, _) {
-                    if (usuario != null) {
-                      return const MainScaffold();
-                    }
-                    return const PantallaLogin();
-                  },
-                ),
+                // Pantalla de permisos al arranque; luego la lógica de sesión
+                home: const _GateArranque(),
               );
             },
           ),
         );
+      },
+    );
+  }
+}
+
+/// Muestra primero la pantalla de permisos; una vez completada, entra a la
+/// lógica de sesión (login o app según haya usuario autenticado).
+class _GateArranque extends StatefulWidget {
+  const _GateArranque();
+
+  @override
+  State<_GateArranque> createState() => _GateArranqueState();
+}
+
+class _GateArranqueState extends State<_GateArranque> {
+  bool _permisosListos = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_permisosListos) {
+      return PantallaPermisos(
+        onCompletado: () {
+          if (mounted) setState(() => _permisosListos = true);
+        },
+      );
+    }
+    return ValueListenableBuilder<UsuarioModelo?>(
+      valueListenable: AuthService().usuarioNotifier,
+      builder: (context, usuario, _) {
+        if (usuario != null) {
+          return const MainScaffold();
+        }
+        return const PantallaBienvenida();
       },
     );
   }

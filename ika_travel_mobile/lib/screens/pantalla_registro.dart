@@ -7,6 +7,7 @@ import '../config/traducciones.dart';
 import '../config/traducciones_scope.dart';
 import '../services/auth_service.dart';
 import 'main_scaffold.dart';
+import 'pantalla_login.dart';
 
 class PantallaRegistro extends StatefulWidget {
   const PantallaRegistro({super.key});
@@ -542,7 +543,17 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                             ),
                           ),
                           GestureDetector(
-                            onTap: () => Navigator.pop(context),
+                            onTap: () {
+                              // Reemplaza el registro por el login para que
+                              // "iniciar sesión" lleve al formulario correcto
+                              // (no de vuelta a la bienvenida).
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const PantallaLogin(),
+                                ),
+                              );
+                            },
                             child: Text(
                               context.tr('inicia_sesion'),
                               style: const TextStyle(

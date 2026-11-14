@@ -6,7 +6,7 @@ import '../config/tema.dart';
 import '../services/sos_service.dart';
 
 class ModalCuentaRegresivaSos extends StatefulWidget {
-  final ContactoEmergencia contacto;
+  final List<ContactoEmergencia> contactos;
   final String mensaje;
   final bool esModoChoque;
   final VoidCallback onCancelado;
@@ -14,7 +14,7 @@ class ModalCuentaRegresivaSos extends StatefulWidget {
 
   const ModalCuentaRegresivaSos({
     super.key,
-    required this.contacto,
+    required this.contactos,
     required this.mensaje,
     this.esModoChoque = false,
     required this.onCancelado,
@@ -23,7 +23,7 @@ class ModalCuentaRegresivaSos extends StatefulWidget {
 
   static Future<void> mostrar({
     required BuildContext context,
-    required ContactoEmergencia contacto,
+    required List<ContactoEmergencia> contactos,
     required String mensaje,
     bool esModoChoque = false,
     VoidCallback? onCancelado,
@@ -34,7 +34,7 @@ class ModalCuentaRegresivaSos extends StatefulWidget {
       barrierDismissible: false,
       barrierColor: Colors.black.withOpacity(0.85),
       builder: (_) => ModalCuentaRegresivaSos(
-        contacto: contacto,
+        contactos: contactos,
         mensaje: mensaje,
         esModoChoque: esModoChoque,
         onCancelado: onCancelado ?? () {},
@@ -91,23 +91,23 @@ class _ModalCuentaRegresivaSosState extends State<ModalCuentaRegresivaSos>
     widget.onDespachado();
 
     // 0. Registrar reporte de emergencia y notificaciones en backend (Corrección N° 7)
-    _sosService.registrarEmergenciaEnBackend(
-      latitud: _sosService.latitudActual,
-      longitud: _sosService.longitudActual,
-      descripcion: widget.mensaje,
-      contacto: widget.contacto,
-    );
+    if (widget.contactos.isNotEmpty) {
+      _sosService.registrarEmergenciaEnBackend(
+        latitud: _sosService.latitudActual,
+        longitud: _sosService.longitudActual,
+        descripcion: widget.mensaje,
+        contacto: widget.contactos.first,
+      );
+    }
 
-    // 1. Envío silencioso nativo de SMS por red celular
-    await _sosService.enviarSmsSilenciosoDirecto(
-      telefono: widget.contacto.telefono,
-      mensaje: widget.mensaje,
-    );
+    // 1. SMS silencioso a TODOS los contactos de confianza
+    await _sosService.enviarSmsATodos(mensaje: widget.mensaje);
 
-    // 2. Iniciar llamada telefónica directa de auxilio
+    // 2. Llamada directa al contacto principal
+    if (widget.contactos.isEmpty) return;
     await Future.delayed(const Duration(milliseconds: 600));
     await _sosService.realizarLlamadaDirectaAuxilio(
-      telefono: widget.contacto.telefono,
+      telefono: widget.contactos.first.telefono,
     );
   }
 
@@ -185,7 +185,9 @@ class _ModalCuentaRegresivaSosState extends State<ModalCuentaRegresivaSos>
             const SizedBox(height: 10),
 
             Text(
-              'Si no cancelas, la app enviará un SMS silencioso con tus coordenadas exactas y llamará a:',
+              widget.contactos.length > 1
+                  ? 'Si no cancelas, la app enviará un SMS silencioso con tus coordenadas exactas a tus ${widget.contactos.length} contactos y llamará a:'
+                  : 'Si no cancelas, la app enviará un SMS silencioso con tus coordenadas exactas y llamará a:',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 12,
@@ -196,21 +198,22 @@ class _ModalCuentaRegresivaSosState extends State<ModalCuentaRegresivaSos>
 
             const SizedBox(height: 8),
 
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF3E0),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                '${widget.contacto.nombre} (${widget.contacto.telefono})',
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: AppColores.marronOscuro,
+            if (widget.contactos.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF3E0),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '${widget.contactos.first.nombre} (${widget.contactos.first.telefono})',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: AppColores.marronOscuro,
+                  ),
                 ),
               ),
-            ),
 
             const SizedBox(height: 20),
 

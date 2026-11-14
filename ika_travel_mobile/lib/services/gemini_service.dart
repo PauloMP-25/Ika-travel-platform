@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
+import 'preferencias_service.dart';
 
 /// Servicio para integración directa con Google Gemini AI y respaldo offline.
 /// Permite que los desarrolladores y compañeros de equipo prueben el frontend
@@ -29,13 +30,18 @@ class GeminiService {
           'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${ApiConfig.geminiApiKey}',
         );
 
+        final perfil = PreferenciasService().resumenParaIA();
+        final lineaPerfil = perfil.isEmpty
+            ? ''
+            : '\n$perfil Adapta el tono y las sugerencias a este perfil.';
+
         final prompt = '''
 Eres un guía turístico experto en la región Ica (Perú) y seguridad meteorológica.
 Genera una recomendación para visitar "$nombreAtractivo" bajo las siguientes condiciones climáticas:
 - Temperatura: ${temp}°C
 - Viento: ${viento} km/h
 - Radiación UV: ${uv}
-- Condición: $condicion
+- Condición: $condicion$lineaPerfil
 
 Responde EXCLUSIVAMENTE en formato JSON con la siguiente estructura:
 {

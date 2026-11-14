@@ -141,8 +141,8 @@ class _PantallaSosState extends State<PantallaSos> {
 
   Future<void> _iniciarCuentaRegresivaSos({bool esModoChoque = false}) async {
     if (!esModoChoque && !_verificarAutenticacionOpcion()) return;
-    final contacto = _sosService.contactoNotifier.value;
-    if (contacto == null) {
+    final contactos = _sosService.contactos;
+    if (contactos.isEmpty) {
       _ejecutarAccionSos(esPrueba: false);
       return;
     }
@@ -159,7 +159,7 @@ class _PantallaSosState extends State<PantallaSos> {
 
     ModalCuentaRegresivaSos.mostrar(
       context: context,
-      contacto: contacto,
+      contactos: contactos,
       mensaje: mensaje,
       esModoChoque: esModoChoque,
       onCancelado: () {
@@ -191,9 +191,102 @@ class _PantallaSosState extends State<PantallaSos> {
     _sosService.sincronizarContactosOficiales().then((_) {
       if (mounted) setState(() {});
     });
+    // Revisa si el envío automático de SMS ya está habilitado en este teléfono.
+    _sosService.refrescarEstadoSms();
   }
 
-  void _abrirDialogoContacto(BuildContext context, [ContactoEmergencia? contactoActual]) {
+  /// Indicador del estado del envío automático de SMS. Si el permiso no está
+  /// concedido, ofrece activarlo (así funciona en cualquier teléfono, no solo
+  /// en los que ya lo tenían).
+  Widget _bannerEnvioAutomatico() {
+    return ValueListenableBuilder<bool>(
+      valueListenable: _sosService.smsAutomaticoDisponible,
+      builder: (context, activo, _) {
+        final verde = const Color(0xFF2E7D32);
+        final ambar = const Color(0xFFB26A00);
+        final color = activo ? verde : ambar;
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: color.withValues(alpha: 0.35)),
+          ),
+          child: Row(
+            children: [
+              Icon(activo ? Icons.bolt : Icons.sms_failed_outlined,
+                  color: color, size: 22),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      activo
+                          ? 'Envío automático activado'
+                          : 'Envío automático desactivado',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      activo
+                          ? 'El SMS de auxilio se enviará solo, sin pasos extra.'
+                          : 'Sin el permiso de SMS, la alerta abrirá la app de mensajes para enviar a mano.',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColores.grisTexto,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (!activo) ...[
+                const SizedBox(width: 8),
+                TextButton(
+                  style: TextButton.styleFrom(
+                    foregroundColor: ambar,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                  ),
+                  onPressed: () async {
+                    final ok = await _sosService.asegurarPermisoSms();
+                    if (!mounted) return;
+                    if (!ok) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Permiso de SMS no concedido. Actívalo en Ajustes para el envío automático.',
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  child: const Text('Activar'),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _abrirDialogoContacto(BuildContext context, [int? indice]) {
+    final contactos = _sosService.contactos;
+    final ContactoEmergencia? contactoActual =
+        (indice != null && indice < contactos.length) ? contactos[indice] : null;
+    if (contactoActual == null && contactos.length >= SosService.maxContactos) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'Puedes registrar hasta ${SosService.maxContactos} contactos de confianza.'),
+        ),
+      );
+      return;
+    }
     final nombreCtrl = TextEditingController(text: contactoActual?.nombre ?? '');
     final telCtrl = TextEditingController(text: contactoActual?.telefono ?? '');
     final relCtrl = TextEditingController(text: contactoActual?.relacion ?? 'Familiar');
@@ -297,6 +390,7 @@ class _PantallaSosState extends State<PantallaSos> {
               onPressed: () {
                 if (formKey.currentState?.validate() ?? false) {
                   _sosService.guardarContacto(
+                    indice: indice,
                     nombre: nombreCtrl.text,
                     telefono: telCtrl.text,
                     relacion: relCtrl.text,
@@ -444,7 +538,8 @@ class _PantallaSosState extends State<PantallaSos> {
 
   Future<void> _ejecutarAccionSos({required bool esPrueba}) async {
     if (!esPrueba && !_verificarAutenticacionOpcion()) return;
-    final contacto = _sosService.contactoNotifier.value;
+    final contacto = _sosService.contactoPrincipal;
+    final contactos = _sosService.contactos;
     if (contacto == null) {
       showDialog(
         context: context,
@@ -547,7 +642,9 @@ class _PantallaSosState extends State<PantallaSos> {
                         Text(
                           esPrueba
                               ? 'Prueba sin despacho real'
-                              : 'Contacto: ${contacto.nombre} (${contacto.telefono})',
+                              : contactos.length > 1
+                                  ? 'Se avisará a tus ${contactos.length} contactos de confianza'
+                                  : 'Contacto: ${contacto.nombre} (${contacto.telefono})',
                           style: const TextStyle(fontSize: 12, color: AppColores.grisTexto),
                         ),
                       ],
@@ -616,7 +713,7 @@ class _PantallaSosState extends State<PantallaSos> {
                         ),
                         SizedBox(height: 2),
                         Text(
-                          'Envía por las 2 vías en secuencia de 1 solo toque',
+                          'SMS a todos tus contactos y WhatsApp al principal',
                           style: TextStyle(fontSize: 11, color: Colors.white70),
                         ),
                       ],
@@ -626,10 +723,10 @@ class _PantallaSosState extends State<PantallaSos> {
                       Clipboard.setData(ClipboardData(text: mensaje));
                       // Corrección N.º 10: registrar la alerta en `sos_reports`.
                       _registrarAlertaEnBackend();
+                      // Multi-contacto: SMS a todos + WhatsApp al principal,
+                      // y registra el reporte en el backend (Corrección N° 7).
                       await _sosService.enviarAlertaAutomatica(
-                        telefono: contacto.telefono,
                         mensaje: mensaje,
-                        contacto: contacto,
                         descripcionAccidente: _motivoDetalleCtrl.text,
                       );
                     },
@@ -883,6 +980,10 @@ class _PantallaSosState extends State<PantallaSos> {
                     ),
                   ),
 
+                  const SizedBox(height: 12),
+
+                  _bannerEnvioAutomatico(),
+
                   const SizedBox(height: 14),
 
                   // TARJETA DE REPORTE DE INCIDENCIAS Y FISCALIZACIÓN DIRCETUR (RF-05)
@@ -1091,103 +1192,143 @@ class _PantallaSosState extends State<PantallaSos> {
   }
 
   Widget _seccionContacto(BuildContext context) {
-    return ValueListenableBuilder<ContactoEmergencia?>(
-      valueListenable: _sosService.contactoNotifier,
-      builder: (context, contacto, _) {
-        final existe = contacto != null;
+    return ValueListenableBuilder<List<ContactoEmergencia>>(
+      valueListenable: _sosService.contactosNotifier,
+      builder: (context, contactos, _) {
+        final existe = contactos.isNotEmpty;
+        final puedeAgregar = contactos.length < SosService.maxContactos;
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: existe ? Colors.green.withValues(alpha: 0.4) : Colors.orange.withValues(alpha: 0.5),
+              color: existe
+                  ? Colors.green.withValues(alpha: 0.4)
+                  : Colors.orange.withValues(alpha: 0.5),
             ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  Icon(
+                    existe ? Icons.verified_user : Icons.warning_amber_rounded,
+                    color: existe ? Colors.green : Colors.orange,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
                   Expanded(
-                    child: Row(
-                      children: [
-                        Icon(
-                          existe ? Icons.verified_user : Icons.warning_amber_rounded,
-                          color: existe ? Colors.green : Colors.orange,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        const Flexible(
-                          child: Text(
-                            'Contacto de Confianza',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: AppColores.marronOscuro,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      'Contactos de confianza (${contactos.length}/${SosService.maxContactos})',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: AppColores.marronOscuro,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  TextButton.icon(
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColores.naranjaBoton,
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                  if (puedeAgregar)
+                    TextButton.icon(
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColores.naranjaBoton,
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                      ),
+                      icon: const Icon(Icons.add, size: 16),
+                      label: const Text('Agregar'),
+                      onPressed: () => _abrirDialogoContacto(context),
                     ),
-                    icon: Icon(existe ? Icons.edit : Icons.add, size: 16),
-                    label: Text(existe ? 'Editar' : 'Registrar'),
-                    onPressed: () => _abrirDialogoContacto(context, contacto),
-                  ),
                 ],
               ),
               const SizedBox(height: 8),
               if (existe) ...[
-                Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: AppColores.arenaFondo,
-                      child: const Icon(Icons.person, color: AppColores.marronOscuro),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            contacto.nombre,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: AppColores.marronOscuro,
-                            ),
+                for (var i = 0; i < contactos.length; i++)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 18,
+                          backgroundColor: i == 0
+                              ? const Color(0xFFFFEBEE)
+                              : AppColores.arenaFondo,
+                          child: Icon(
+                            i == 0 ? Icons.star_rounded : Icons.person,
+                            size: 20,
+                            color: i == 0
+                                ? const Color(0xFFD32F2F)
+                                : AppColores.marronOscuro,
                           ),
-                          Text(
-                            '${contacto.telefono} • ${contacto.relacion}',
-                            style: const TextStyle(fontSize: 13, color: AppColores.grisTexto),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                contactos[i].nombre,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColores.marronOscuro,
+                                ),
+                              ),
+                              Text(
+                                i == 0
+                                    ? '${contactos[i].telefono} • Principal'
+                                    : '${contactos[i].telefono} • ${contactos[i].relacion}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    fontSize: 12, color: AppColores.grisTexto),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                        PopupMenuButton<String>(
+                          tooltip: 'Opciones del contacto',
+                          icon: const Icon(Icons.more_vert, color: Colors.grey),
+                          onSelected: (accion) {
+                            if (accion == 'editar') {
+                              _abrirDialogoContacto(context, i);
+                            } else if (accion == 'principal') {
+                              _sosService.marcarComoPrincipal(i);
+                            } else if (accion == 'eliminar') {
+                              _sosService.eliminarContacto(i);
+                            }
+                          },
+                          itemBuilder: (_) => [
+                            const PopupMenuItem(
+                                value: 'editar', child: Text('Editar')),
+                            if (i > 0)
+                              const PopupMenuItem(
+                                  value: 'principal',
+                                  child: Text('Marcar como principal')),
+                            const PopupMenuItem(
+                                value: 'eliminar', child: Text('Eliminar')),
+                          ],
+                        ),
+                      ],
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline, color: Colors.grey),
-                      tooltip: 'Eliminar contacto',
-                      onPressed: () => _sosService.eliminarContacto(),
-                    ),
-                  ],
-                ),
+                  ),
+                if (contactos.length > 1)
+                  const Text(
+                    'La alerta llega por SMS a todos. El principal recibe además la llamada y el WhatsApp.',
+                    style: TextStyle(fontSize: 11, color: AppColores.grisTexto),
+                  ),
               ] else ...[
-                Row(
+                const Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     Icon(Icons.warning_amber_rounded, size: 18, color: Color(0xFFE65100)),
                     SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        'No tienes un contacto registrado. Configúralo para poder generar y enviar alertas de emergencia personalizadas.',
+                        'No tienes contactos registrados. Agrega al menos uno para enviar alertas de emergencia.',
                         style: TextStyle(fontSize: 13, color: Color(0xFFE65100)),
                       ),
                     ),
@@ -1347,7 +1488,7 @@ class _PantallaSosState extends State<PantallaSos> {
   Widget _seccionVistaPreviaMensaje() {
     return AnimatedBuilder(
       animation: Listenable.merge([
-        _sosService.contactoNotifier,
+        _sosService.contactosNotifier,
         _sosService.permisoUbicacionConcedido,
         AuthService().usuarioNotifier,
       ]),
