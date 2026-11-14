@@ -286,7 +286,11 @@ def test_admin_reports_forbidden_for_regular_tourist(client: TestClient) -> None
 def test_admin_reports_allowed_and_can_update_status(
     client: TestClient, db_session: AsyncSession
 ) -> None:
-    from src.modules.users.models import User, UserRole
+    from src.modules.users.models import (
+        ROLE_DIRCETUR_ADMIN_ID,
+        User,
+        UserRole,
+    )
 
     # 1. Crear usuario turista y reporte
     _sign_up(client, "reporta_esto@ika.pe")
@@ -314,6 +318,8 @@ def test_admin_reports_allowed_and_can_update_status(
             )
         ).scalar_one()
         user.role = UserRole.DIRCETUR_ADMIN
+        # Corrección N.º 14: los permisos se resuelven vía `role_id`.
+        user.role_id = ROLE_DIRCETUR_ADMIN_ID
         db_session.add(user)
         await db_session.commit()
 

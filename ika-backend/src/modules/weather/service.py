@@ -428,6 +428,54 @@ async def listar_recomendaciones(
     return sorted(recomendaciones, key=lambda r: r.score, reverse=True)
 
 
+async def _persistir_ai_recommendation(
+    db: AsyncSession,
+    atractivo_id: UUID,
+    atractivo_nombre: str,
+    texto: str,
+    score: float,
+    nivel: str,
+    fecha: datetime,
+) -> None:
+    """Guarda correctamente cada recomendación de la IA en la tabla ai_recommendation (Corrección N° 4)."""
+    try:
+        snapshot_id = (
+            await db.execute(
+                select(WeatherSnapshot.id)
+                .where(
+                    (WeatherSnapshot.atractivo_id == atractivo_id)
+                    | (WeatherSnapshot.destino == atractivo_nombre)
+                )
+                .order_by(WeatherSnapshot.creado_en.desc())
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+
+        if snapshot_id is None:
+            snapshot_id = (
+                await db.execute(
+                    select(WeatherSnapshot.id)
+                    .order_by(WeatherSnapshot.creado_en.desc())
+                    .limit(1)
+                )
+            ).scalar_one_or_none()
+
+        if snapshot_id is not None:
+            db.add(
+                AIRecommendation(
+                    atractivo_id=atractivo_id,
+                    weather_snapshot_id=snapshot_id,
+                    recommendation_text=texto,
+                    score=score,
+                    nivel=nivel,
+                    generated_at=fecha,
+                )
+            )
+            await db.commit()
+    except Exception as exc:
+        logger.warning('No se pudo persistir ai_recommendation para %s: %s', atractivo_nombre, exc)
+
+
 async def recomendacion_del_dia(
     db: AsyncSession, preferencias_usuario: list[str] | None = None, idioma: str = "es"
 ) -> RecomendacionResponse | None:
@@ -488,14 +536,26 @@ async def recomendacion_del_dia(
         score_final = min(score_final, 0.30)
         nivel_final = "no_recomendado"
 
+    texto_recomendacion = texto or resultado.texto
+    fecha_generacion = datetime.now(tz=timezone.utc)
+    await _persistir_ai_recommendation(
+        db=db,
+        atractivo_id=atractivo.id,
+        atractivo_nombre=atractivo.name,
+        texto=texto_recomendacion,
+        score=score_final,
+        nivel=nivel_final,
+        fecha=fecha_generacion,
+    )
+
     return RecomendacionResponse(
         atractivo_id=atractivo.id,
         atractivo_nombre=atractivo.name,
         score=score_final,
         nivel=nivel_final,
-        recommendation_text=texto or resultado.texto,
+        recommendation_text=texto_recomendacion,
         consejos=consejos_gemini or resultado.consejos,
-        generated_at=datetime.now(tz=timezone.utc),
+        generated_at=fecha_generacion,
     )
 
 
@@ -703,14 +763,26 @@ async def recomendacion_para_atractivo(
         score_final = min(score_final, 0.30)
         nivel_final = "no_recomendado"
 
+    texto_recomendacion = texto or resultado.texto
+    fecha_generacion = datetime.now(tz=timezone.utc)
+    await _persistir_ai_recommendation(
+        db=db,
+        atractivo_id=atractivo.id,
+        atractivo_nombre=atractivo.name,
+        texto=texto_recomendacion,
+        score=score_final,
+        nivel=nivel_final,
+        fecha=fecha_generacion,
+    )
+
     return RecomendacionResponse(
         atractivo_id=atractivo.id,
         atractivo_nombre=atractivo.name,
         score=score_final,
         nivel=nivel_final,
-        recommendation_text=texto or resultado.texto,
+        recommendation_text=texto_recomendacion,
         consejos=consejos_gemini or resultado.consejos,
-        generated_at=datetime.now(tz=timezone.utc),
+        generated_at=fecha_generacion,
     )
 
 

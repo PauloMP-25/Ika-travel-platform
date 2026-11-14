@@ -79,6 +79,16 @@ class ApiConfig {
   static String get authGoogle => '$baseUrl/api/v1/auth/login/google';
   static String get usersMe => '$baseUrl/api/v1/users/me';
 
+  // --- GOOGLE SIGN-IN ---
+  // Client ID de tipo "Web application" (Google Cloud Console → Credentials).
+  // Sin él Android lanza `ApiException: 10` porque no puede emitir el idToken.
+  // Inyección en build:
+  //   flutter run --dart-define=GOOGLE_WEB_CLIENT_ID=xxxx.apps.googleusercontent.com
+  static const String googleWebClientId = String.fromEnvironment(
+    'GOOGLE_WEB_CLIENT_ID',
+    defaultValue: '',
+  );
+
   // --- IA & GEMINI ---
   static const String geminiApiKey = String.fromEnvironment(
     'GEMINI_API_KEY',
