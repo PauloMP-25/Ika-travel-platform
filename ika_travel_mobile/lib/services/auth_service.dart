@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 
@@ -188,8 +189,23 @@ class AuthService {
   }) async {
     cargandoNotifier.value = true;
     try {
+      // `serverClientId` (Client ID de tipo Web) es obligatorio en Android
+      // para poder emitir el `idToken` que valida el backend. Sin él,
+      // Google Sign-In lanza `PlatformException(sign_in_failed, ApiException: 10)`.
+      final String webClientId = ApiConfig.googleWebClientId;
+      if (webClientId.isEmpty) {
+        cargandoNotifier.value = false;
+        return const ResultadoAuth(
+          exitoso: false,
+          mensaje:
+              'Google Sign-In sin configurar: falta GOOGLE_WEB_CLIENT_ID. '
+              'Ejecuta la app con --dart-define=GOOGLE_WEB_CLIENT_ID=<client_id_web>.',
+        );
+      }
+
       final GoogleSignIn googleSignIn = GoogleSignIn(
         scopes: ['email', 'profile'],
+        serverClientId: webClientId,
       );
 
       // Forzar selección de cuenta (por si había una sesión previa)
@@ -311,6 +327,33 @@ class AuthService {
       return const ResultadoAuth(
         exitoso: false,
         mensaje: 'No se pudo iniciar sesión con Google. Intenta de nuevo.',
+      );
+    } on PlatformException catch (e) {
+      cargandoNotifier.value = false;
+      debugPrint('Google Sign-In falló: ${e.code} ${e.message}');
+
+      if (e.code == '10' || e.message?.contains('ApiException: 10') == true) {
+        // ApiException 10 = DEVELOPER_ERROR: SHA-1/paquete no registrado
+        // en Google Cloud Console o serverClientId inválido.
+        return const ResultadoAuth(
+          exitoso: false,
+          mensaje:
+              'Error de configuración de Google (ApiException 10). '
+              'Verifica que el SHA-1 de tu keystore y el paquete '
+              'com.example.ika_travel_mobile estén registrados en Google '
+              'Cloud Console, y que GOOGLE_WEB_CLIENT_ID sea el Client ID '
+              'de tipo Web.',
+        );
+      }
+      if (e.code == '12501' || e.code == 'SIGN_IN_CANCELLED') {
+        return const ResultadoAuth(
+          exitoso: false,
+          mensaje: 'Inicio de sesión con Google cancelado.',
+        );
+      }
+      return ResultadoAuth(
+        exitoso: false,
+        mensaje: 'Error al iniciar con Google (${e.code}): ${e.message}',
       );
     } catch (e) {
       cargandoNotifier.value = false;

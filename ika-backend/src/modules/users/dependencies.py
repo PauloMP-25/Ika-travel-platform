@@ -12,7 +12,7 @@ from src.core.rate_limit import limit_requests
 from src.core.config import configuracion
 from src.core.security import decode_access_token_payload, segundos_enteros
 from src.modules.users.exceptions import InvalidCredentialsException
-from src.modules.users.models import User, UserRole
+from src.modules.users.models import ROLE_DIRCETUR_ADMIN_ID, User
 
 # Requiere que `users_router` se monte con `prefix="/api/v1"` en main.py.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
@@ -56,8 +56,12 @@ async def get_current_user(
 async def require_dircetur_admin(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> User:
-    """Verifica que el usuario autenticado tenga rol de administrador DIRCETUR."""
-    if current_user.role != UserRole.DIRCETUR_ADMIN:
+    """Verifica que el usuario autenticado tenga rol de administrador DIRCETUR.
+
+    El permiso se resuelve contra la llave foránea `users.role_id` ->
+    `roles.id` (fuente de verdad de los actores de negocio).
+    """
+    if current_user.role_id != ROLE_DIRCETUR_ADMIN_ID:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Operación restringida al personal autorizado de DIRCETUR Ica.",

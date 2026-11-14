@@ -9,7 +9,12 @@ from src.core.security import create_access_token
 from src.modules.catalog.models import Attraction
 from src.modules.emergency.models import IncidentStatus, IncidentType, TouristIncidentReport
 from src.modules.reviews.models import Favorite, Review
-from src.modules.users.models import User, UserRole
+from src.modules.users.models import (
+    ROLE_DIRCETUR_ADMIN_ID,
+    ROLE_TOURIST_ID,
+    User,
+    UserRole,
+)
 from src.modules.analytics.models import UsageEvent, UsageEventType
 from tests.conftest import run
 
@@ -20,6 +25,12 @@ def _create_user(db_session, email, role=UserRole.TOURIST, lang="es", prefs=None
         password_hash="fakehashedpassword",
         full_name=f"User {email}",
         role=role,
+        # Corrección N.º 14: los permisos se resuelven vía `role_id`.
+        role_id=(
+            ROLE_DIRCETUR_ADMIN_ID
+            if role == UserRole.DIRCETUR_ADMIN
+            else ROLE_TOURIST_ID
+        ),
         preferred_language=lang,
         preferences=prefs or [],
         is_active=active,

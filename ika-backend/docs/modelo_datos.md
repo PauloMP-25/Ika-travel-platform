@@ -2,7 +2,7 @@
 ## Ika Travel & Experience
 
 **Alcance actual:**
-- **Usuarios & Autenticación (`users`)**: Cuentas, roles (`tourist`, `dircetur_admin`), idioma preferido (`es`, `en`), preferencias turísticas de Ica y autenticación JWT / OAuth.
+- **Usuarios & Autenticación (`users`)**: Cuentas vinculadas por FK `role_id` al catálogo de roles de negocio `roles` (`tourist`, `dircetur_admin`), idioma preferido (`es`, `en`), preferencias turísticas de Ica y autenticación JWT / OAuth.
 - **Catálogo (`catalog`)**: Atractivos turísticos, agencias formales validadas por DIRCETUR (RN-01), tours y categorías.
 - **Clima & IA (`weather`)**: Integración con Aggregator Pattern (Open-Meteo, OpenWeatherMap, WeatherAPI), regla RN-03 (caché Redis 6h + persistencia de snapshots en DB), recomendador IA con Google Gemini con afinidad personalizada y alertas meteorológicas.
 - **Asistencia SOS & Fiscalización DIRCETUR (`emergency`)**: Botón de pánico geolocalizado (RN-04) con despacho Celery multicanal, directorio oficial de llamadas de emergencia en Ica y denuncias de informalidad turística (RF-05 / CUN06).
@@ -25,13 +25,25 @@
 | `phone` | String(32), nullable | Para notificaciones SMS de emergencia |
 | `auth_provider` | Enum(`email`, `google`, `facebook`) | Proveedor de autenticación |
 | `provider_id` | String(255), nullable | Identificador externo OAuth |
-| `role` | Enum(`tourist`, `dircetur_admin`) | Rol para permisos de fiscalización |
+| `role` | Enum(`tourist`, `dircetur_admin`) | Espejo de compatibilidad (API/cliente); fuente de verdad: `role_id` |
+| `role_id` | UUID, FK → `roles.id`, NOT NULL | Llave foránea al catálogo de roles de negocio (Corrección N.º 14). Default: rol `tourist` |
 | `preferred_language` | String(5), default `"es"` | `"es"` o `"en"` para internacionalización |
 | `preferences` | JSON, default `[]` | Lista de categorías de interés en Ica |
 | `is_active` | Boolean, default `True` | Estado de la cuenta |
 | `created_at` / `updated_at` | DateTime (tz) | Auditoría temporal |
 
+**`Role`** (tabla `roles`, Corrección N.º 14)
+| Campo | Tipo | Notas |
+|---|---|---|
+| `id` | UUID (PK) | Fijo en el seed (`1111…0001` tourist, `2222…0002` dircetur_admin) |
+| `name` | String(50), unique (`uq_roles_name`) | Actor de negocio (`tourist`, `dircetur_admin`) |
+| `description` | String(255) | Descripción del rol según el informe |
+| `created_at` | DateTime (tz) | Auditoría temporal |
+
+Seed de `roles` (migración `b7c9e1f4a2d6`): `tourist` y `dircetur_admin`, alineados con los actores de negocio del informe. Los permisos de administrador (`require_dircetur_admin`, borrado de reseñas) se resuelven comparando `users.role_id` con el UUID del rol `dircetur_admin`. No se aplica RLS: el proyecto autoriza en la capa de backend (JWT + dependencias).
+
 **Relaciones:**
+- `Role` 1:N `User`
 - `User` 1:N `Review`
 - `User` 1:N `Favorite`
 - `User` 1:N `SOSReport`
