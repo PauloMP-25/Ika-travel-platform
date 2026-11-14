@@ -49,3 +49,6 @@ app.*.map.json
 # Plataformas de escritorio no utilizadas
 windows/
 linux/
+
+# Variables de entorno y credenciales
+.env*
