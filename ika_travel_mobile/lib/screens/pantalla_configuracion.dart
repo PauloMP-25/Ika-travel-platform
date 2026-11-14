@@ -46,9 +46,11 @@ class _PantallaConfiguracionState extends State<PantallaConfiguracion> {
         ),
         centerTitle: true,
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
+      body: SafeArea(
+        top: false,
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
           Text(
             context.tr('preferencias'),
             style: TextStyle(
@@ -107,10 +109,10 @@ class _PantallaConfiguracionState extends State<PantallaConfiguracion> {
                       },
                     );
                   },
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
-          ),
           const SizedBox(height: 30),
           Text(
             context.tr('region'),
@@ -363,6 +365,7 @@ class _PantallaConfiguracionState extends State<PantallaConfiguracion> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

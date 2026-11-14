@@ -265,12 +265,14 @@ class _PantallaMapaState extends State<PantallaMapa> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
       builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               Text(
                 context.tr('filtrar_categoria'),
                 style: TextStyle(
@@ -286,7 +288,8 @@ class _PantallaMapaState extends State<PantallaMapa> {
               _itemFiltro(context.tr('categoria_gastronomia'), colorTexto),
               _itemFiltro(context.tr('categoria_cultura'), colorTexto),
               const SizedBox(height: 10),
-            ],
+              ],
+            ),
           ),
         );
       },

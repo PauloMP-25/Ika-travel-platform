@@ -69,11 +69,13 @@ class PantallaDetalleAlerta extends StatelessWidget {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             _buildEncabezadoAlerta(
               context,
               colorTarjeta,
@@ -99,8 +101,9 @@ class PantallaDetalleAlerta extends StatelessWidget {
             ],
             const SizedBox(height: 24),
             _buildBotonSeguimientoDestino(context),
-            const SizedBox(height: 30),
-          ],
+              const SizedBox(height: 30),
+            ],
+          ),
         ),
       ),
     );

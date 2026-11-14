@@ -85,10 +85,12 @@ class _PantallaInicioState extends State<PantallaInicio> {
 
     return Scaffold(
       backgroundColor: colorFondoApp,
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             ClipRRect(
               borderRadius: const BorderRadius.only(
                 bottomLeft: Radius.circular(30),
@@ -628,8 +630,9 @@ class _PantallaInicioState extends State<PantallaInicio> {
                 ],
               ),
             ),
-            const SizedBox(height: 30),
-          ],
+              const SizedBox(height: 30),
+            ],
+          ),
         ),
       ),
     );

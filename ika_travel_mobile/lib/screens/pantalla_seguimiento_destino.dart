@@ -384,10 +384,12 @@ class _PantallaSeguimientoDestinoState
               ),
             ],
           ),
-          body: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+          body: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 _buildSelectorDestinos(destinos),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -403,11 +405,12 @@ class _PantallaSeguimientoDestinoState
                       _buildHistorialCambios(destinoActual),
                       const SizedBox(height: 20),
                       _buildAlertasRelacionadas(destinoActual),
-                      const SizedBox(height: 30),
-                    ],
+                        const SizedBox(height: 30),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );

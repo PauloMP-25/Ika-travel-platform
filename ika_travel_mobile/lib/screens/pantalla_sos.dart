@@ -368,9 +368,9 @@ class _PantallaSosState extends State<PantallaSos> {
                       return null;
                     },
                   ),
-                ],
-              ),
+              ],
             ),
+          ),
           ),
           actions: [
             TextButton(
@@ -469,10 +469,12 @@ class _PantallaSosState extends State<PantallaSos> {
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               Center(
                 child: Container(
                   width: 40,
@@ -693,7 +695,8 @@ class _PantallaSosState extends State<PantallaSos> {
                   },
                 ),
               ),
-            ],
+              ],
+            ),
           ),
         );
       },
