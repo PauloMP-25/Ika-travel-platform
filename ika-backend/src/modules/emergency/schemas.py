@@ -19,16 +19,31 @@ class SOSCreate(BaseModel):
     latitude: float | None = None
     longitude: float | None = None
     description: str | None = Field(default=None, max_length=2000)
+    contact_name: str | None = Field(default=None, max_length=200, description="Nombre del contacto de confianza")
+    contact_phone: str | None = Field(default=None, max_length=50, description="Teléfono del contacto de confianza")
+
+
+class EmergencyNotificationItem(BaseModel):
+    """Detalle de una notificación generada por un reporte de emergencia (Corrección N° 7)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    channel: str
+    recipient: str
+    status: str
+    sent_at: datetime | None = None
 
 
 class SOSResponse(BaseModel):
-    """Confirmación de que el reporte quedó registrado."""
+    """Confirmación de que el reporte quedó registrado con sus notificaciones."""
 
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
     status: str
     created_at: datetime
+    notifications: list[EmergencyNotificationItem] = Field(default_factory=list)
 
 
 class SOSStatusResponse(BaseModel):
