@@ -68,17 +68,19 @@ class _PantallaAdminDirceturState extends State<PantallaAdminDircetur>
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(ctx).viewInsets.bottom,
-          left: 20,
-          right: 20,
-          top: 20,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+      builder: (ctx) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+            left: 20,
+            right: 20,
+            top: 20,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
               Text(
                 item == null ? 'Nuevo Atractivo' : 'Editar Atractivo',
                 style: TextStyle(
@@ -175,7 +177,8 @@ class _PantallaAdminDirceturState extends State<PantallaAdminDircetur>
                 ),
               ),
               const SizedBox(height: 20),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -223,17 +226,19 @@ class _PantallaAdminDirceturState extends State<PantallaAdminDircetur>
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(ctx).viewInsets.bottom,
-          left: 20,
-          right: 20,
-          top: 20,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+      builder: (ctx) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+            left: 20,
+            right: 20,
+            top: 20,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
               Text(
                 item == null ? 'Nueva Agencia' : 'Editar Agencia',
                 style: TextStyle(
@@ -315,7 +320,8 @@ class _PantallaAdminDirceturState extends State<PantallaAdminDircetur>
                 ),
               ),
               const SizedBox(height: 20),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -391,17 +397,22 @@ class _PantallaAdminDirceturState extends State<PantallaAdminDircetur>
               child: const Icon(Icons.add, color: Colors.white),
             )
           : null,
-      body: _cargando
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColores.naranjaBoton),
-            )
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                _buildTabAtractivos(colorTexto),
-                _buildTabAgencias(colorTexto),
-                _buildTabReportes(colorTexto),
-              ],
+      body: SafeArea(
+        top: false,
+        child: _cargando
+            ? const Center(
+                child: CircularProgressIndicator(
+                  color: AppColores.naranjaBoton,
+                ),
+              )
+            : TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildTabAtractivos(colorTexto),
+                  _buildTabAgencias(colorTexto),
+                  _buildTabReportes(colorTexto),
+                ],
+              ),
             ),
     );
   }

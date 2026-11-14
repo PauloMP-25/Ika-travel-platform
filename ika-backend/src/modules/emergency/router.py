@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 from src.modules.emergency import service
 from src.modules.emergency.models import IncidentStatus
 from src.modules.emergency.schemas import (
+    EmergencyNotificationItem,
     IncidentHistoryItem,
     SOSCreate,
     SOSResponse,
@@ -99,7 +100,7 @@ async def create_sos_report(
     db: DbSession,
     clave: IdempotencyKey,
 ) -> SOSResponse:
-    """Registra una emergencia con la ubicación GPS del usuario (RN-04).
+    """Registra una emergencia con la ubicación GPS del usuario (RN-04) y guarda sus notificaciones (Corrección N° 7).
 
     Con cabecera `Idempotency-Key` repetida y mismo payload devuelve 200 con
     `Idempotent-Replayed: true` y no vuelve a despachar notificaciones.
@@ -144,6 +145,22 @@ async def get_report_status(
     """Estado de un reporte; 403 si intentas consultar el de otro usuario."""
     report = await service.get_report_for_user(db, report_id, current_user)
     return SOSStatusResponse.model_validate(report)
+
+
+@emergency_router.get(
+    "/emergency/sos/{report_id}/notifications",
+    response_model=list[EmergencyNotificationItem],
+    tags=["emergency"],
+    summary="Listar notificaciones generadas para un reporte SOS (Corrección N° 7)",
+)
+async def list_sos_notifications(
+    report_id: UUID,
+    current_user: CurrentUser,
+    db: DbSession,
+) -> list[EmergencyNotificationItem]:
+    """Retorna las notificaciones de auxilio creadas y guardadas en la base de datos para la emergencia."""
+    notifs = await service.get_sos_notifications(db, report_id, current_user)
+    return [EmergencyNotificationItem.model_validate(n) for n in notifs]
 
 
 # ============================================================================

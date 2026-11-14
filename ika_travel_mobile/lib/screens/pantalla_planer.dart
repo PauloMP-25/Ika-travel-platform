@@ -628,8 +628,10 @@ class _PanelInferiorState extends State<_PanelInferior> {
           ),
         ],
       ),
-      child: Column(
-        children: [
+      child: SafeArea(
+        top: false,
+        child: Column(
+          children: [
           // Handle + toggle
           GestureDetector(
             onTap: () => setState(() => _expandido = !_expandido),
@@ -743,7 +745,8 @@ class _PanelInferiorState extends State<_PanelInferior> {
               ),
             ),
           ],
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1678,8 +1681,10 @@ class _SelectorDestinoState extends State<_SelectorDestino> {
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: Column(
-        children: [
+      child: SafeArea(
+        top: false,
+        child: Column(
+          children: [
           // Handle
           const SizedBox(height: 8),
           Container(
@@ -1773,7 +1778,8 @@ class _SelectorDestinoState extends State<_SelectorDestino> {
               },
             ),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1868,8 +1874,10 @@ class _SelectorOrigenState extends State<_SelectorOrigen> {
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: Column(
-        children: [
+      child: SafeArea(
+        top: false,
+        child: Column(
+          children: [
           const SizedBox(height: 8),
           Container(
             width: 36,
@@ -1990,7 +1998,8 @@ class _SelectorOrigenState extends State<_SelectorOrigen> {
               },
             ),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }

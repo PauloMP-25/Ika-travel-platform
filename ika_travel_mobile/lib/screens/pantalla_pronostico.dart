@@ -242,8 +242,10 @@ class _PantallaPronosticoState extends State<PantallaPronostico> {
     if (_cargando) {
       return Scaffold(
         backgroundColor: TemaApp.fondo(context),
-        body: const Center(
-          child: CircularProgressIndicator(color: AppColores.naranjaBoton),
+        body: const SafeArea(
+          child: Center(
+            child: CircularProgressIndicator(color: AppColores.naranjaBoton),
+          ),
         ),
       );
     }

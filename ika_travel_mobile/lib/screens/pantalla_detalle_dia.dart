@@ -154,10 +154,12 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
 
     return Scaffold(
       backgroundColor: TemaApp.fondo(context),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             Stack(
               children: [
                 SizedBox(
@@ -518,8 +520,9 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
                 ],
               ),
             ),
-            const SizedBox(height: 30),
-          ],
+              const SizedBox(height: 30),
+            ],
+          ),
         ),
       ),
     );

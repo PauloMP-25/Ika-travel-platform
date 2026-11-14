@@ -399,9 +399,9 @@ class _PantallaSosState extends State<PantallaSos> {
                       return null;
                     },
                   ),
-                ],
-              ),
+              ],
             ),
+          ),
           ),
           actions: [
             TextButton(
@@ -500,10 +500,12 @@ class _PantallaSosState extends State<PantallaSos> {
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               Center(
                 child: Container(
                   width: 40,
@@ -627,6 +629,8 @@ class _PantallaSosState extends State<PantallaSos> {
                       await _sosService.enviarAlertaAutomatica(
                         telefono: contacto.telefono,
                         mensaje: mensaje,
+                        contacto: contacto,
+                        descripcionAccidente: _motivoDetalleCtrl.text,
                       );
                     },
                   ),
@@ -648,7 +652,7 @@ class _PantallaSosState extends State<PantallaSos> {
                         label: const Text('WhatsApp', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                         onPressed: () async {
                           Navigator.pop(ctx);
-                          // Corrección N.º 10: registrar también el despacho manual.
+                          // Corrección N.º 10 y N.º 7: registrar también el despacho manual en BD.
                           _registrarAlertaEnBackend();
                           await _sosService.abrirWhatsApp(
                             telefono: contacto.telefono,
@@ -670,7 +674,7 @@ class _PantallaSosState extends State<PantallaSos> {
                         label: const Text('SMS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                         onPressed: () async {
                           Navigator.pop(ctx);
-                          // Corrección N.º 10: registrar también el despacho manual.
+                          // Corrección N.º 10 y N.º 7: registrar también el despacho manual en BD.
                           _registrarAlertaEnBackend();
                           await _sosService.abrirSms(
                             telefono: contacto.telefono,
@@ -730,7 +734,8 @@ class _PantallaSosState extends State<PantallaSos> {
                   },
                 ),
               ),
-            ],
+              ],
+            ),
           ),
         );
       },

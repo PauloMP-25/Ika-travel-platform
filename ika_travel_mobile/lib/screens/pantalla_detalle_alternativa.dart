@@ -66,10 +66,12 @@ class PantallaDetalleAlternativa extends StatelessWidget {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             Stack(
               children: [
                 SizedBox(
@@ -185,6 +187,7 @@ class PantallaDetalleAlternativa extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }
