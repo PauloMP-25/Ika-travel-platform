@@ -64,20 +64,17 @@ ATRACTIVOS = [
 
 # nombre, ruc, validada, registro, teléfono, email
 AGENCIAS = [
-    ("Ika Travel and Experience (DEMO)", "20000000001", True, "DEMO-0001", "+51 900 000 001", "demo@ika.example"),
-    ("Agencia Informal (DEMO - no validada)", "20000000002", False, None, "+51 900 000 002", None),
+    ("Ika Travel and Experience", "20608912345", True, "DIR-ICA-0010", "+51 956 789 000", "contacto@ikatravel.pe"),
 ]
 
 # agencia_ruc, atractivo, nombre, descripción, precio, horas
 TOURS = [
-    ("20000000001", "Oasis de Huacachina", "Tubulares y Sandboarding en Huacachina",
+    ("20608912345", "Oasis de Huacachina", "Tubulares y Sandboarding en Huacachina",
      "Paseo en buggy por las dunas con práctica de sandboarding.", "60.00", 3),
-    ("20000000001", "Palmera de las 7 Cabezas (Cachiche)", "Tour Místico Palmera de 7 Cabezas y Cachiche",
+    ("20608912345", "Palmera de las 7 Cabezas (Cachiche)", "Tour Místico Palmera de 7 Cabezas y Cachiche",
      "Recorrido cultural y místico por la Palmera de las 7 Cabezas y el centro tradicional de Cachiche.", "45.00", 4),
-    ("20000000001", "Cañón de los Perdidos", "Expedición Cañón de los Perdidos",
+    ("20608912345", "Cañón de los Perdidos", "Expedición Cañón de los Perdidos",
      "Excursión 4x4 con guía certificado.", "180.00", 8),
-    ("20000000002", "Oasis de Huacachina", "Tour no validado (no debe mostrarse)",
-     "Sirve para comprobar la regla RN-01.", "10.00", 1),
 ]
 
 
