@@ -194,6 +194,10 @@ def resolver_coordenadas_destino(destino: str) -> tuple[float, float]:
         "plaza de armas de ica": "plaza de armas de ica",
         "plaza de armas": "plaza de armas de ica",
         "cerro blanco": "cerro blanco",
+        "subtanjalla": "subtanjalla",
+        "sotelo": "subtanjalla",
+        "tres generaciones": "subtanjalla",
+        "ocucaje": "ocucaje",
     }
     
     for palabra_clave, nombre_destino in mapeo_actividades.items():
@@ -248,13 +252,25 @@ async def resolver_ubicacion(
             raise AtractivoSinClimaException()
         return ubicacion_de_atractivo(atractivo)
     if destino:
-        latitud, longitud = resolver_coordenadas_destino(destino)
-        return Ubicacion(
-            clave=f"destino:{normalizar_nombre_destino(destino)}",
-            nombre=destino,
-            latitud=latitud,
-            longitud=longitud,
-        )
+        try:
+            latitud, longitud = resolver_coordenadas_destino(destino)
+            return Ubicacion(
+                clave=f"destino:{normalizar_nombre_destino(destino)}",
+                nombre=destino,
+                latitud=latitud,
+                longitud=longitud,
+            )
+        except DestinoNoEncontradoException:
+            resultado = await db.execute(
+                select(Attraction).where(
+                    (Attraction.district.ilike(f"%{destino}%")) | (Attraction.name.ilike(f"%{destino}%")),
+                    Attraction.is_active.is_(True),
+                ).limit(1)
+            )
+            atractivo = resultado.scalar_one_or_none()
+            if atractivo is not None:
+                return ubicacion_de_atractivo(atractivo)
+            raise
     return ubicacion_region()
 
 

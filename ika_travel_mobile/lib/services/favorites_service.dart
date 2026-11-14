@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import 'api_client.dart';
+import 'auth_service.dart';
 
 class FavoritesService {
   final ApiClient _apiClient;
@@ -12,6 +13,16 @@ class FavoritesService {
   Future<bool?> toggleRemoteFavorite(String attractionId) async {
     // Si no es un UUID válido (ej. IDs semilla '1', '2'), solo manejamos localmente
     if (attractionId.length < 32) return null;
+
+    final usuario = AuthService().usuarioActual;
+    final token = usuario?.token;
+    if (usuario == null ||
+        usuario.esInvitado ||
+        token == null ||
+        token.isEmpty ||
+        token.startsWith('jwt_offline')) {
+      return null;
+    }
 
     try {
       final res = await _apiClient.post(
@@ -30,6 +41,17 @@ class FavoritesService {
   /// Verifica si el atractivo está marcado como favorito en el backend
   Future<bool> checkIsFavorite(String attractionId) async {
     if (attractionId.length < 32) return false;
+
+    final usuario = AuthService().usuarioActual;
+    final token = usuario?.token;
+    if (usuario == null ||
+        usuario.esInvitado ||
+        token == null ||
+        token.isEmpty ||
+        token.startsWith('jwt_offline')) {
+      return false;
+    }
+
     try {
       final res = await _apiClient.get('/catalog/attractions/$attractionId/is-favorite');
       if (res is bool) return res;

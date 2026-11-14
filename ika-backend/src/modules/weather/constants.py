@@ -21,6 +21,8 @@ DESTINOS_ICA: dict[str, tuple[float, float]] = {
     "cerro blanco": (-14.1333, -75.7333),
     "pueblo de cachiche": (-14.0583, -75.7486),
     "cañon de los perdidos": (-14.6833, -75.7167),
+    "subtanjalla": (-14.0197, -75.7594),
+    "ocucaje": (-14.3472, -75.7000),
 }
 
 

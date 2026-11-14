@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
+import 'auth_service.dart';
 
 class ApiClient {
   // En Android Emulator 10.0.2.2 es localhost de la máquina host.
@@ -24,14 +25,22 @@ class ApiClient {
 
   ApiClient({http.Client? client}) : _client = client ?? http.Client();
 
+  Map<String, String> _buildHeaders(Map<String, String>? headers) {
+    final token = AuthService().usuarioActual?.token;
+    return {
+      'Accept': 'application/json',
+      ...ApiConfig.defaultHeaders,
+      if (token != null && token.isNotEmpty && !token.startsWith('jwt_offline'))
+        'Authorization': 'Bearer $token',
+      ...?headers,
+    };
+  }
+
   Future<dynamic> get(String endpoint, {Map<String, String>? headers}) async {
     final uri = Uri.parse('$baseUrl$endpoint');
     final response = await _client.get(
       uri,
-      headers: {
-        ...ApiConfig.defaultHeaders,
-        ...?headers,
-      },
+      headers: _buildHeaders(headers),
     );
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -54,8 +63,7 @@ class ApiClient {
       uri,
       headers: {
         'Content-Type': 'application/json',
-        ...ApiConfig.defaultHeaders,
-        ...?headers,
+        ..._buildHeaders(headers),
       },
       body: body != null ? jsonEncode(body) : null,
     );
