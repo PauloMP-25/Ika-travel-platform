@@ -199,3 +199,48 @@ No se arregla con un `git pull`, porque no vive en el repositorio:
 - **HTTPS Automático:** Caddy administra y renueva certificados SSL/TLS oficiales de Let's Encrypt de forma automática sin intervención manual.
 - **Protección de Credenciales:** Plantilla `.env.production.example` con comentarios detallados y `.gitignore` reforzado para impedir la fuga de secretos.
 - **Guía de Despliegue:** Documento detallado en `docs/despliegue_vps.md` con instrucciones paso a paso para el aprovisionamiento y mantenimiento en el VPS.
+
+
+---
+
+## 12. Patrones de Diseño (Facade & Strategy), Personalización TikTok-Style y Detalle Integral de Agencias DIRCETUR
+
+### Patrones de Diseño GoF en la Lógica de Negocio
+- **Strategy Pattern (`RecommendationStrategyFactory`):**
+  - Implementación en `src/modules/weather/strategies.py` desacoplando los algoritmos de afinidad turística y ponderación climática según el perfil y la categoría:
+    - `AventuraStrategy`: Premia actividades como tubulares, sandboarding y deportes extremos en dunas; castiga vientos superiores a 25 km/h.
+    - `EnoturismoStrategy`: Especializada en rutas pisqueras, catas y bodegas tradicionales; prioriza clima templado y tours bajo sombra o en interior.
+    - `NaturalezaMarinaStrategy`: Optimizada para avistamiento de fauna marina y navegación marítima en Paracas; sensible a oleaje y vientos Paracas.
+    - `CulturalPatrimonialStrategy`: Diseñada para arqueología, museos y centros históricos (Líneas de Nasca, Cachiche, Tambo Colorado).
+    - `BalancedGeneralStrategy`: Estrategia equilibrada multiactividad para perfiles generales o sin preferencias explícitas.
+  - Cada estrategia genera dinámicamente directivas personalizadas inyectadas en `<directiva_estrategia>` dentro del prompt de Gemini AI.
+- **Facade Pattern (`WeatherRecommendationFacade`):**
+  - Implementación en `src/modules/weather/facade.py` unificando y orquestando:
+    1. Agregador meteorológico consensuado (Open-Meteo, OpenWeatherMap, WeatherAPI).
+    2. Evaluación georreferenciada de reglas de seguridad (`rules.py`).
+    3. Selección e invocación de la estrategia de recomendación adecuada.
+    4. Redacción estructurada con IA generativa (Gemini AI) y fallback determinista.
+    5. Evaluación de seguridad horaria oficial (DIRCETUR, SERNANP, DICAPI).
+
+### Personalización de Recomendaciones basada en Perfil de Turista (TikTok-Style)
+- **Captura y Propagación de Preferencias:**
+  - El backend (`/recommendation-of-the-day` y `/recommendations/{attraction_id}`) ahora recibe parámetros opcionales de consulta (`preferencias`, `estilo`, `presupuesto`, `compania`), combinándolos automáticamente con las preferencias del perfil persistidas en base de datos.
+  - El frontend móvil sincroniza las preferencias del usuario (`PreferenciasService`) en las solicitudes HTTP hacia el backend, permitiendo que la IA adapte el tono, el tipo de actividades y los consejos a su perfil de viaje (ej. "Aventurero", "Económico", con amigos).
+
+### Corrección de Discordancias Térmicas y Valores Residuales (Cero Hardcoding)
+- **Eliminación del Fallback Residual de 26°C:**
+  - Se identificó que la mención a 26°C se originaba por un timeout corto (8s) en el cliente móvil que activaba `GeminiService.generarRecomendacionDelDia()` con valores por defecto locales.
+  - Se aumentó el timeout a 25 segundos para permitir la respuesta fluida del backend sobre ngrok.
+  - En caso de desconexión u operación offline, `obtenerRecomendacionDelDia()` consulta el clima real dinámico del Oasis de Huacachina (28°C - 32°C) antes de invocar el motor de respaldo, erradicando cualquier temperatura fija.
+
+### Padrón y Servicios de Agencias Formalizadas DIRCETUR
+- **Migración de Base de Datos:**
+  - Migración Alembic `4c8877ef9901_add_address_and_business_hours_to_agency.py` agregando columnas `address` (VARCHAR 250) y `business_hours` (VARCHAR 100) a la tabla `agency`.
+- **Actualización de Schemas y Seed:**
+  - `AgencyListItem` y `AgencyDetailResponse` exponen ahora `ruc`, `dircetur_registry_number`, `contact_phone`, `contact_email`, `address`, `business_hours` y `tours`.
+  - El seed (`seed.py`) incorpora datos reales y verificados de agencias formales en Ica, Huacachina y Paracas.
+- **Visualización Integral en Pantalla de Prestadores (`PantallaPrestadores`):**
+  - Al presionar una agencia en la pestaña "Servicios", el modal emergente consulta dinámicamente el detalle del prestador vía `obtenerDetallePrestador(prestador.id)`.
+  - Muestra datos institucionales completos: RUC, N° de Padrón DIRCETUR, Dirección física, Horarios de atención, insignia de estado formal validado y descargo de contratación directa sin intermediación de pagos.
+  - Canales oficiales de contacto operativos: botones interactivos de WhatsApp (con mensaje preconfigurado), llamada directa y correo electrónico.
+  - Listado completo de tours certificados con nombre, descripción, precio en Soles (S/.), duración en horas y destino asociado.
