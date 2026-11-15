@@ -3,12 +3,20 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
-import '../config/tema.dart';
 import '../config/colores_tema.dart';
+import '../config/navegacion_service.dart';
+import '../config/tema.dart';
 import '../config/traducciones_scope.dart';
+import '../models/lugar_modelo.dart';
+import '../services/lugares_service.dart';
 import 'pantalla_detalle.dart';
 import 'pantalla_mas.dart';
 
+/// Mapa turístico de Ica.
+///
+/// Los lugares son los mismos que muestra la galería de Actividades: ambos
+/// los piden a [LugaresService], que los trae de la base de datos. Cada pin se
+/// colorea según su categoría, igual que en la galería.
 class PantallaMapa extends StatefulWidget {
   const PantallaMapa({super.key});
 
@@ -16,150 +24,161 @@ class PantallaMapa extends StatefulWidget {
   State<PantallaMapa> createState() => _PantallaMapaState();
 }
 
-class _PantallaMapaState extends State<PantallaMapa> {
+class _PantallaMapaState extends State<PantallaMapa>
+    with TickerProviderStateMixin {
+  /// Vista general de la región.
+  static const LatLng _centroIca = LatLng(-14.06402, -75.72907);
+  static const double _zoomRegion = 9.5;
+
+  /// Zoom al que se acerca el mapa cuando se elige un lugar concreto.
+  static const double _zoomLugar = 16.0;
+
   final MapController _mapController = MapController();
   final TextEditingController _busquedaController = TextEditingController();
   final FocusNode _focusBusqueda = FocusNode();
+  final LugaresService _lugaresService = LugaresService();
+
+  AnimationController? _animMovimiento;
+
+  List<LugarIca> _lugares = const [];
+  List<String> _categorias = const [];
+  bool _cargando = true;
+  bool _mapaListo = false;
 
   String _textoBusqueda = '';
   String _filtroActual = 'Todas';
-  Map<String, dynamic>? _seleccionada;
+  LugarIca? _seleccionado;
+
   LatLng? _miUbicacion;
   bool _obteniendoGps = false;
-
-  final List<Map<String, dynamic>> _ubicaciones = [
-    {
-      'titulo': 'Sandboarding en Huacachina',
-      'subtitulo': 'Ica',
-      'lat': -14.08726,
-      'lng': -75.76311,
-      'condicion': 'Excelente',
-      'indice': '95/100',
-      'categoria': 'Aventura',
-      'imagen': 'assets/images/detalle_sandboarding_1.jpg',
-      'imagenes_detalle': [
-        'assets/images/detalle_sandboarding_1.jpg',
-        'assets/images/detalle_sandboarding_2.jpg',
-        'assets/images/detalle_sandboarding_3.jpg',
-      ],
-    },
-    {
-      'titulo': 'Laguna de Huacachina',
-      'subtitulo': 'Ica',
-      'lat': -14.08726,
-      'lng': -75.76311,
-      'condicion': 'Excelente',
-      'indice': '94/100',
-      'categoria': 'Naturaleza',
-      'imagen': 'assets/images/carrusel_1_huacachina.jpg',
-      'imagenes_detalle': [
-        'assets/images/carrusel_1_huacachina.jpg',
-        'assets/images/detalle_sandboarding_1.jpg',
-      ],
-    },
-    {
-      'titulo': 'Islas Ballestas',
-      'subtitulo': 'Paracas',
-      'lat': -13.73594,
-      'lng': -76.39419,
-      'condicion': 'Excelente',
-      'indice': '88/100',
-      'categoria': 'Naturaleza',
-      'imagen': 'assets/images/act_ballestas1.jpg',
-      'imagenes_detalle': [
-        'assets/images/act_ballestas1.jpg',
-        'assets/images/detalle_ballestas_2.jpg',
-        'assets/images/detalle_ballestas_3.jpg',
-      ],
-    },
-    {
-      'titulo': 'Reserva Nacional de Paracas',
-      'subtitulo': 'Paracas',
-      'lat': -13.91164,
-      'lng': -76.31840,
-      'condicion': 'Bueno',
-      'indice': '75/100',
-      'categoria': 'Naturaleza',
-      'imagen': 'assets/images/act_reserva1.jpg',
-      'imagenes_detalle': [
-        'assets/images/act_reserva1.jpg',
-        'assets/images/detalle_reserva_2.jpg',
-        'assets/images/detalle_reserva_3.jpg',
-      ],
-    },
-    {
-      'titulo': 'Viñedos y Bodega Tacama',
-      'subtitulo': 'Ica',
-      'lat': -14.00096,
-      'lng': -75.71696,
-      'condicion': 'Excelente',
-      'indice': '90/100',
-      'categoria': 'Gastronomía',
-      'imagen': 'assets/images/act_vinos.jpg',
-      'imagenes_detalle': [
-        'assets/images/act_vinos.jpg',
-        'assets/images/detalle_vinos_2.jpg',
-        'assets/images/detalle_vinos_3.jpg',
-      ],
-    },
-    {
-      'titulo': 'Plaza de Armas de Ica',
-      'subtitulo': 'Ica',
-      'lat': -14.06380,
-      'lng': -75.72883,
-      'condicion': 'Excelente',
-      'indice': '92/100',
-      'categoria': 'Cultura',
-      'imagen': 'assets/images/carrusel_2_vinos.jpg',
-      'imagenes_detalle': ['assets/images/carrusel_2_vinos.jpg'],
-    },
-    {
-      'titulo': 'Santuario del Señor de Luren',
-      'subtitulo': 'Ica',
-      'lat': -14.07066,
-      'lng': -75.72553,
-      'condicion': 'Excelente',
-      'indice': '89/100',
-      'categoria': 'Cultura',
-      'imagen': 'assets/images/act_buggy1.jpg',
-      'imagenes_detalle': ['assets/images/act_buggy1.jpg'],
-    },
-    {
-      'titulo': 'Cachiche (Pueblo de las Brujas)',
-      'subtitulo': 'Ica',
-      'lat': -14.09479,
-      'lng': -75.73557,
-      'condicion': 'Bueno',
-      'indice': '82/100',
-      'categoria': 'Cultura',
-      'imagen': 'assets/images/detalle_buggy_2.jpg',
-      'imagenes_detalle': ['assets/images/detalle_buggy_2.jpg'],
-    },
-    {
-      'titulo': 'Cañón de los Perdidos',
-      'subtitulo': 'Ocucaje, Ica',
-      'lat': -14.73723,
-      'lng': -75.50946,
-      'condicion': 'Bueno',
-      'indice': '86/100',
-      'categoria': 'Aventura',
-      'imagen': 'assets/images/act_buggy1.jpg',
-      'imagenes_detalle': [
-        'assets/images/act_buggy1.jpg',
-        'assets/images/detalle_buggy_3.jpg',
-      ],
-    },
-  ];
 
   @override
   void initState() {
     super.initState();
     _busquedaController.addListener(() {
-      setState(() {
-        _textoBusqueda = _busquedaController.text;
-      });
+      if (_textoBusqueda == _busquedaController.text) return;
+      setState(() => _textoBusqueda = _busquedaController.text);
     });
+    _focusBusqueda.addListener(() => setState(() {}));
+    NavegacionService.lugarEnfocadoNotifier.addListener(_atenderFoco);
+    _cargarLugares();
     _centrarEnMiUbicacion(pedirPermiso: false, autoCentrar: false);
+  }
+
+  @override
+  void dispose() {
+    NavegacionService.lugarEnfocadoNotifier.removeListener(_atenderFoco);
+    _animMovimiento?.dispose();
+    _busquedaController.dispose();
+    _focusBusqueda.dispose();
+    super.dispose();
+  }
+
+  // ------------------------------------------------------------------
+  // Datos
+  // ------------------------------------------------------------------
+
+  Future<void> _cargarLugares({bool forzar = false}) async {
+    if (mounted) setState(() => _cargando = true);
+    final lugares = await _lugaresService.obtenerLugares(forzarRecarga: forzar);
+    final categorias = await _lugaresService.obtenerCategorias();
+    if (!mounted) return;
+    setState(() {
+      _lugares = lugares;
+      _categorias = categorias;
+      _cargando = false;
+    });
+    // Si alguien pidió enfocar un lugar mientras cargábamos, lo atendemos ya.
+    _atenderFoco();
+  }
+
+  /// Solo los lugares que tienen coordenadas pueden dibujarse en el mapa.
+  List<LugarIca> get _conCoordenadas =>
+      _lugares.where((l) => l.tieneCoordenadas).toList();
+
+  List<LugarIca> get _filtrados => _lugaresService.filtrar(
+    _conCoordenadas,
+    categoria: _filtroActual,
+    texto: _textoBusqueda,
+  );
+
+  // ------------------------------------------------------------------
+  // Foco externo ("Ver en el mapa" desde el detalle)
+  // ------------------------------------------------------------------
+
+  void _atenderFoco() {
+    final id = NavegacionService.lugarEnfocadoNotifier.value;
+    if (id == null || _lugares.isEmpty) return;
+
+    final lugar = _lugares.firstWhere(
+      (l) => l.id == id,
+      orElse: () => _lugares.first,
+    );
+    if (lugar.id != id || !lugar.tieneCoordenadas) {
+      NavegacionService.lugarEnfocadoNotifier.value = null;
+      return;
+    }
+
+    NavegacionService.lugarEnfocadoNotifier.value = null;
+    // Esperamos el frame para que el mapa ya esté montado y con tamaño.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _seleccionarLugar(lugar);
+    });
+  }
+
+  // ------------------------------------------------------------------
+  // Movimiento del mapa
+  // ------------------------------------------------------------------
+
+  void _seleccionarLugar(LugarIca lugar, {double zoom = _zoomLugar}) {
+    setState(() => _seleccionado = lugar);
+    _focusBusqueda.unfocus();
+    final destino = lugar.coordenadas;
+    if (destino != null) _moverAnimado(destino, zoom);
+  }
+
+  /// Desplaza y acerca el mapa suavemente hasta un punto.
+  void _moverAnimado(LatLng destino, double zoomFinal) {
+    if (!_mapaListo) {
+      // El mapa aún no se ha dibujado: lo posicionamos sin animar.
+      try {
+        _mapController.move(destino, zoomFinal);
+      } catch (_) {
+        /* Se reintentará cuando el mapa esté listo. */
+      }
+      return;
+    }
+
+    final camara = _mapController.camera;
+    final latDesde = camara.center.latitude;
+    final lonDesde = camara.center.longitude;
+    final zoomDesde = camara.zoom;
+
+    _animMovimiento?.dispose();
+    final controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 750),
+    );
+    _animMovimiento = controller;
+
+    final curva = CurvedAnimation(parent: controller, curve: Curves.easeInOutCubic);
+    controller.addListener(() {
+      final t = curva.value;
+      _mapController.move(
+        LatLng(
+          latDesde + (destino.latitude - latDesde) * t,
+          lonDesde + (destino.longitude - lonDesde) * t,
+        ),
+        zoomDesde + (zoomFinal - zoomDesde) * t,
+      );
+    });
+    controller.forward();
+  }
+
+  void _verRegionCompleta() {
+    setState(() => _seleccionado = null);
+    _moverAnimado(_centroIca, _zoomRegion);
   }
 
   Future<void> _centrarEnMiUbicacion({
@@ -196,14 +215,9 @@ class _PantallaMapaState extends State<PantallaMapa> {
           timeLimit: const Duration(seconds: 8),
         );
         final nuevaUbi = LatLng(pos.latitude, pos.longitude);
-        if (mounted) {
-          setState(() {
-            _miUbicacion = nuevaUbi;
-          });
-          if (autoCentrar) {
-            _mapController.move(nuevaUbi, 15.5);
-          }
-        }
+        if (!mounted) return;
+        setState(() => _miUbicacion = nuevaUbi);
+        if (autoCentrar) _moverAnimado(nuevaUbi, 15.0);
       } else if (pedirPermiso && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(context.tr('gps_permiso_requerido'))),
@@ -216,43 +230,9 @@ class _PantallaMapaState extends State<PantallaMapa> {
     }
   }
 
-  @override
-  void dispose() {
-    _busquedaController.dispose();
-    _focusBusqueda.dispose();
-    super.dispose();
-  }
-
-  List<Map<String, dynamic>> get _ubicacionesFiltradas {
-    return _ubicaciones.where((u) {
-      final coincideCategoria =
-          _filtroActual == 'Todas' || u['categoria'] == _filtroActual;
-      if (!coincideCategoria) return false;
-
-      if (_textoBusqueda.trim().isEmpty) return true;
-
-      final query = _textoBusqueda.trim().toLowerCase();
-      final titulo = (u['titulo'] as String).toLowerCase();
-      final subtitulo = (u['subtitulo'] as String).toLowerCase();
-      final categoria = (u['categoria'] as String).toLowerCase();
-
-      return titulo.contains(query) ||
-          subtitulo.contains(query) ||
-          categoria.contains(query);
-    }).toList();
-  }
-
-  void _seleccionarLugar(Map<String, dynamic> lugar) {
-    setState(() {
-      _seleccionada = lugar;
-    });
-    _focusBusqueda.unfocus();
-    _mapController.move(LatLng(lugar['lat'], lugar['lng']), 13.0);
-  }
-
-  void _centrarMapaGeneral() {
-    _mapController.move(const LatLng(-14.06402, -75.72907), 10.0);
-  }
+  // ------------------------------------------------------------------
+  // Filtros
+  // ------------------------------------------------------------------
 
   void _mostrarFiltros() {
     final colorFondo = TemaApp.tarjeta(context);
@@ -262,17 +242,16 @@ class _PantallaMapaState extends State<PantallaMapa> {
       context: context,
       backgroundColor: colorFondo,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) {
-        return SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+      builder: (_) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Text(
                 context.tr('filtrar_categoria'),
                 style: TextStyle(
@@ -281,598 +260,733 @@ class _PantallaMapaState extends State<PantallaMapa> {
                   color: colorTexto,
                 ),
               ),
-              const SizedBox(height: 15),
-              _itemFiltro(context.tr('categoria_todas'), colorTexto),
-              _itemFiltro(context.tr('categoria_aventura'), colorTexto),
-              _itemFiltro(context.tr('categoria_naturaleza'), colorTexto),
-              _itemFiltro(context.tr('categoria_gastronomia'), colorTexto),
-              _itemFiltro(context.tr('categoria_cultura'), colorTexto),
-              const SizedBox(height: 10),
-              ],
-            ),
+              const SizedBox(height: 14),
+              _opcionFiltro('Todas', colorTexto),
+              for (final categoria in _categorias)
+                _opcionFiltro(categoria, colorTexto),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
-  Widget _itemFiltro(String titulo, Color colorTexto) {
-    bool seleccionado = _filtroActual == titulo;
+  Widget _opcionFiltro(String categoria, Color colorTexto) {
+    final esTodas = categoria == 'Todas';
+    final seleccionado = _filtroActual == categoria;
+    final estilo = CategoriasLugar.estilo(categoria);
+    final color = esTodas ? AppColores.naranjaBoton : estilo.color;
+
     return ListTile(
-      title: Text(titulo, style: TextStyle(color: colorTexto)),
-      trailing: seleccionado
-          ? const Icon(Icons.check, color: AppColores.naranjaBoton)
-          : null,
+      contentPadding: EdgeInsets.zero,
+      leading: Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(
+          esTodas ? Icons.apps_rounded : estilo.icono,
+          color: color,
+          size: 20,
+        ),
+      ),
+      title: Text(
+        esTodas ? context.tr('categoria_todas') : categoria,
+        style: TextStyle(
+          color: colorTexto,
+          fontWeight: seleccionado ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+      trailing: seleccionado ? Icon(Icons.check_rounded, color: color) : null,
       onTap: () {
         setState(() {
-          _filtroActual = titulo;
-          _seleccionada = null;
+          _filtroActual = categoria;
+          _seleccionado = null;
         });
         Navigator.pop(context);
       },
     );
   }
 
+  // ------------------------------------------------------------------
+  // UI
+  // ------------------------------------------------------------------
+
   @override
   Widget build(BuildContext context) {
-    final listaParaMostrar = _ubicacionesFiltradas;
     final colorTexto = TemaApp.texto(context);
-    final colorTextoSecundario = TemaApp.textoSecundario(context);
-    final colorTarjeta = TemaApp.tarjeta(context);
+    final visibles = _filtrados;
 
     final sugerencias = _textoBusqueda.trim().isNotEmpty
-        ? _ubicacionesFiltradas.take(4).toList()
-        : <Map<String, dynamic>>[];
+        ? visibles.take(4).toList()
+        : const <LugarIca>[];
 
     return Scaffold(
       backgroundColor: TemaApp.fondo(context),
       body: SafeArea(
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.menu, color: colorTexto, size: 28),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const PantallaMas(),
-                        ),
-                      );
-                    },
-                  ),
-                  Text(
-                    context.tr('mapa_turistico'),
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: colorTexto,
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: context.tr('filtrar_categoria'),
-                    icon: Icon(
-                      _filtroActual == 'Todas'
-                          ? Icons.filter_list
-                          : Icons.filter_alt,
-                      color: _filtroActual == 'Todas'
-                          ? colorTexto
-                          : AppColores.naranjaBoton,
-                      size: 28,
-                    ),
-                    onPressed: _mostrarFiltros,
-                  ),
-                ],
-              ),
-            ),
+            _encabezado(colorTexto),
             Expanded(
               child: Stack(
                 children: [
-                  FlutterMap(
-                    mapController: _mapController,
-                    options: const MapOptions(
-                      initialCenter: LatLng(-14.06402, -75.72907),
-                      initialZoom: 10.0,
-                    ),
-                    children: [
-                      TileLayer(
-                        urlTemplate:
-                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                        userAgentPackageName: 'com.example.ika_travel_mobile',
-                      ),
-                      MarkerLayer(
-                        markers: [
-                          if (_miUbicacion != null)
-                            Marker(
-                              point: _miUbicacion!,
-                              width: 44,
-                              height: 44,
-                              child: Tooltip(
-                                message: context.tr('mi_ubicacion_gps'),
-                                child: Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    Container(
-                                      width: 40,
-                                      height: 40,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: const Color(0xFF1976D2)
-                                            .withValues(alpha: 0.25),
-                                      ),
-                                    ),
-                                    Container(
-                                      width: 18,
-                                      height: 18,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: const Color(0xFF1976D2),
-                                        border: Border.all(
-                                          color: Colors.white,
-                                          width: 3,
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withValues(
-                                              alpha: 0.25,
-                                            ),
-                                            blurRadius: 4,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ...listaParaMostrar.map((ubicacion) {
-                            final esSeleccionada =
-                                _seleccionada?['titulo'] == ubicacion['titulo'];
-
-                            return Marker(
-                              point: LatLng(ubicacion['lat'], ubicacion['lng']),
-                              width: esSeleccionada ? 52 : 42,
-                              height: esSeleccionada ? 52 : 42,
-                              child: GestureDetector(
-                                onTap: () {
-                                  _seleccionarLugar(ubicacion);
-                                },
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 250),
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: esSeleccionada
-                                        ? AppColores.naranjaBoton
-                                        : Colors.teal.shade700,
-                                    border: Border.all(
-                                      color: Colors.white,
-                                      width: esSeleccionada ? 3 : 2,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(
-                                          alpha: 0.3,
-                                        ),
-                                        blurRadius: esSeleccionada ? 10 : 4,
-                                        offset: const Offset(0, 3),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Icon(
-                                    esSeleccionada
-                                        ? Icons.star_rounded
-                                        : Icons.location_on,
-                                    color: Colors.white,
-                                    size: esSeleccionada ? 30 : 24,
-                                  ),
-                                ),
-                              ),
-                            );
-                          }),
-                        ],
-                      ),
-                    ],
-                  ),
-                  Positioned(
-                    top: 12,
-                    left: 16,
-                    right: 16,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          height: 52,
-                          decoration: BoxDecoration(
-                            color: colorTarjeta,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.12),
-                                blurRadius: 14,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: TextField(
-                            controller: _busquedaController,
-                            focusNode: _focusBusqueda,
-                            style: TextStyle(fontSize: 15, color: colorTexto),
-                            decoration: InputDecoration(
-                              hintText: context.tr('buscar_lugares_hint'),
-                              hintStyle: TextStyle(
-                                fontSize: 14,
-                                color: colorTextoSecundario,
-                              ),
-                              prefixIcon: const Icon(
-                                Icons.search,
-                                color: AppColores.naranjaBoton,
-                                size: 24,
-                              ),
-                              suffixIcon: _textoBusqueda.isNotEmpty
-                                  ? IconButton(
-                                      icon: const Icon(Icons.clear, size: 20),
-                                      color: colorTextoSecundario,
-                                      onPressed: () {
-                                        _busquedaController.clear();
-                                        setState(() {
-                                          _textoBusqueda = '';
-                                        });
-                                      },
-                                    )
-                                  : (_filtroActual != 'Todas'
-                                        ? Tooltip(
-                                            message:
-                                                '${context.tr('filtro')}: $_filtroActual',
-                                            child: IconButton(
-                                              icon: const Icon(
-                                                Icons.filter_alt,
-                                                size: 20,
-                                                color: AppColores.naranjaBoton,
-                                              ),
-                                              onPressed: _mostrarFiltros,
-                                            ),
-                                          )
-                                        : null),
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 14,
-                              ),
-                            ),
-                            onSubmitted: (texto) {
-                              if (listaParaMostrar.isNotEmpty) {
-                                _seleccionarLugar(listaParaMostrar.first);
-                              }
-                            },
-                          ),
-                        ),
-                        if (_focusBusqueda.hasFocus && sugerencias.isNotEmpty)
-                          Container(
-                            margin: const EdgeInsets.only(top: 6),
-                            decoration: BoxDecoration(
-                              color: colorTarjeta,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.12),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: ListView.separated(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              padding: const EdgeInsets.symmetric(vertical: 6),
-                              itemCount: sugerencias.length,
-                              separatorBuilder: (_, __) => Divider(
-                                height: 1,
-                                thickness: 0.5,
-                                color: colorTextoSecundario.withValues(
-                                  alpha: 0.2,
-                                ),
-                              ),
-                              itemBuilder: (context, idx) {
-                                final lugar = sugerencias[idx];
-                                return ListTile(
-                                  dense: true,
-                                  leading: const Icon(
-                                    Icons.place_outlined,
-                                    color: AppColores.naranjaBoton,
-                                    size: 22,
-                                  ),
-                                  title: Text(
-                                    lugar['titulo'],
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: colorTexto,
-                                    ),
-                                  ),
-                                  subtitle: Text(
-                                    '${lugar['subtitulo']} • ${lugar['categoria']}',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: colorTextoSecundario,
-                                    ),
-                                  ),
-                                  trailing: const Icon(
-                                    Icons.north_west,
-                                    size: 16,
-                                    color: Colors.grey,
-                                  ),
-                                  onTap: () => _seleccionarLugar(lugar),
-                                );
-                              },
-                            ),
-                          ),
-                        if (_textoBusqueda.isNotEmpty &&
-                            listaParaMostrar.isEmpty)
-                          Container(
-                            margin: const EdgeInsets.only(top: 6),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 10,
-                            ),
-                            decoration: BoxDecoration(
-                              color: colorTarjeta,
-                              borderRadius: BorderRadius.circular(14),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.08),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.search_off,
-                                  size: 18,
-                                  color: Colors.grey,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    '${context.tr('no_lugares_con')} "$_textoBusqueda"',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: colorTextoSecundario,
-                                    ),
-                                  ),
-                                ),
-                                TextButton(
-                                  onPressed: () => _busquedaController.clear(),
-                                  child: Text(context.tr('limpiar')),
-                                ),
-                              ],
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  Positioned(
-                    right: 16,
-                    bottom: _seleccionada != null ? 150 : 20,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        FloatingActionButton(
-                          heroTag: 'btn_mi_ubicacion_gps',
-                          backgroundColor: Colors.white,
-                          foregroundColor: const Color(0xFF1976D2),
-                          elevation: 4,
-                          tooltip: context.tr('ir_mi_ubicacion'),
-                          onPressed: () => _centrarEnMiUbicacion(
-                            pedirPermiso: true,
-                            autoCentrar: true,
-                          ),
-                          child: _obteniendoGps
-                              ? const SizedBox(
-                                  width: 22,
-                                  height: 22,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.5,
-                                    color: Color(0xFF1976D2),
-                                  ),
-                                )
-                              : const Icon(Icons.my_location, size: 24),
-                        ),
-                        const SizedBox(height: 10),
-                        FloatingActionButton.small(
-                          heroTag: 'btn_centrar_mapa',
-                          backgroundColor: colorTarjeta,
-                          foregroundColor: AppColores.naranjaBoton,
-                          elevation: 3,
-                          tooltip: context.tr('ver_todo_ica'),
-                          onPressed: _centrarMapaGeneral,
-                          child: const Icon(Icons.map_outlined),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (_textoBusqueda.isNotEmpty || _filtroActual != 'Todas')
-                    Positioned(
-                      left: 16,
-                      bottom: _seleccionada != null ? 150 : 20,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: colorTarjeta.withValues(alpha: 0.92),
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.08),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.pin_drop,
-                              size: 14,
-                              color: AppColores.naranjaBoton,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              '${listaParaMostrar.length} ${context.tr('encontrados')}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: colorTexto,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  if (_seleccionada != null)
-                    Positioned(
-                      bottom: 20,
-                      left: 16,
-                      right: 16,
-                      child: GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => PantallaDetalle(
-                                titulo: _seleccionada!['titulo'],
-                                subtitulo: _seleccionada!['subtitulo'],
-                                imagenes: List<String>.from(
-                                  _seleccionada!['imagenes_detalle'],
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: colorTarjeta,
-                            borderRadius: BorderRadius.circular(18),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.15),
-                                blurRadius: 16,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.asset(
-                                  _seleccionada!['imagen'],
-                                  width: 72,
-                                  height: 72,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      Container(
-                                        width: 72,
-                                        height: 72,
-                                        color: Colors.grey[300],
-                                        child: const Icon(
-                                          Icons.image,
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                ),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      _seleccionada!['titulo'],
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 15,
-                                        color: colorTexto,
-                                      ),
-                                    ),
-                                    Text(
-                                      '${_seleccionada!['subtitulo']} • ${_seleccionada!['categoria']}',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: colorTextoSecundario,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 2,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Colors.green.withValues(
-                                              alpha: 0.12,
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              6,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            _seleccionada!['condicion'],
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                              color: Colors.green,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          _seleccionada!['indice'],
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                            color: colorTexto,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              IconButton(
-                                tooltip: context.tr('cerrar_tarjeta'),
-                                icon: const Icon(Icons.close, size: 20),
-                                color: colorTextoSecundario,
-                                onPressed: () {
-                                  setState(() {
-                                    _seleccionada = null;
-                                  });
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
+                  _mapa(visibles),
+                  _barraBusqueda(sugerencias, visibles),
+                  if (_cargando) _avisoCargando(),
+                  if (!_cargando && _lugaresService.usandoMocks)
+                    _avisoSinConexion(),
+                  _contadorYBotones(visibles),
+                  if (_seleccionado != null) _tarjetaSeleccion(_seleccionado!),
                 ],
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _encabezado(Color colorTexto) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: Row(
+        children: [
+          IconButton(
+            icon: Icon(Icons.menu_rounded, color: colorTexto, size: 26),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PantallaMas()),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              context.tr('mapa_turistico'),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 19,
+                fontWeight: FontWeight.bold,
+                color: colorTexto,
+              ),
+            ),
+          ),
+          IconButton(
+            tooltip: context.tr('filtrar_categoria'),
+            icon: Icon(
+              _filtroActual == 'Todas'
+                  ? Icons.filter_list_rounded
+                  : Icons.filter_alt_rounded,
+              color: _filtroActual == 'Todas'
+                  ? colorTexto
+                  : CategoriasLugar.estilo(_filtroActual).color,
+              size: 26,
+            ),
+            onPressed: _mostrarFiltros,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _mapa(List<LugarIca> visibles) {
+    return FlutterMap(
+      mapController: _mapController,
+      options: MapOptions(
+        initialCenter: _centroIca,
+        initialZoom: _zoomRegion,
+        minZoom: 5,
+        maxZoom: 18,
+        onMapReady: () {
+          _mapaListo = true;
+          _atenderFoco();
+        },
+        onTap: (_, __) {
+          _focusBusqueda.unfocus();
+          if (_seleccionado != null) setState(() => _seleccionado = null);
+        },
+      ),
+      children: [
+        TileLayer(
+          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          userAgentPackageName: 'com.example.ika_travel_mobile',
+        ),
+        MarkerLayer(
+          markers: [
+            if (_miUbicacion != null) _marcadorMiUbicacion(_miUbicacion!),
+            for (final lugar in visibles) _marcadorLugar(lugar),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Marker _marcadorMiUbicacion(LatLng punto) {
+    return Marker(
+      point: punto,
+      width: 44,
+      height: 44,
+      child: Tooltip(
+        message: context.tr('mi_ubicacion_gps'),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF1976D2).withValues(alpha: 0.25),
+              ),
+            ),
+            Container(
+              width: 18,
+              height: 18,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF1976D2),
+                border: Border.all(color: Colors.white, width: 3),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.25),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Marker _marcadorLugar(LugarIca lugar) {
+    final seleccionado = _seleccionado?.id == lugar.id;
+    final estilo = lugar.estilo;
+    final tamano = seleccionado ? 50.0 : 40.0;
+
+    return Marker(
+      point: lugar.coordenadas!,
+      width: tamano,
+      height: tamano,
+      child: GestureDetector(
+        onTap: () => _seleccionarLugar(lugar),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: estilo.color,
+            border: Border.all(
+              color: Colors.white,
+              width: seleccionado ? 3.5 : 2.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: estilo.color.withValues(alpha: seleccionado ? 0.5 : 0.3),
+                blurRadius: seleccionado ? 14 : 6,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Icon(
+            estilo.icono,
+            color: Colors.white,
+            size: seleccionado ? 26 : 21,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _barraBusqueda(List<LugarIca> sugerencias, List<LugarIca> visibles) {
+    final colorTexto = TemaApp.texto(context);
+    final colorTextoSecundario = TemaApp.textoSecundario(context);
+    final colorTarjeta = TemaApp.tarjeta(context);
+
+    return Positioned(
+      top: 12,
+      left: 16,
+      right: 16,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            height: 52,
+            decoration: BoxDecoration(
+              color: colorTarjeta,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.12),
+                  blurRadius: 14,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: TextField(
+              controller: _busquedaController,
+              focusNode: _focusBusqueda,
+              style: TextStyle(fontSize: 15, color: colorTexto),
+              decoration: InputDecoration(
+                hintText: context.tr('buscar_lugares_hint'),
+                hintStyle: TextStyle(
+                  fontSize: 14,
+                  color: colorTextoSecundario,
+                ),
+                prefixIcon: const Icon(
+                  Icons.search_rounded,
+                  color: AppColores.naranjaBoton,
+                  size: 24,
+                ),
+                suffixIcon: _textoBusqueda.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear_rounded, size: 20),
+                        color: colorTextoSecundario,
+                        onPressed: _busquedaController.clear,
+                      )
+                    : null,
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+              ),
+              onSubmitted: (_) {
+                if (visibles.isNotEmpty) _seleccionarLugar(visibles.first);
+              },
+            ),
+          ),
+          if (_focusBusqueda.hasFocus && sugerencias.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(top: 6),
+              decoration: BoxDecoration(
+                color: colorTarjeta,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.12),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                itemCount: sugerencias.length,
+                separatorBuilder: (_, __) => Divider(
+                  height: 1,
+                  thickness: 0.5,
+                  color: colorTextoSecundario.withValues(alpha: 0.2),
+                ),
+                itemBuilder: (context, idx) {
+                  final lugar = sugerencias[idx];
+                  final estilo = lugar.estilo;
+                  return ListTile(
+                    dense: true,
+                    leading: Icon(estilo.icono, color: estilo.color, size: 22),
+                    title: Text(
+                      lugar.nombre,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: colorTexto,
+                      ),
+                    ),
+                    subtitle: Text(
+                      '${lugar.distrito} • ${lugar.categoriaPrincipal}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colorTextoSecundario,
+                      ),
+                    ),
+                    trailing: const Icon(
+                      Icons.north_west_rounded,
+                      size: 16,
+                      color: Colors.grey,
+                    ),
+                    onTap: () => _seleccionarLugar(lugar),
+                  );
+                },
+              ),
+            ),
+          if (!_cargando && _textoBusqueda.isNotEmpty && visibles.isEmpty)
+            Container(
+              margin: const EdgeInsets.only(top: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: colorTarjeta,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.search_off_rounded,
+                      size: 18, color: Colors.grey),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '${context.tr('no_lugares_con')} "$_textoBusqueda"',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: colorTextoSecundario,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _busquedaController.clear,
+                    child: Text(context.tr('limpiar')),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _avisoCargando() {
+    return Positioned(
+      top: 76,
+      left: 0,
+      right: 0,
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: TemaApp.tarjeta(context),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 8,
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColores.naranjaBoton,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                context.tr('cargando_lugares'),
+                style: TextStyle(fontSize: 12, color: TemaApp.texto(context)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Avisa que los lugares salen del catálogo local porque no hubo conexión.
+  Widget _avisoSinConexion() {
+    return Positioned(
+      top: 76,
+      left: 16,
+      right: 16,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF4E0),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColores.naranjaBoton.withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.cloud_off_rounded,
+                size: 16, color: AppColores.naranjaBoton),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                context.tr('modo_sin_conexion_lugares'),
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColores.marronOscuro,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                minimumSize: const Size(0, 30),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              onPressed: () => _cargarLugares(forzar: true),
+              child: Text(
+                context.tr('reintentar'),
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _contadorYBotones(List<LugarIca> visibles) {
+    final colorTarjeta = TemaApp.tarjeta(context);
+    final abajo = _seleccionado != null ? 158.0 : 20.0;
+
+    return Positioned(
+      left: 16,
+      right: 16,
+      bottom: abajo,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(
+              color: colorTarjeta.withValues(alpha: 0.95),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.pin_drop_rounded,
+                    size: 15, color: AppColores.naranjaBoton),
+                const SizedBox(width: 6),
+                Text(
+                  '${visibles.length} ${context.tr('encontrados')}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: TemaApp.texto(context),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Spacer(),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              FloatingActionButton(
+                heroTag: 'btn_mi_ubicacion_gps',
+                backgroundColor: Colors.white,
+                foregroundColor: const Color(0xFF1976D2),
+                elevation: 4,
+                tooltip: context.tr('ir_mi_ubicacion'),
+                onPressed: () => _centrarEnMiUbicacion(),
+                child: _obteniendoGps
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Color(0xFF1976D2),
+                        ),
+                      )
+                    : const Icon(Icons.my_location_rounded, size: 24),
+              ),
+              const SizedBox(height: 10),
+              FloatingActionButton.small(
+                heroTag: 'btn_centrar_mapa',
+                backgroundColor: colorTarjeta,
+                foregroundColor: AppColores.naranjaBoton,
+                elevation: 3,
+                tooltip: context.tr('ver_todo_ica'),
+                onPressed: _verRegionCompleta,
+                child: const Icon(Icons.zoom_out_map_rounded),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _tarjetaSeleccion(LugarIca lugar) {
+    final colorTexto = TemaApp.texto(context);
+    final colorTextoSecundario = TemaApp.textoSecundario(context);
+    final colorTarjeta = TemaApp.tarjeta(context);
+    final estilo = lugar.estilo;
+
+    return Positioned(
+      bottom: 20,
+      left: 16,
+      right: 16,
+      child: Material(
+        color: colorTarjeta,
+        borderRadius: BorderRadius.circular(18),
+        elevation: 8,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: () => _abrirDetalle(lugar),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                _miniatura(lugar),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        lugar.nombre,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          height: 1.2,
+                          color: colorTexto,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Row(
+                        children: [
+                          Icon(Icons.location_on_rounded,
+                              size: 13, color: colorTextoSecundario),
+                          const SizedBox(width: 3),
+                          Expanded(
+                            child: Text(
+                              lugar.distrito,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: colorTextoSecundario,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 7),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: [
+                          _chipCategoria(lugar.categoriaPrincipal, estilo),
+                          _chipVerDetalle(),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  tooltip: context.tr('cerrar_tarjeta'),
+                  icon: const Icon(Icons.close_rounded, size: 20),
+                  color: colorTextoSecundario,
+                  onPressed: () => setState(() => _seleccionado = null),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _miniatura(LugarIca lugar) {
+    final imagen = lugar.imagenPrincipal;
+    final esAsset = imagen.startsWith('assets/');
+
+    Widget respaldo() => Container(
+      width: 74,
+      height: 74,
+      color: lugar.estilo.color.withValues(alpha: 0.15),
+      child: Icon(lugar.estilo.icono, color: lugar.estilo.color, size: 28),
+    );
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: esAsset
+          ? Image.asset(
+              imagen,
+              width: 74,
+              height: 74,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => respaldo(),
+            )
+          : Image.network(
+              imagen,
+              width: 74,
+              height: 74,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => respaldo(),
+            ),
+    );
+  }
+
+  Widget _chipCategoria(String categoria, EstiloCategoria estilo) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: estilo.color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        categoria,
+        style: TextStyle(
+          fontSize: 10.5,
+          fontWeight: FontWeight.bold,
+          color: estilo.color,
+        ),
+      ),
+    );
+  }
+
+  Widget _chipVerDetalle() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColores.naranjaBoton,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            context.tr('ver_detalle'),
+            style: const TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(width: 3),
+          const Icon(Icons.arrow_forward_rounded, size: 11, color: Colors.white),
+        ],
+      ),
+    );
+  }
+
+  void _abrirDetalle(LugarIca lugar) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => PantallaDetalle(lugar: lugar)),
     );
   }
 }

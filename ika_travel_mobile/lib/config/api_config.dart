@@ -31,17 +31,22 @@ class ApiConfig {
       '$baseUrl/api/v1/emergency/reports';
 
   // --- GEO & ATRACTIVOS CERCANOS ---
+  // `limit` tiene tope 50 en el backend y `radius_m` tope 100 000 m.
   static String geoNearby({
     double lat = -14.0685,
     double lon = -75.7288,
     int radiusM = 100000,
-  }) => '$baseUrl/api/v1/geo/nearby?lat=$lat&lon=$lon&radius_m=$radiusM';
+    int limit = 50,
+  }) =>
+      '$baseUrl/api/v1/geo/nearby?lat=$lat&lon=$lon&radius_m=$radiusM'
+      '&limit=$limit';
 
   // --- CATALOG (Actividades) ---
   static String get attractions => '$baseUrl/api/v1/catalog/attractions';
   static String get categories => '$baseUrl/api/v1/catalog/categories';
 
-  static String attractionDetail(int id) =>
+  // `attraction.id` es un UUID, no un entero.
+  static String attractionDetail(String id) =>
       '$baseUrl/api/v1/catalog/attractions/$id';
 
   // --- WEATHER (Clima) ---
@@ -69,7 +74,7 @@ class ApiConfig {
   static String get emergencyReports => '$baseUrl/api/v1/emergency/reports';
 
   // --- FAVORITES ---
-  static String toggleFavorite(int id) =>
+  static String toggleFavorite(String id) =>
       '$baseUrl/api/v1/catalog/attractions/$id/favorite';
 
   // --- AUTH & USUARIOS ---

@@ -38,6 +38,42 @@ class FavoritesService {
     return null;
   }
 
+  /// Ids de los atractivos que el usuario tiene en favoritos en el servidor.
+  ///
+  /// Sirve para recuperar los favoritos al iniciar sesión (en otro teléfono o
+  /// tras reinstalar la app). El endpoint solo devuelve `attraction_id`, así
+  /// que el nombre y la imagen se buscan después en el catálogo.
+  Future<List<String>> obtenerIdsFavoritos() async {
+    if (!_sesionValida()) return const [];
+
+    try {
+      final res = await _apiClient.get('/users/me/favorites');
+      if (res is List) {
+        return res
+            .map((item) {
+              if (item is Map) return item['attraction_id']?.toString() ?? '';
+              return item.toString();
+            })
+            .where((id) => id.isNotEmpty)
+            .toList();
+      }
+    } catch (e) {
+      debugPrint('[FavoritesService] Error al listar favoritos remotos: $e');
+    }
+    return const [];
+  }
+
+  /// ¿Hay una sesión real (no invitado, no token offline) para llamar a la API?
+  bool _sesionValida() {
+    final usuario = AuthService().usuarioActual;
+    final token = usuario?.token;
+    return usuario != null &&
+        !usuario.esInvitado &&
+        token != null &&
+        token.isNotEmpty &&
+        !token.startsWith('jwt_offline');
+  }
+
   /// Verifica si el atractivo está marcado como favorito en el backend
   Future<bool> checkIsFavorite(String attractionId) async {
     if (attractionId.length < 32) return false;

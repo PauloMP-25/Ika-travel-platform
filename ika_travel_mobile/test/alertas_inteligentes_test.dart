@@ -431,11 +431,29 @@ void main() {
       NavegacionService.irAPronostico();
       expect(NavegacionService.indiceTabNotifier.value, equals(3));
 
-      NavegacionService.irAFavoritos();
-      expect(NavegacionService.indiceTabNotifier.value, equals(4));
-
       NavegacionService.irAInicio();
       expect(NavegacionService.indiceTabNotifier.value, equals(0));
+    });
+
+    test('irAMapaConLugar abre el mapa y marca el lugar a enfocar', () {
+      // Es lo que hace el botón "Ver en el mapa" del detalle: cambia a la
+      // pestaña del mapa y le dice qué punto centrar y ampliar.
+      NavegacionService.irAInicio();
+      NavegacionService.lugarEnfocadoNotifier.value = null;
+
+      NavegacionService.irAMapaConLugar('mock-huacachina');
+
+      expect(
+        NavegacionService.indiceTabNotifier.value,
+        equals(NavegacionService.tabMapa),
+      );
+      expect(
+        NavegacionService.lugarEnfocadoNotifier.value,
+        equals('mock-huacachina'),
+      );
+
+      NavegacionService.lugarEnfocadoNotifier.value = null;
+      NavegacionService.irAInicio();
     });
   });
 

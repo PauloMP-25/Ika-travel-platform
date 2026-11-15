@@ -4,6 +4,7 @@ import '../config/colores_tema.dart';
 import '../config/tema.dart';
 import '../models/usuario_modelo.dart';
 import '../services/auth_service.dart';
+import '../services/preferencias_service.dart';
 
 /// Diálogo interactivo para que el turista gestione sus preferencias de viaje en Ika (RF-01).
 class DialogoPreferenciasTurista extends StatefulWidget {
@@ -56,6 +57,9 @@ class _DialogoPreferenciasTuristaState extends State<DialogoPreferenciasTurista>
   Future<void> _guardar() async {
     setState(() => _guardando = true);
     await AuthService().actualizarPreferencias(_preferenciasSeleccionadas);
+    // Propaga el cambio a las recomendaciones de la IA, que leen sus gustos
+    // desde PreferenciasService.
+    PreferenciasService().sincronizarDesdeClaves(_preferenciasSeleccionadas);
     if (mounted) {
       setState(() => _guardando = false);
       Navigator.pop(context);

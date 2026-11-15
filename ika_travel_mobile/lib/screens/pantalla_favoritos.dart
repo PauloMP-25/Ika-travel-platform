@@ -4,6 +4,7 @@ import '../config/colores_tema.dart';
 import '../config/favoritos_manager.dart';
 import '../config/tema.dart';
 import '../config/traducciones_scope.dart';
+import '../models/lugar_modelo.dart';
 import '../models/usuario_modelo.dart';
 import '../services/auth_service.dart';
 import 'pantalla_alertas.dart';
@@ -223,14 +224,7 @@ class PantallaFavoritos extends StatelessWidget {
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) => PantallaDetalle(
-                                        titulo: actividad['titulo'],
-                                        subtitulo: actividad['subtitulo'],
-                                        imagenes: List<String>.from(
-                                          actividad['imagenes_detalle'],
-                                        ),
-                                        // Pasa el id guardado en el favorito
-                                        atractivoId: actividad['id']
-                                            ?.toString(),
+                                        lugar: LugarIca.deFavorito(actividad),
                                       ),
                                     ),
                                   );

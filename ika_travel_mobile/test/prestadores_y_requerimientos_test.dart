@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ika_travel_mobile/models/prestador_servicio_modelo.dart';
 import 'package:ika_travel_mobile/models/usuario_modelo.dart';
 import 'package:ika_travel_mobile/models/weather_model.dart';
-import 'package:ika_travel_mobile/services/api_service.dart';
+import 'package:ika_travel_mobile/services/lugares_service.dart';
 import 'package:ika_travel_mobile/services/auth_service.dart';
 import 'package:ika_travel_mobile/services/incidencias_service.dart';
 import 'package:ika_travel_mobile/services/prestadores_service.dart';
@@ -36,17 +36,45 @@ void main() {
   });
 
   group('RF-02: Exploración de Atractivos y Filtros de Categoría', () {
-    test('ApiService retorna catálogo completo con categorías turísticas', () async {
-      final api = ApiService();
-      final atractivos = await api.obtenerActividades();
+    test('LugaresService nunca devuelve un catálogo vacío', () async {
+      // Sin backend accesible debe caer a los mocks: la galería y el mapa
+      // siempre tienen que mostrar información.
+      final lugares = await LugaresService().obtenerLugares(forzarRecarga: true);
 
-      expect(atractivos, isNotEmpty);
-      expect(atractivos.first.containsKey('titulo'), isTrue);
-      expect(atractivos.first.containsKey('categoria'), isTrue);
-      expect(atractivos.first.containsKey('imagenes_detalle'), isTrue);
+      expect(lugares, isNotEmpty);
+      expect(lugares.first.nombre, isNotEmpty);
+      expect(lugares.first.imagenesDetalle, isNotEmpty);
 
-      final categorias = atractivos.map((a) => a['categoria'].toString()).toSet();
-      expect(categorias.contains('Aventura') || categorias.contains('Naturaleza'), isTrue);
+      final categorias = lugares.expand((l) => l.categorias).toSet();
+      expect(
+        categorias.any(
+          (c) => c.contains('Aventura') || c.contains('Naturaleza'),
+        ),
+        isTrue,
+      );
+    });
+
+    test('Todos los lugares del catálogo se pueden dibujar en el mapa', () async {
+      // La galería y el mapa comparten esta misma lista, así que cada lugar
+      // necesita coordenadas para que "Ver en el mapa" funcione.
+      final lugares = await LugaresService().obtenerLugares(forzarRecarga: true);
+
+      expect(lugares.where((l) => l.tieneCoordenadas), isNotEmpty);
+      for (final lugar in lugares.where((l) => l.tieneCoordenadas)) {
+        expect(lugar.coordenadas!.latitude, inInclusiveRange(-90, 90));
+        expect(lugar.coordenadas!.longitude, inInclusiveRange(-180, 180));
+      }
+    });
+
+    test('El filtro por categoría tolera acentos y variantes de la BD', () async {
+      final servicio = LugaresService();
+      final lugares = await servicio.obtenerLugares(forzarRecarga: true);
+
+      // En la BD la categoría se llama "Cultural" y "Gastronomía y vino";
+      // el filtro debe reconocerlas igual escribiendo "Cultura"/"Gastronomia".
+      expect(servicio.filtrar(lugares, categoria: 'Cultura'), isNotEmpty);
+      expect(servicio.filtrar(lugares, categoria: 'Gastronomia'), isNotEmpty);
+      expect(servicio.filtrar(lugares, categoria: 'Naturaleza'), isNotEmpty);
     });
   });
 

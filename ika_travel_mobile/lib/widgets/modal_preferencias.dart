@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../config/tema.dart';
+import '../services/auth_service.dart';
 import '../services/preferencias_service.dart';
 
 /// Modal (hoja inferior) que aparece la primera vez que el usuario entra a la
@@ -71,12 +72,16 @@ class _ContenidoPreferenciasState extends State<_ContenidoPreferencias> {
 
   Future<void> _guardar() async {
     setState(() => _guardando = true);
-    await PreferenciasService().guardar(
+    final preferencias = PreferenciasService();
+    await preferencias.guardar(
       intereses: _interesesSel.toList(),
       estilo: _estilo,
       presupuesto: _presupuesto,
       compania: _compania,
     );
+    // Deja el perfil del usuario con los mismos gustos, para que "Mis
+    // preferencias" (Ajustes) y la IA no muestren cosas distintas.
+    await AuthService().actualizarPreferencias(preferencias.clavesDePerfil);
     if (mounted) Navigator.of(context).pop();
   }
 

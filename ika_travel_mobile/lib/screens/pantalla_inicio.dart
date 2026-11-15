@@ -4,9 +4,13 @@ import 'package:flutter/material.dart';
 
 import '../config/tema.dart';
 import '../config/colores_tema.dart';
+import '../config/navegacion_service.dart';
 import '../config/traducciones_scope.dart';
+import '../models/lugar_modelo.dart';
 import '../services/alertas_service.dart';
+import '../services/lugares_service.dart';
 import '../services/weather_service.dart';
+import 'pantalla_detalle.dart';
 import 'pantalla_detalle_dia.dart';
 import 'pantalla_alertas.dart';
 import 'pantalla_mas.dart';
@@ -36,10 +40,14 @@ class _PantallaInicioState extends State<PantallaInicio> {
   Map<String, dynamic>? _clima;
   bool _cargandoClima = true;
 
+  /// Lugares destacados, del mismo catálogo que la galería y el mapa.
+  List<LugarIca> _destacados = const [];
+
   @override
   void initState() {
     super.initState();
     _cargarClima();
+    _cargarDestacados();
 
     _timerCarrusel = Timer.periodic(const Duration(seconds: 4), (timer) {
       if (_paginaActual < _imagenesCarrusel.length - 1) {
@@ -60,10 +68,17 @@ class _PantallaInicioState extends State<PantallaInicio> {
   Future<void> _cargarClima() async {
     final weather = WeatherService();
     final data = await weather.obtenerClimaActual();
+    if (!mounted) return;
     setState(() {
       _clima = data;
       _cargandoClima = false;
     });
+  }
+
+  Future<void> _cargarDestacados() async {
+    final lugares = await LugaresService().obtenerLugares();
+    if (!mounted) return;
+    setState(() => _destacados = lugares.take(6).toList());
   }
 
   @override
@@ -630,11 +645,161 @@ class _PantallaInicioState extends State<PantallaInicio> {
                 ],
               ),
             ),
+              if (_destacados.isNotEmpty) _seccionDestacados(colorTexto),
               const SizedBox(height: 30),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  /// Carrusel horizontal con lugares del catálogo (los mismos de la galería y
+  /// del mapa). Toca uno y se abre su detalle.
+  Widget _seccionDestacados(Color colorTexto) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 26),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  context.tr('lugares_destacados'),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: colorTexto,
+                  ),
+                ),
+              ),
+              TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColores.naranjaBoton,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  minimumSize: const Size(0, 32),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                onPressed: () => NavegacionService.irAActividades(),
+                child: Text(
+                  context.tr('ver_todos'),
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 178,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            itemCount: _destacados.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, index) =>
+                _tarjetaDestacado(_destacados[index]),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _tarjetaDestacado(LugarIca lugar) {
+    final estilo = lugar.estilo;
+    final imagen = lugar.imagenPrincipal;
+
+    Widget respaldo() => Container(
+      color: estilo.color.withValues(alpha: 0.2),
+      child: Center(child: Icon(estilo.icono, color: estilo.color, size: 34)),
+    );
+
+    return SizedBox(
+      width: 158,
+      child: Material(
+            color: TemaApp.tarjeta(context),
+            borderRadius: BorderRadius.circular(16),
+            elevation: 2,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => PantallaDetalle(lugar: lugar)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(16),
+                    ),
+                    child: SizedBox(
+                      height: 100,
+                      width: double.infinity,
+                      child: imagen.startsWith('assets/')
+                          ? Image.asset(
+                              imagen,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => respaldo(),
+                            )
+                          : Image.network(
+                              imagen,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => respaldo(),
+                              loadingBuilder: (context, child, progress) =>
+                                  progress == null ? child : respaldo(),
+                            ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(10, 7, 10, 7),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              lugar.nombre,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                height: 1.2,
+                                fontWeight: FontWeight.bold,
+                                color: TemaApp.texto(context),
+                              ),
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              Icon(estilo.icono, size: 11, color: estilo.color),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  lugar.distrito,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: TemaApp.textoSecundario(context),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
     );
   }
 

@@ -7,9 +7,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:ika_travel_mobile/data/lugares_mock.dart';
 import 'package:ika_travel_mobile/screens/pantalla_inicio.dart';
 import 'package:ika_travel_mobile/screens/pantalla_actividades.dart';
-import 'package:ika_travel_mobile/screens/pantalla_mapa.dart';
 import 'package:ika_travel_mobile/screens/pantalla_pronostico.dart';
 import 'package:ika_travel_mobile/screens/pantalla_favoritos.dart';
 import 'package:ika_travel_mobile/screens/pantalla_sos.dart';
@@ -39,11 +39,7 @@ final pantallas = <String, Widget>{
   'ConfigurarAlertas': const PantallaConfigurarAlertas(),
   'Mas': const PantallaMas(),
   'Configuracion': const PantallaConfiguracion(),
-  'Detalle': const PantallaDetalle(
-    titulo: 'Oasis de Huacachina',
-    subtitulo: 'Ica',
-    imagenes: ['assets/images/carrusel_1_huacachina.jpg'],
-  ),
+  'Detalle': PantallaDetalle(lugar: LugaresMock.lugares.first),
   'DetalleDia': const PantallaDetalleDia(
     tituloActividad: 'Clima en Ica hoy',
     imagenActividad: 'assets/images/carrusel_1_huacachina.jpg',

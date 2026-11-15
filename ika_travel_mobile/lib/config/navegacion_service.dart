@@ -1,14 +1,31 @@
 import 'package:flutter/material.dart';
 
-/// Servicio global para gestionar el cambio de pestañas de la navegación inferior
-/// sin perder la barra de navegación principal ni crear instancias duplicadas de MainScaffold.
+/// Controla la pestaña activa de la barra inferior sin crear instancias
+/// duplicadas de `MainScaffold`.
 class NavegacionService {
-  // Notificador reactivo con el índice de pestaña actual de la barra inferior
-  static final ValueNotifier<int> indiceTabNotifier = ValueNotifier<int>(0);
+  const NavegacionService._();
+
+  /// Índices de las pestañas de `MainScaffold`, en el mismo orden.
+  static const int tabInicio = 0;
+  static const int tabActividades = 1;
+  static const int tabMapa = 2;
+  static const int tabPronostico = 3;
+  static const int tabTraducir = 4;
+
+  /// Pestaña actual de la barra inferior.
+  static final ValueNotifier<int> indiceTabNotifier = ValueNotifier<int>(
+    tabInicio,
+  );
+
+  /// Id del lugar que el mapa debe centrar y ampliar. La pantalla del mapa lo
+  /// escucha, hace zoom sobre ese punto y vuelve a ponerlo en `null`.
+  static final ValueNotifier<String?> lugarEnfocadoNotifier =
+      ValueNotifier<String?>(null);
 
   static int get indiceActual => indiceTabNotifier.value;
 
-  /// Cambia a una pestaña específica y regresa a la pantalla principal si estamos en una pantalla secundaria
+  /// Cambia de pestaña y, si estamos en una pantalla apilada encima, regresa
+  /// a la principal para que la barra inferior vuelva a verse.
   static void cambiarTab(int index, [BuildContext? context]) {
     indiceTabNotifier.value = index;
     if (context != null && Navigator.canPop(context)) {
@@ -16,9 +33,23 @@ class NavegacionService {
     }
   }
 
-  static void irAInicio([BuildContext? context]) => cambiarTab(0, context);
-  static void irAActividades([BuildContext? context]) => cambiarTab(1, context);
-  static void irAMapa([BuildContext? context]) => cambiarTab(2, context);
-  static void irAPronostico([BuildContext? context]) => cambiarTab(3, context);
-  static void irAFavoritos([BuildContext? context]) => cambiarTab(4, context);
+  static void irAInicio([BuildContext? context]) =>
+      cambiarTab(tabInicio, context);
+
+  static void irAActividades([BuildContext? context]) =>
+      cambiarTab(tabActividades, context);
+
+  static void irAMapa([BuildContext? context]) => cambiarTab(tabMapa, context);
+
+  static void irAPronostico([BuildContext? context]) =>
+      cambiarTab(tabPronostico, context);
+
+  /// Abre el mapa centrado y ampliado en un lugar concreto.
+  ///
+  /// Es lo que hace el botón "Ver en el mapa" del detalle: cierra la pantalla
+  /// actual, salta a la pestaña del mapa y le pide enfocar ese punto.
+  static void irAMapaConLugar(String idLugar, [BuildContext? context]) {
+    lugarEnfocadoNotifier.value = idLugar;
+    cambiarTab(tabMapa, context);
+  }
 }

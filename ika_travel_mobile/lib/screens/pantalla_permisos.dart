@@ -4,13 +4,17 @@ import 'package:permission_handler/permission_handler.dart';
 import '../config/tema.dart';
 import '../services/persistencia_service.dart';
 
-/// Pantalla de permisos que se muestra ANTES de entrar a la app.
+/// Pantalla de permisos, que se muestra **después** de que el usuario se
+/// registra o inicia sesión y antes de entrar a la app.
 ///
-/// Explica, en lenguaje claro, cada permiso que necesita Ika Travel y para
-/// qué se usa. El permiso de **ubicación es obligatorio** (clima, mapa y las
-/// coordenadas de la alerta SOS dependen de él); los demás son opcionales pero
-/// recomendados. Solo cuando la ubicación está concedida se habilita el botón
-/// "Continuar".
+/// Va en ese orden a propósito: pedir permisos antes de que la persona sepa
+/// qué es Ika Travel hace que los rechace. Aquí ya tiene cuenta y entiende el
+/// contexto.
+///
+/// Explica, en lenguaje claro, cada permiso y para qué se usa. El de
+/// **ubicación es obligatorio** (clima, mapa y las coordenadas de la alerta
+/// SOS dependen de él); los demás son opcionales pero recomendados. El botón
+/// "Continuar" solo se habilita cuando la ubicación está concedida.
 class PantallaPermisos extends StatefulWidget {
   final VoidCallback onCompletado;
 
@@ -205,7 +209,7 @@ class _PantallaPermisosState extends State<PantallaPermisos> {
                                 ),
                                 SizedBox(height: 4),
                                 Text(
-                                  'Antes de empezar, autoriza lo que la app '
+                                  'Ya casi estás listo. Autoriza lo que la app '
                                   'necesita para cuidarte durante tu viaje.',
                                   style: TextStyle(
                                     color: Colors.white,
