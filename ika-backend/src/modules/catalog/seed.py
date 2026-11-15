@@ -6,6 +6,7 @@ from decimal import Decimal
 from uuid import uuid4
 
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from src.core.database import SesionAsincronaLocal, motor
 from src.modules.catalog.models import Agency, Attraction, AttractionImage, Category, Tour
@@ -108,6 +109,71 @@ ATRACTIVOS = [
 ]
 
 # nombre, ruc, validada, registro, teléfono, email
+CDN_BASE = "https://raw.githubusercontent.com/PauloMP-25/Ika-travel-platform/main/imagenes_lugares_turisticos"
+
+FOTOS_ATRACTIVOS: dict[str, list[str]] = {
+    "Oasis de Huacachina": [
+        f"{CDN_BASE}/carrusel_1_huacachina.jpg",
+        f"{CDN_BASE}/detalle_sandboarding_1.jpg",
+        f"{CDN_BASE}/detalle_sandboarding_2.jpg",
+    ],
+    "Palmera de las 7 Cabezas (Cachiche)": [
+        f"{CDN_BASE}/Cachiche_1.jpg",
+        f"{CDN_BASE}/detalle_buggy_2.jpg",
+        f"{CDN_BASE}/Cachiche_2.jpg",
+    ],
+    "Plaza de Armas de Ica": [
+        f"{CDN_BASE}/carrusel_3_sandboarding.jpg",
+        f"{CDN_BASE}/carrusel_2_vinos.jpg",
+        f"{CDN_BASE}/Señor_L_1.jpg",
+    ],
+    "Viña Tacama": [
+        f"{CDN_BASE}/act_vinos.jpg",
+        f"{CDN_BASE}/detalle_vinos_2.jpg",
+        f"{CDN_BASE}/detalle_vinos_3.jpg",
+    ],
+    "Bodega y Viñedos Sotelo (Subtanjalla)": [
+        f"{CDN_BASE}/detalle_vinos_2.jpg",
+        f"{CDN_BASE}/Viñedo_piscos_artesanales_1.jpg",
+        f"{CDN_BASE}/act_vinos.jpg",
+    ],
+    "Bodega Tres Generaciones (Subtanjalla)": [
+        f"{CDN_BASE}/detalle_vinos_3.jpg",
+        f"{CDN_BASE}/Viñedo_piscos_artesanales_2.jpg",
+        f"{CDN_BASE}/act_vinos.jpg",
+    ],
+    "Cañón de los Perdidos": [
+        f"{CDN_BASE}/act_buggy1.jpg",
+        f"{CDN_BASE}/Ca%C3%B1on_1.jpg",
+        f"{CDN_BASE}/detalle_buggy_3.jpg",
+    ],
+    "Islas Ballestas": [
+        f"{CDN_BASE}/act_ballestas1.jpg",
+        f"{CDN_BASE}/detalle_ballestas_2.jpg",
+        f"{CDN_BASE}/detalle_ballestas_3.jpg",
+    ],
+    "Reserva Nacional de Paracas": [
+        f"{CDN_BASE}/act_reserva1.jpg",
+        f"{CDN_BASE}/detalle_reserva_2.jpg",
+        f"{CDN_BASE}/detalle_reserva_3.jpg",
+    ],
+    "Playa Roja": [
+        f"{CDN_BASE}/detalle_reserva_2.jpg",
+        f"{CDN_BASE}/act_reserva1.jpg",
+        f"{CDN_BASE}/detalle_reserva_3.jpg",
+    ],
+    "Playa La Mina": [
+        f"{CDN_BASE}/detalle_reserva_3.jpg",
+        f"{CDN_BASE}/act_reserva1.jpg",
+        f"{CDN_BASE}/detalle_reserva_2.jpg",
+    ],
+    "Playa Hermosa de Marcona": [
+        f"{CDN_BASE}/act_reserva1.jpg",
+        f"{CDN_BASE}/detalle_reserva_2.jpg",
+        f"{CDN_BASE}/detalle_reserva_3.jpg",
+    ],
+}
+
 AGENCIAS = [
     ("Ika Travel and Experience", "20608912345", True, "DIR-ICA-0010", "+51 956 789 000", "contacto@ikatravel.pe"),
     ("Oro Travel Peru S.A.C.", "20600883446", True, "DIR-ICA-0104", "+51 956 789 123", "contacto@orotravelperu.com"),
@@ -177,19 +243,34 @@ async def ejecutar() -> None:
 
         atractivos: dict[str, Attraction] = {}
         for nombre, desc, lat, lon, distrito, reco, slugs in ATRACTIVOS:
-            atr = (await db.execute(select(Attraction).where(Attraction.name == nombre))).scalar_one_or_none()
+            atr = (
+                await db.execute(
+                    select(Attraction)
+                    .options(selectinload(Attraction.images))
+                    .where(Attraction.name == nombre)
+                )
+            ).scalar_one_or_none()
+            urls_reales = FOTOS_ATRACTIVOS.get(
+                nombre,
+                [f"{CDN_BASE}/carrusel_1_huacachina.jpg", f"{CDN_BASE}/act_reserva1.jpg"]
+            )
             if atr is None:
-                texto_img = nombre.replace(" ", "+")
                 atr = Attraction(
                     name=nombre, description=desc, latitude=lat, longitude=lon,
                     district=distrito, official_recommendation=reco,
                     categories=[categorias[s] for s in slugs],
                     images=[
-                        AttractionImage(url=f"https://placehold.co/800x600?text={texto_img}+{n}", display_order=n)
-                        for n in range(3)
+                        AttractionImage(url=url_foto, display_order=n)
+                        for n, url_foto in enumerate(urls_reales)
                     ],
                 )
                 db.add(atr)
+            else:
+                # Actualizar imágenes si tenían placehold.co o estaban vacías
+                if any("placehold.co" in img.url for img in atr.images) or not atr.images:
+                    atr.images.clear()
+                    for n, url_foto in enumerate(urls_reales):
+                        atr.images.append(AttractionImage(url=url_foto, display_order=n))
             atractivos[nombre] = atr
         await db.flush()
 

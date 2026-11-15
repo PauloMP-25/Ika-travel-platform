@@ -44,26 +44,13 @@ Contexto del alineamiento ya hecho en el móvil:
 
 ---
 
-## 3. Las imágenes de los atractivos son de marcador de posición
+## 3. Las imágenes de los atractivos son de marcador de posición - ✅ COMPLETADO
 
-**Dónde:** `src/modules/catalog/seed.py:188`
-
-```python
-AttractionImage(url=f"https://placehold.co/800x600?text={texto_img}+{n}", ...)
-```
-
-La tabla `attraction_image` se llena con URLs de `placehold.co`, que son
-rectángulos grises con texto.
-
-**Qué hace el móvil mientras tanto:** descarta cualquier URL que contenga
-`placehold.co` y usa las fotos locales de `assets/images/`. Por eso la app se
-ve bien, pero las fotos **no vienen de la BD**.
-
-**Pedido concreto:** cargar URLs reales en `attraction_image.url` (CDN, bucket
-o lo que se decida), con `display_order = 0` para la portada. En cuanto haya
-URLs reales, el móvil las usará automáticamente sin cambiar código.
-
-Corresponde a la **Corrección N°5** de la lista del equipo.
+**Dónde:** `src/modules/catalog/seed.py`
+**Corrección N°5 de la lista del equipo:** Resuelto el 2026-11-15.
+- Se configuró el diccionario `FOTOS_ATRACTIVOS` en `src/modules/catalog/seed.py` asociando cada uno de los 12 atractivos turísticos a sus fotografías reales alojadas en el repositorio (servidas vía CDN HTTPS con `display_order = 0` para la portada).
+- Se ejecutó la sincronización del seed actualizando los registros existentes de `attraction_image` en la base de datos (eliminando los marcadores `placehold.co`).
+- La aplicación móvil ahora recibe directamente las URLs reales de la BD sin necesidad de descartarlas ni recurrir al fallback local.
 
 ---
 
