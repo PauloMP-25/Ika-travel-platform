@@ -12,6 +12,7 @@ from src.core.database import SesionAsincronaLocal, motor
 from src.modules.catalog.models import Agency, Attraction, AttractionImage, Category, Tour
 from src.core.security import hash_password
 from src.modules.users.models import User, UserRole, AuthProvider, ROLE_DIRCETUR_ADMIN_ID
+from src.modules.reviews.models import Review, ReviewImage
 from src.shared.utils import utc_ahora
 
 CATEGORIAS = [
@@ -335,9 +336,80 @@ async def ejecutar() -> None:
             admin_user.role_id = ROLE_DIRCETUR_ADMIN_ID
             admin_user.is_active = True
 
+
+        # 5. Asegurar Reseñas Semilla (Punto 6: poblar review y review_images)
+        user_turista = (await db.execute(select(User).where(User.email.like("%@%")))).scalars().first()
+        if user_turista and atractivos:
+            RESEÑAS_DATOS = [
+                (
+                    "Oasis de Huacachina",
+                    5,
+                    "Increíble atardecer en las dunas y la experiencia en tubulares fue sensacional. Muy recomendado.",
+                    "https://raw.githubusercontent.com/PauloMP-25/Ika-travel-platform/main/imagenes_lugares_turisticos/carrusel_1_huacachina.jpg",
+                ),
+                (
+                    "Viña Tacama",
+                    5,
+                    "Excelente recorrido histórico y cata de piscos. El viñedo más antiguo con una atención de primera.",
+                    "https://raw.githubusercontent.com/PauloMP-25/Ika-travel-platform/main/imagenes_lugares_turisticos/act_vinos.jpg",
+                ),
+                (
+                    "Reserva Nacional de Paracas",
+                    5,
+                    "Paisajes únicos donde el desierto se encuentra con el mar. La vista en los miradores es impresionante.",
+                    "https://raw.githubusercontent.com/PauloMP-25/Ika-travel-platform/main/imagenes_lugares_turisticos/act_reserva1.jpg",
+                ),
+                (
+                    "Islas Ballestas",
+                    4,
+                    "Mucha fauna marina: lobos marinos y pingüinos Humboldt muy de cerca. Llevar cortavientos para el viaje en lancha.",
+                    "https://raw.githubusercontent.com/PauloMP-25/Ika-travel-platform/main/imagenes_lugares_turisticos/act_ballestas1.jpg",
+                ),
+                (
+                    "Cañón de los Perdidos",
+                    5,
+                    "Una maravilla geológica en medio del desierto. Imprescindible ir con vehículo 4x4 y calzado adecuado.",
+                    "https://raw.githubusercontent.com/PauloMP-25/Ika-travel-platform/main/imagenes_lugares_turisticos/act_aventura.jpg",
+                ),
+                (
+                    "Plaza de Armas de Ica",
+                    4,
+                    "Hermoso centro cívico con portales coloniales. Ideal para dar un paseo al atardecer y degustar chocotejas.",
+                    "https://raw.githubusercontent.com/PauloMP-25/Ika-travel-platform/main/imagenes_lugares_turisticos/carrusel_2_plaza.jpg",
+                ),
+            ]
+            for atr_nom, calif, com, foto in RESEÑAS_DATOS:
+                if atr_nom in atractivos:
+                    atr_id = atractivos[atr_nom].id
+                    rev_existe = (
+                        await db.execute(
+                            select(Review).where(
+                                Review.attraction_id == atr_id,
+                                Review.user_id == user_turista.id,
+                            )
+                        )
+                    ).scalar_one_or_none()
+                    if rev_existe is None:
+                        new_rev = Review(
+                            user_id=user_turista.id,
+                            attraction_id=atr_id,
+                            rating=calif,
+                            comment=com,
+                        )
+                        db.add(new_rev)
+                        await db.flush()
+                        db.add(
+                            ReviewImage(
+                                review_id=new_rev.id,
+                                image_url=foto,
+                                storage_provider="github",
+                            )
+                        )
+                        print(f"+ Reseña agregada para: {atr_nom} ({calif} estrellas)")
+
         await db.commit()
     await motor.dispose()
-    print("Catalogo oficial, tours y usuario DIRCETUR sincronizados exitosamente.")
+    print("Catalogo oficial, tours, usuario DIRCETUR y resenas sincronizados exitosamente.")
 
 
 if __name__ == "__main__":

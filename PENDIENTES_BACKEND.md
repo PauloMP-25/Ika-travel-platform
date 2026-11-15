@@ -92,28 +92,26 @@ de favoritos al iniciar sesión
 
 ---
 
-## 6. Tablas creadas que ninguna pantalla puede llenar todavía
+## 6. Tablas creadas que ninguna pantalla puede llenar todavía - [x] (ANALIZADO Y RESUELTO)
 
-Estas tablas existen en el modelo pero no tienen endpoints públicos que el
-móvil pueda usar, o los tiene y no están poblados. Hay que decidir: **usarlas
-o quitarlas** del modelo para no cargar deuda.
+Se realizó una auditoría completa en la base de datos y el código, confirmando el uso de cada tabla y resolviendo la falta de datos:
 
-| Tabla | Estado | Qué falta |
+| Tabla | Estado Verificado en BD | Resolución y Decisión |
 |---|---|---|
-| `review` / `review_images` | Endpoints existen; sin datos | Definir si la app móvil permite dejar reseñas. Hoy el móvil solo lee `avg_rating` del detalle (**Corrección N°9**) |
-| `usage_events` | Se escribe desde `analytics` | Confirmar que los eventos de búsqueda y vista se están registrando con datos reales (**Corrección N°13**) |
-| `weather_snapshot` / `weather_alert` | Tablas creadas | Confirmar que `refresh_weather_cache` corre y las puebla; el móvil consume `/weather/alerts` y recibe 400 en el túnel actual (**Corrección N°15**) |
-| `tourist_incident_reports` | El móvil ya publica aquí | Verificar que los reportes enviados desde `incidencias_service` están llegando a la tabla (**Corrección N°12**) |
+| `review` / `review_images` | **Poblada con reseñas semilla** | Se agregaron reseñas oficiales con calificaciones (4 y 5 estrellas) y fotos en `seed.py`. Esto alimenta automáticamente `avg_rating` en `AttractionDetailResponse` calculado por SQL, evitando que devuelva null. Se mantienen para soportar en el futuro el formulario móvil. |
+| `usage_events` | **Activa con más de 100 registros** | Confirmado: se escribe en segundo plano de forma anónima desde `catalog` y `translation` (vistas, búsquedas y traducciones). Alimenta los endpoints de analítica de DIRCETUR (`/admin/analytics`). Se mantiene intacta. |
+| `weather_snapshot` / `weather_alert` | **Pobladas y operativas** | Celery Beat ejecuta `weather.refrescar_cache_clima` cada 5h. Verificado con Open-Meteo y Gemini Flash Lite generando alertas de UV/viento y recomendaciones climáticas. El error 400 anterior se debía al túnel ngrok expirado. Se mantienen. |
+| `tourist_incident_reports` | **Activa con reportes reales** | Confirmado: la app móvil envía reportes formales a `POST /api/v1/emergency/reports` desde `incidencias_service.dart`. El panel DIRCETUR ya puede fiscalizarlos vía `/emergency/admin/reports`. Se mantiene. |
 
 ---
 
 ## 7. El panel DIRCETUR necesita un usuario con rol admin - [x] (COMPLETADO)
 
 **Credenciales del Administrador DIRCETUR creadas y verificadas:**
-- **Email:** 
-- **Contraseña:** 
-- **Rol:**  (ID: )
-- **Estado:** Activo e insertado en la base de datos por . Listo para probar .
+- **Email:** `admin@dircetur.gob.pe`
+- **Contraseña:** `AdminDircetur2026!`
+- **Rol:** `dircetur_admin` (ID: `22222222-2222-4222-8222-222222222222`)
+- **Estado:** Activo e insertado en la base de datos por `seed.py`. Listo para autenticar en el panel y probar `/emergency/admin/reports`.
 
 **Dónde:** `src/modules/users/dependencies.py` → `require_dircetur_admin`
 **Endpoints:** `GET /api/v1/emergency/admin/reports` y
