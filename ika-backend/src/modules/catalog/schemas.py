@@ -35,6 +35,9 @@ class AttractionListItem(BaseModel):
     district: str
     cover_image_url: str | None
     categories: list[str]
+    latitude: float
+    longitude: float
+    description: str | None = None
 
 
 class PaginatedAttractionsResponse(BaseModel):

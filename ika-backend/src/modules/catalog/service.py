@@ -53,6 +53,9 @@ def _a_list_item(atractivo: Attraction) -> AttractionListItem:
         district=atractivo.district,
         cover_image_url=atractivo.images[0].url if atractivo.images else None,
         categories=[c.name for c in atractivo.categories],
+        latitude=float(atractivo.latitude),
+        longitude=float(atractivo.longitude),
+        description=atractivo.description,
     )
 
 

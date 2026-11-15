@@ -180,3 +180,22 @@ def test_etag_de_agencias_no_filtrado_por_otras_rutas(
     etag_atractivos = client.get(f"{API}/catalog/attractions").headers.get("etag")
 
     assert etag_agencias != etag_atractivos
+
+
+def test_listar_atractivos_incluye_coordenadas_y_descripcion(
+    client: TestClient, db_session: AsyncSession
+) -> None:
+    """Verifica que AttractionListItem devuelva latitude, longitude y description."""
+    atractivo_id = _crear_atractivo(db_session, nombre="Laguna de Huacachina", distrito="Ica")
+
+    resp = client.get(f"{API}/catalog/attractions")
+    assert resp.status_code == 200
+    data = resp.json()
+    items = data["items"]
+    encontrado = next((i for i in items if i["id"] == str(atractivo_id)), None)
+    assert encontrado is not None
+    assert isinstance(encontrado["latitude"], float)
+    assert isinstance(encontrado["longitude"], float)
+    assert encontrado["latitude"] == -14.0873
+    assert encontrado["longitude"] == -75.7637
+    assert encontrado["description"] == "Dunas y oasis en el desierto de Ica."

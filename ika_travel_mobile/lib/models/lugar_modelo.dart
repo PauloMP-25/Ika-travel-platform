@@ -139,15 +139,18 @@ class LugarIca {
   // Constructores desde la API
   // ------------------------------------------------------------------
 
-  /// `AttractionListItem`: id, name, district, cover_image_url, categories.
-  /// No trae coordenadas ni descripción (ver pendientes del backend).
+  /// `AttractionListItem`: id, name, district, cover_image_url, categories,
+  /// latitude, longitude, description.
   factory LugarIca.deListado(Map<String, dynamic> json) {
     final portada = json['cover_image_url']?.toString();
     return LugarIca(
       id: json['id']?.toString() ?? '',
       nombre: json['name']?.toString() ?? 'Sin nombre',
       distrito: json['district']?.toString() ?? 'Ica',
+      descripcion: json['description']?.toString() ?? '',
       categorias: _categoriasDe(json['categories']),
+      latitud: (json['latitude'] as num?)?.toDouble(),
+      longitud: (json['longitude'] as num?)?.toDouble(),
       imagenes: (portada != null && portada.isNotEmpty) ? [portada] : const [],
     );
   }

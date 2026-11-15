@@ -20,35 +20,16 @@ Contexto del alineamiento ya hecho en el móvil:
 
 ---
 
-## 1. `AttractionListItem` no devuelve coordenadas (prioridad alta)
+## 1. `AttractionListItem` no devuelve coordenadas (prioridad alta) - ✅ COMPLETADO
 
 **Dónde:** `src/modules/catalog/schemas.py` → `class AttractionListItem`
 **Endpoint:** `GET /api/v1/catalog/attractions`
 
-Hoy devuelve solo `id, name, district, cover_image_url, categories`. Sin
-`latitude`/`longitude`, el listado de la galería no puede dibujar los pines del
-mapa ni habilitar el botón "Ver en el mapa".
-
-**Qué hace el móvil mientras tanto:** pide las coordenadas a
-`GET /api/v1/geo/nearby` y las une por `id`. Es una llamada extra y tiene el
-límite del punto 2.
-
-**Pedido concreto:**
-
-```python
-class AttractionListItem(BaseModel):
-    id: UUID
-    name: str
-    district: str
-    cover_image_url: str | None
-    categories: list[str]
-    latitude: float      # <- agregar
-    longitude: float     # <- agregar
-    description: str | None = None   # <- deseable (evita pedir el detalle)
-```
-
-Hay que reflejarlo también en `src/modules/catalog/service.py`
-(`get_paginated_attractions`), que es donde se construye el ítem.
+**Estado:** Resuelto el 2026-11-15.
+- Se agregaron los campos `latitude: float`, `longitude: float` y `description: str | None = None` en `AttractionListItem`.
+- Se mapearon en `_a_list_item` en `src/modules/catalog/service.py`.
+- Se actualizó el constructor `LugarIca.deListado` en `ika_travel_mobile/lib/models/lugar_modelo.dart`.
+- Se agregó test unitario en `tests/modules/test_catalog.py` validando la entrega de coordenadas y descripción (7/7 tests pasando).
 
 ---
 
