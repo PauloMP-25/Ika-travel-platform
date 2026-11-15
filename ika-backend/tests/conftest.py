@@ -128,6 +128,9 @@ def _clean_database() -> None:
 
     async def _recreate() -> None:
         async with TEST_ENGINE.begin() as conn:
+            from sqlalchemy import text
+            await conn.execute(text("DROP TABLE IF EXISTS review_images CASCADE"))
+            await conn.execute(text("DROP TABLE IF EXISTS reviews CASCADE"))
             await conn.run_sync(Base.metadata.drop_all)
             await conn.run_sync(Base.metadata.create_all)
             # Corrección N.º 14: los tests usan `create_all` (no Alembic), así

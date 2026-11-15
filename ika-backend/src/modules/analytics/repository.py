@@ -5,14 +5,14 @@ from enum import Enum
 from typing import Any, Literal
 from uuid import UUID
 
-from sqlalchemy import func, select, text
+from sqlalchemy import func, literal, null, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.modules.analytics.date_range import DateRange  # noqa: F401
 from src.modules.analytics.models import UsageEvent, UsageEventType
 from src.modules.catalog.models import Attraction
 from src.modules.emergency.models import IncidentStatus, IncidentType, TouristIncidentReport
-from src.modules.reviews.models import Favorite, Review
+from src.modules.reviews.models import Favorite
 from src.modules.users.models import User
 
 SortBy = Literal["views", "favorites", "reviews"]
@@ -119,16 +119,6 @@ class AnalyticsRepository:
             .group_by(Favorite.attraction_id)
             .subquery()
         )
-        reviews = (
-            select(
-                Review.attraction_id.label("attraction_id"),
-                func.count(Review.id).label("total"),
-                func.avg(Review.rating).label("avg_rating"),
-            )
-            .where(Review.created_at >= rng.start_dt, Review.created_at < rng.end_dt_exclusive)
-            .group_by(Review.attraction_id)
-            .subquery()
-        )
         views = (
             select(UsageEvent.attraction_id.label("attraction_id"), func.count(UsageEvent.id).label("total"))
             .where(
@@ -142,7 +132,7 @@ class AnalyticsRepository:
         )
         views_count = func.coalesce(views.c.total, 0)
         favorites_count = func.coalesce(favorites.c.total, 0)
-        reviews_count = func.coalesce(reviews.c.total, 0)
+        reviews_count = literal(0)
         sort_column = {"views": views_count, "favorites": favorites_count, "reviews": reviews_count}[sort_by]
 
         stmt = (
@@ -153,12 +143,11 @@ class AnalyticsRepository:
                 views_count.label("views"),
                 favorites_count.label("favorites"),
                 reviews_count.label("reviews"),
-                reviews.c.avg_rating,
+                null().label("avg_rating"),
             )
             .select_from(Attraction)
             .outerjoin(views, views.c.attraction_id == Attraction.id)
             .outerjoin(favorites, favorites.c.attraction_id == Attraction.id)
-            .outerjoin(reviews, reviews.c.attraction_id == Attraction.id)
             .where(Attraction.is_active.is_(True), sort_column > 0)
             .order_by(sort_column.desc(), Attraction.name.asc())
             .limit(limit)

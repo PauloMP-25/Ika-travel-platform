@@ -98,7 +98,7 @@ Se realizó una auditoría completa en la base de datos y el código, confirmand
 
 | Tabla | Estado Verificado en BD | Resolución y Decisión |
 |---|---|---|
-| `review` / `review_images` | **Poblada con reseñas semilla** | Se agregaron reseñas oficiales con calificaciones (4 y 5 estrellas) y fotos en `seed.py`. Esto alimenta automáticamente `avg_rating` en `AttractionDetailResponse` calculado por SQL, evitando que devuelva null. Se mantienen para soportar en el futuro el formulario móvil. |
+| `review` / `review_images` | **Eliminadas con migración Alembic** | Eliminadas definitivamente de la base de datos (`3b9988fe5517`), modelos y routers para erradicar deuda técnica y simplificar el despliegue al no formar parte del alcance de la versión actual. Se conserva intacta la funcionalidad de favoritos (`favorites`). |
 | `usage_events` | **Activa con más de 100 registros** | Confirmado: se escribe en segundo plano de forma anónima desde `catalog` y `translation` (vistas, búsquedas y traducciones). Alimenta los endpoints de analítica de DIRCETUR (`/admin/analytics`). Se mantiene intacta. |
 | `weather_snapshot` / `weather_alert` | **Pobladas y operativas** | Celery Beat ejecuta `weather.refrescar_cache_clima` cada 5h. Verificado con Open-Meteo y Gemini Flash Lite generando alertas de UV/viento y recomendaciones climáticas. El error 400 anterior se debía al túnel ngrok expirado. Se mantienen. |
 | `tourist_incident_reports` | **Activa con reportes reales** | Confirmado: la app móvil envía reportes formales a `POST /api/v1/emergency/reports` desde `incidencias_service.dart`. El panel DIRCETUR ya puede fiscalizarlos vía `/emergency/admin/reports`. Se mantiene. |

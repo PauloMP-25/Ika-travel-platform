@@ -37,7 +37,7 @@ def test_la_ultima_revision_es_la_de_la_correccion_14() -> None:
 
     head = scripts.get_current_head()
 
-    assert head == "1a7766de2405", (
+    assert head == "3b9988fe5517", (
         f"El head cambió ({head}); actualiza este test y documenta la nueva "
         "revisión en docs/modelo_datos.md."
     )

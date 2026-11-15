@@ -8,7 +8,7 @@ from sqlalchemy import select
 from src.core.security import create_access_token
 from src.modules.catalog.models import Attraction
 from src.modules.emergency.models import IncidentStatus, IncidentType, TouristIncidentReport
-from src.modules.reviews.models import Favorite, Review
+from src.modules.reviews.models import Favorite
 from src.modules.users.models import (
     ROLE_DIRCETUR_ADMIN_ID,
     ROLE_TOURIST_ID,
@@ -169,9 +169,7 @@ def test_top_attractions_without_cartesian_product(client: TestClient, db_sessio
     db_session.add(Favorite(user_id=u2.id, attraction_id=attraction.id))
     db_session.add(Favorite(user_id=u3.id, attraction_id=attraction.id))
 
-    # 2 reviews
-    db_session.add(Review(user_id=u1.id, attraction_id=attraction.id, rating=5, comment="Excelente"))
-    db_session.add(Review(user_id=u2.id, attraction_id=attraction.id, rating=4, comment="Muy bueno"))
+    # reviews eliminadas del alcance (0 reviews, avg_rating None)
 
     # 4 vistas de evento
     for _ in range(4):
@@ -190,9 +188,9 @@ def test_top_attractions_without_cartesian_product(client: TestClient, db_sessio
     item = items[0]
     assert item["name"] == "Huacachina Oasis"
     assert item["favorites"] == 3
-    assert item["reviews"] == 2
+    assert item["reviews"] == 0
     assert item["views"] == 4
-    assert item["avg_rating"] == 4.5
+    assert item["avg_rating"] is None
 
     # A-12: limit=51 -> 422
     resp_limit_exceeded = client.get(
