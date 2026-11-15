@@ -5,20 +5,30 @@ import '../config/colores_tema.dart';
 import '../config/navegacion_service.dart';
 import '../config/tema.dart';
 import '../config/traducciones_scope.dart';
+import '../services/texto_ia.dart';
 import '../services/weather_service.dart';
 
 class PantallaDetalleDia extends StatefulWidget {
   final String tituloActividad;
   final String imagenActividad;
   final String? fecha;
-  final String? atractivoId; // NUEVO
+
+  /// Id del atractivo en la BD, para pedir la recomendación de ese lugar.
+  /// Es null cuando el lugar viene de los mocks (no existe en el backend).
+  final String? atractivoId;
+
+  /// Id del lugar dentro del catálogo de la app, para que "Ver en el mapa"
+  /// haga zoom sobre ese punto. A diferencia de [atractivoId], este sí se
+  /// llena también para los mocks, porque el mapa los conoce igual.
+  final String? idLugar;
 
   const PantallaDetalleDia({
     super.key,
     required this.tituloActividad,
     required this.imagenActividad,
     this.fecha,
-    this.atractivoId, // NUEVO
+    this.atractivoId,
+    this.idLugar,
   });
 
   @override
@@ -44,9 +54,6 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
   }
 
   Future<void> _cargarDatosClima() async {
-    // 👇 NUEVO: verificar si llega el atractivoId
-    debugPrint('🔍 DEBUG: atractivoId recibido = ${widget.atractivoId}');
-
     try {
       final clima = await _weatherService.obtenerClimaActual();
       final pron = await _weatherService.obtenerPronostico();
@@ -58,18 +65,18 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
             )
           : await _weatherService.obtenerRecomendacionDelDia();
 
-      // 👇 NUEVO: verificar qué devuelve el backend
-      debugPrint(
-        '🔍 DEBUG: atractivo_nombre devuelto = ${recIA?['atractivo_nombre']}',
-      );
-
       if (mounted) {
         setState(() {
           _climaActual = clima;
           if (recIA != null) {
-            _textoRecomendacionIA = recIA['recommendation_text'] as String?;
-            _consejosIA = (recIA['consejos'] as List<dynamic>?) ?? [];
-            _nombreAtractivo = recIA['atractivo_nombre'] as String?;
+            // La IA y el backend suelen devolver el texto salpicado de
+            // emojis; se limpian antes de mostrarlos en la tarjeta.
+            _textoRecomendacionIA =
+                TextoIA.limpiar(recIA['recommendation_text'] as String?);
+            _consejosIA = TextoIA.limpiarLista(recIA['consejos'] as List?);
+            _nombreAtractivo = TextoIA.limpiar(
+              recIA['atractivo_nombre'] as String?,
+            );
             _scoreRecomendacion = (recIA['score'] as num?)?.toDouble() ?? 0.0;
             _nivelRecomendacion = (recIA['nivel'] as String?) ?? '';
           }
@@ -509,8 +516,14 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
                               ),
                             ),
                             onPressed: () {
-                              Navigator.pop(context);
-                              NavegacionService.irAMapa(context);
+                              // Con el lugar conocido, el mapa centra y amplía
+                              // ese punto en vez de abrirse en toda la región.
+                              final id = widget.idLugar;
+                              if (id != null && id.isNotEmpty) {
+                                NavegacionService.irAMapaConLugar(id, context);
+                              } else {
+                                NavegacionService.irAMapa(context);
+                              }
                             },
                           ),
                         ),

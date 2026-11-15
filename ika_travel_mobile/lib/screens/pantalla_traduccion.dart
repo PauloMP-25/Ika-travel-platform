@@ -37,7 +37,8 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
   String _sourceLang = 'es';
   String _targetLang = 'en';
   String _traduccionResultado = '';
-  String _origenTraduccion = '';
+  OrigenTraduccion _origenTraduccion = OrigenTraduccion.servidor;
+  bool _traduccionAproximada = false;
   bool _traduciendo = false;
   String? _errorTraduccion;
 
@@ -278,6 +279,7 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
         setState(() {
           _traduccionResultado = res.translatedText;
           _origenTraduccion = res.origin;
+          _traduccionAproximada = res.aproximada;
           _traduciendo = false;
         });
       }
@@ -588,6 +590,86 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
     );
   }
 
+  /// Insignia que dice de dónde salió la traducción, en palabras que el
+  /// usuario entienda (nunca el código interno del servicio).
+  Widget _insigniaOrigen() {
+    late final String etiqueta;
+    late final IconData icono;
+    late final Color color;
+
+    switch (_origenTraduccion) {
+      case OrigenTraduccion.servidor:
+        etiqueta = context.tr('origen_en_linea');
+        icono = Icons.cloud_done_rounded;
+        color = const Color(0xFF27C06B);
+      case OrigenTraduccion.asistenteIA:
+        etiqueta = context.tr('origen_asistente');
+        icono = Icons.auto_awesome_rounded;
+        color = AppColores.turquesaOasis;
+      case OrigenTraduccion.sinConexion:
+        etiqueta = context.tr('origen_sin_conexion');
+        icono = Icons.offline_bolt_rounded;
+        color = AppColores.naranjaBoton;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icono, size: 13, color: color),
+          const SizedBox(width: 5),
+          Text(
+            etiqueta,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Advierte cuando el diccionario local no pudo traducir todas las palabras.
+  /// Es importante decirlo: una traducción a medias puede confundir a quien
+  /// la enseñe en pantalla a un local.
+  Widget _avisoAproximada(Color colorTextoSecundario) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: AppColores.naranjaBoton.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.info_outline_rounded,
+            size: 15,
+            color: AppColores.naranjaBoton,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              context.tr('traduccion_aproximada'),
+              style: TextStyle(
+                fontSize: 11.5,
+                height: 1.35,
+                color: colorTextoSecundario,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildVistaTraductorLibre(
     Color colorTarjeta,
     Color colorTexto,
@@ -767,34 +849,19 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        context.tr('traduccion'),
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          color: colorTextoSecundario,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
+                      Expanded(
                         child: Text(
-                          '${context.tr('fuente')} $_origenTraduccion',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: AppColores.naranjaBoton,
+                          context.tr('traduccion'),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: colorTextoSecundario,
                           ),
                         ),
                       ),
+                      const SizedBox(width: 8),
+                      _insigniaOrigen(),
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -806,6 +873,10 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
                       color: colorTexto,
                     ),
                   ),
+                  if (_traduccionAproximada) ...[
+                    const SizedBox(height: 12),
+                    _avisoAproximada(colorTextoSecundario),
+                  ],
                 ],
               ),
             ),

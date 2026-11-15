@@ -496,9 +496,7 @@ void main() {
 
     test('Genera mensaje de emergencia con ubicación GPS cuando el permiso está concedido', () {
       sosService.setPermisoUbicacion(true);
-      final mensajeConGps = sosService.generarMensajeEmergencia(
-        modoPrueba: false,
-      );
+      final mensajeConGps = sosService.generarMensajeEmergencia();
 
       expect(mensajeConGps.contains('¡NECESITO AYUDA!'), isTrue);
       expect(mensajeConGps.contains('https://maps.google.com'), isTrue);
@@ -507,25 +505,20 @@ void main() {
 
     test('Genera mensaje sin coordenadas cuando el permiso de ubicación es revocado', () {
       sosService.setPermisoUbicacion(false);
-      final mensajeSinGps = sosService.generarMensajeEmergencia(
-        modoPrueba: false,
-      );
+      final mensajeSinGps = sosService.generarMensajeEmergencia();
 
       expect(mensajeSinGps.contains('¡NECESITO AYUDA!'), isTrue);
       expect(mensajeSinGps.contains('Ubicación GPS no disponible'), isTrue);
       expect(mensajeSinGps.contains('https://maps.google.com'), isFalse);
     });
 
-    test('Modo prueba agrega etiqueta explícita de simulación', () {
-      final mensajePrueba = sosService.generarMensajeEmergencia(
-        modoPrueba: true,
-      );
-      expect(
-        mensajePrueba.contains(
-          '[MODO PRUEBA IKA TRAVEL - NO ES UNA EMERGENCIA REAL]',
-        ),
-        isTrue,
-      );
+    test('El mensaje SOS nunca se marca como simulación', () {
+      // El "modo prueba" se retiró: un mensaje que llegue a un contacto de
+      // confianza siempre debe leerse como una emergencia real, nunca como
+      // un simulacro que pueda hacer que lo ignoren.
+      final mensaje = sosService.generarMensajeEmergencia();
+      expect(mensaje.toUpperCase().contains('MODO PRUEBA'), isFalse);
+      expect(mensaje.toUpperCase().contains('NO ES UNA EMERGENCIA'), isFalse);
     });
 
     testWidgets(
@@ -540,7 +533,9 @@ void main() {
 
         expect(find.text('Asistencia y SOS'), findsOneWidget);
         expect(find.text('ACTIVAR SOS DE EMERGENCIA'), findsOneWidget);
-        expect(find.text('Modo Prueba (Simular sin enviar)'), findsOneWidget);
+        expect(find.text('Opciones manuales'), findsOneWidget);
+        // El "modo prueba" se retiró de la interfaz.
+        expect(find.textContaining('Modo Prueba'), findsNothing);
         expect(find.textContaining('Contactos de confianza'), findsOneWidget);
         expect(find.text('Ubicación en el Mensaje'), findsOneWidget);
         expect(find.text('Vista Previa del Texto SOS'), findsOneWidget);

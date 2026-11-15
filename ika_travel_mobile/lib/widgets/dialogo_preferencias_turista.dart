@@ -65,7 +65,7 @@ class _DialogoPreferenciasTuristaState extends State<DialogoPreferenciasTurista>
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('✅ Preferencias turísticas actualizadas con éxito.'),
+          content: Text('Preferencias turísticas actualizadas con éxito.'),
           backgroundColor: Colors.green,
         ),
       );

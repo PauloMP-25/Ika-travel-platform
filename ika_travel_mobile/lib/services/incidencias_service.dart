@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import '../config/api_config.dart';
 import 'auth_service.dart';
+import 'persistencia_service.dart';
 
 class ResultadoReporteIncidencia {
   final bool exitoso;
@@ -74,28 +75,156 @@ class IncidenciasService {
         final status = data['status']?.toString() ?? 'received';
         return ResultadoReporteIncidencia(
           exitoso: true,
-          mensaje: 'Reporte registrado formalmente ante DIRCETUR Ica (Estado: $status).',
+          mensaje: 'Reporte registrado ante DIRCETUR Ica. Ya aparece en el '
+              'panel de fiscalización.',
           reportId: id,
           status: status,
         );
-      } else if (response.statusCode == 401) {
+      }
+
+      if (response.statusCode == 401 || response.statusCode == 403) {
         return const ResultadoReporteIncidencia(
           exitoso: false,
-          mensaje: 'Tu sesión ha expirado. Inicia sesión nuevamente para enviar el reporte.',
-        );
-      } else {
-        return ResultadoReporteIncidencia(
-          exitoso: false,
-          mensaje: 'El servidor no pudo procesar el reporte (Código: ${response.statusCode}).',
+          mensaje: 'Tu sesión expiró. Inicia sesión otra vez para enviar el '
+              'reporte.',
         );
       }
+
+      // Cualquier otra respuesta es un problema del servidor, no del usuario:
+      // guardamos el reporte en el teléfono para no perderlo.
+      debugPrint('[IncidenciasService] La central respondió '
+          '${response.statusCode}: ${response.body}');
+      await _guardarPendiente(bodyMap);
+      return const ResultadoReporteIncidencia(
+        exitoso: false,
+        mensaje: _mensajeGuardado,
+      );
     } catch (e) {
       debugPrint('[IncidenciasService] Error al conectar con DIRCETUR: $e');
-      // No simulamos confirmación si la API no respondió
-      return ResultadoReporteIncidencia(
+      await _guardarPendiente({
+        'incident_type': tipoIncidente,
+        'title': titulo.trim(),
+        'description': descripcion.trim(),
+        if (nombreAgencia != null && nombreAgencia.trim().isNotEmpty)
+          'agency_name': nombreAgencia.trim(),
+        if (latitud != null) 'latitude': latitud,
+        if (longitud != null) 'longitude': longitud,
+      });
+      return const ResultadoReporteIncidencia(
         exitoso: false,
-        mensaje: 'No hubo conexión con la central de reportes de DIRCETUR ($e). Puedes comunicarte directamente al 056-238710 o a POLTUR al 056-224553.',
+        mensaje: _mensajeGuardado,
       );
     }
+  }
+
+  /// Mensaje único para cuando el reporte no llegó pero quedó a salvo.
+  /// Sin códigos de error: al turista no le dicen nada y asustan.
+  static const String _mensajeGuardado =
+      'La central de DIRCETUR no respondió. Tu reporte quedó guardado en el '
+      'teléfono y se enviará solo en cuanto vuelva el servicio. Si es urgente, '
+      'llama a DIRCETUR al 056-238710 o a POLTUR al 056-224553.';
+
+  static const String _claveP = 'reportes_pendientes';
+
+  Future<List<Map<String, dynamic>>> _leerPendientes() async {
+    final guardado = await PersistenciaService().leerJson(_claveP);
+    final lista = guardado?['items'];
+    if (lista is! List) return [];
+    return lista.whereType<Map>().map(Map<String, dynamic>.from).toList();
+  }
+
+  Future<void> _escribirPendientes(List<Map<String, dynamic>> items) async {
+    await PersistenciaService().guardarJson(_claveP, {'items': items});
+  }
+
+  Future<void> _guardarPendiente(Map<String, dynamic> cuerpo) async {
+    final pendientes = await _leerPendientes();
+    pendientes.add({
+      ...cuerpo,
+      'guardado_en': DateTime.now().toIso8601String(),
+    });
+    await _escribirPendientes(pendientes);
+    debugPrint('[IncidenciasService] Reporte guardado como pendiente '
+        '(${pendientes.length} en cola).');
+  }
+
+  /// Cuántos reportes esperan a que vuelva el servidor.
+  Future<int> contarPendientes() async => (await _leerPendientes()).length;
+
+  /// Reintenta enviar los reportes que quedaron guardados. Devuelve cuántos
+  /// se enviaron. Es seguro llamarla cada vez que se abre la pantalla: si no
+  /// hay pendientes o no hay sesión, no hace nada.
+  Future<int> reintentarPendientes() async {
+    final pendientes = await _leerPendientes();
+    if (pendientes.isEmpty) return 0;
+
+    final usuario = AuthService().usuarioActual;
+    final token = usuario?.token ?? '';
+    if (usuario == null || usuario.esInvitado || token.isEmpty) return 0;
+
+    final quedan = <Map<String, dynamic>>[];
+    var enviados = 0;
+
+    for (final pendiente in pendientes) {
+      final cuerpo = Map<String, dynamic>.from(pendiente)
+        ..remove('guardado_en');
+      try {
+        final response = await http
+            .post(
+              Uri.parse(ApiConfig.emergencyReports),
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'ngrok-skip-browser-warning': 'true',
+                'Authorization': 'Bearer $token',
+                'Idempotency-Key':
+                    'rep_${pendiente['guardado_en']}_${usuario.id}',
+              },
+              body: jsonEncode(cuerpo),
+            )
+            .timeout(const Duration(seconds: 8));
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          enviados++;
+          continue;
+        }
+      } catch (e) {
+        debugPrint('[IncidenciasService] Sigue sin poder enviarse: $e');
+      }
+      quedan.add(pendiente);
+    }
+
+    await _escribirPendientes(quedan);
+    if (enviados > 0) {
+      debugPrint('[IncidenciasService] $enviados reportes pendientes '
+          'enviados a DIRCETUR.');
+    }
+    return enviados;
+  }
+
+  /// Reportes que el propio usuario ya envió, para que confirme que llegaron.
+  Future<List<Map<String, dynamic>>> misReportes() async {
+    final token = AuthService().usuarioActual?.token ?? '';
+    if (token.isEmpty) return [];
+
+    try {
+      final response = await http.get(
+        Uri.parse(ApiConfig.myEmergencyReports),
+        headers: {
+          ...ApiConfig.defaultHeaders,
+          'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        if (data is List) {
+          return data.whereType<Map>().map(Map<String, dynamic>.from).toList();
+        }
+      }
+    } catch (e) {
+      debugPrint('[IncidenciasService] No se pudo listar mis reportes: $e');
+    }
+    return [];
   }
 }

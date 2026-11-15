@@ -704,6 +704,9 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                     tituloActividad: _lugar.nombre,
                     imagenActividad: _lugar.imagenPrincipal,
                     atractivoId: _lugar.esMock ? null : _lugar.id,
+                    // El mapa sí reconoce los mocks, así que el zoom funciona
+                    // aunque el backend esté caído.
+                    idLugar: _lugar.id,
                   ),
                 ),
               ),
@@ -845,14 +848,15 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                context.tr('factores_estadisticos'),
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: colorTexto,
+              Expanded(
+                child: Text(
+                  context.tr('factores_estadisticos'),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: colorTexto,
+                  ),
                 ),
               ),
               if (_cargandoClima)

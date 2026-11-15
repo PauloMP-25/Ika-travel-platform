@@ -145,7 +145,31 @@ o quitarlas** del modelo para no cargar deuda.
 
 ---
 
-## 7. Cosas menores
+## 7. El panel DIRCETUR necesita un usuario con rol admin
+
+**Dónde:** `src/modules/users/dependencies.py` → `require_dircetur_admin`
+**Endpoints:** `GET /api/v1/emergency/admin/reports` y
+`PATCH /api/v1/emergency/admin/reports/{id}`
+
+Ya se corrigió en el móvil un fallo que dejaba el panel siempre vacío: pedía
+los reportes a `GET /emergency/reports` (que solo acepta `POST` para crear) y
+mandaba la cabecera `X-Admin-Key`. La ruta correcta es
+`/emergency/admin/reports` y se protege con el **JWT de un usuario cuyo
+`users.role_id` apunte al rol de administrador DIRCETUR**, no con la clave de
+admin que usa el resto del panel.
+
+**Pedido concreto:** crear (o marcar) en la BD al menos un usuario con ese rol
+y pasar sus credenciales al equipo, para poder comprobar de punta a punta que
+un reporte enviado desde la app aparece en el panel. Hoy no hay forma de
+verificarlo.
+
+> Nota: conviene unificar la protección de todo el panel. Hoy conviven dos
+> mecanismos (`X-Admin-Key` para catálogo y agencias, rol de usuario para
+> reportes), lo que ya causó este fallo.
+
+---
+
+## 8. Cosas menores
 
 - **`official_recommendation` vacío en varios atractivos.** Plaza de Armas de
   Ica lo tiene en `None`. El móvil oculta la tarjeta verde de "Recomendación
@@ -161,7 +185,7 @@ o quitarlas** del modelo para no cargar deuda.
 
 ---
 
-## 8. Configuración que no es código (no está en git)
+## 9. Configuración que no es código (no está en git)
 
 No se arregla con un `git pull`, porque no vive en el repositorio:
 

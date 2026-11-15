@@ -45,6 +45,26 @@ class _PantallaReporteIncidenciaState extends State<PantallaReporteIncidencia> {
   void initState() {
     super.initState();
     _obtenerUbicacionSiAutorizada();
+    // Si quedaron reportes sin enviar por un corte del servidor, se reintentan
+    // en segundo plano al abrir la pantalla.
+    _reintentarPendientes();
+  }
+
+  Future<void> _reintentarPendientes() async {
+    final enviados = await _incidenciasService.reintentarPendientes();
+    if (enviados > 0 && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: const Color(0xFF2E7D32),
+          behavior: SnackBarBehavior.floating,
+          content: Text(
+            enviados == 1
+                ? 'Se envió 1 reporte que había quedado pendiente.'
+                : 'Se enviaron $enviados reportes que habían quedado pendientes.',
+          ),
+        ),
+      );
+    }
   }
 
   @override

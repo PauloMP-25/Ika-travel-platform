@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'config/escala_texto.dart';
 import 'config/tema.dart';
 import 'config/tema_manager.dart';
 import 'config/idioma_manager.dart';
@@ -64,6 +65,8 @@ class IkaTravelApp extends StatelessWidget {
                     brightness: Brightness.dark,
                   ),
                 ),
+                // Pone tope a la letra grande del sistema (ver EscalaTexto).
+                builder: EscalaTexto.aplicar,
                 home: const _GateArranque(),
               );
             },

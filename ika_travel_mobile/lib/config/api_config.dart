@@ -27,8 +27,20 @@ class ApiConfig {
   static String adminRevokeAgency(String id) =>
       '$baseUrl/api/v1/catalog/admin/agencies/$id/revoke';
 
+  // Panel DIRCETUR: listado de reportes de incidencia de TODOS los turistas.
+  // Ojo: no es la misma ruta que `emergencyReports` (esa solo acepta POST
+  // para crear). Pedirle un GET a la de crear devuelve 404/405, que es lo que
+  // dejaba el panel de administración siempre vacío.
+  // Se protege con el JWT de un usuario con rol admin, no con X-Admin-Key.
   static String get adminEmergencyReports =>
-      '$baseUrl/api/v1/emergency/reports';
+      '$baseUrl/api/v1/emergency/admin/reports';
+
+  static String adminEmergencyReportDetail(String id) =>
+      '$baseUrl/api/v1/emergency/admin/reports/$id';
+
+  /// Reportes que emitió el propio usuario (para que confirme que llegaron).
+  static String get myEmergencyReports =>
+      '$baseUrl/api/v1/emergency/my-reports';
 
   // --- GEO & ATRACTIVOS CERCANOS ---
   // `limit` tiene tope 50 en el backend y `radius_m` tope 100 000 m.

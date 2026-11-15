@@ -295,7 +295,12 @@ class Traducciones {
       'escribe_frase': 'Escribe aquí la consulta o frase...',
       'traducir_ia': 'Traducir con IA',
       'traduccion': 'Traducción:',
-      'fuente': 'Fuente:',
+      'origen_en_linea': 'En línea',
+      'origen_asistente': 'Asistente IA',
+      'origen_sin_conexion': 'Sin conexión',
+      'traduccion_aproximada':
+          'Traducción aproximada con el diccionario de viaje guardado en el '
+              'teléfono. Conéctate a internet para una traducción completa.',
       'entendido': 'Entendido',
       'mi_telefono': 'Mi Número Telefónico',
       'telefono_msg': 'Este número se usará para identificarte y enviar auxilio en caso de emergencia SOS.',
@@ -709,7 +714,12 @@ class Traducciones {
       'escribe_frase': 'Write your query or phrase here...',
       'traducir_ia': 'Translate with AI',
       'traduccion': 'Translation:',
-      'fuente': 'Source:',
+      'origen_en_linea': 'Online',
+      'origen_asistente': 'AI assistant',
+      'origen_sin_conexion': 'Offline',
+      'traduccion_aproximada':
+          'Approximate translation from the travel dictionary stored on your '
+              'phone. Connect to the internet for a full translation.',
       'entendido': 'Got it',
       'mi_telefono': 'My Phone Number',
       'telefono_msg': 'This number will be used to identify you and send help in case of SOS emergency.',
@@ -1108,7 +1118,12 @@ class Traducciones {
       'escribe_frase': 'ここに質問やフレーズを入力してください...',
       'traducir_ia': 'AIで翻訳する',
       'traduccion': '翻訳：',
-      'fuente': 'ソース：',
+      'origen_en_linea': 'オンライン',
+      'origen_asistente': 'AIアシスタント',
+      'origen_sin_conexion': 'オフライン',
+      'traduccion_aproximada':
+          'スマートフォンに保存された旅行辞書による概算翻訳です。完全な翻訳には'
+              'インターネット接続が必要です。',
       'entendido': '了解しました',
       'mi_telefono': '私の電話番号',
       'telefono_msg': 'この番号は、あなたを識別し、SOS緊急時に支援を送るために使用されます。',
