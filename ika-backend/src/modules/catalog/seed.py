@@ -10,6 +10,8 @@ from sqlalchemy.orm import selectinload
 
 from src.core.database import SesionAsincronaLocal, motor
 from src.modules.catalog.models import Agency, Attraction, AttractionImage, Category, Tour
+from src.core.security import hash_password
+from src.modules.users.models import User, UserRole, AuthProvider, ROLE_DIRCETUR_ADMIN_ID
 from src.shared.utils import utc_ahora
 
 CATEGORIAS = [
@@ -313,9 +315,29 @@ async def ejecutar() -> None:
                     agency_id=agencias[ruc].id, attraction_id=atractivos[atr_nombre].id,
                     name=nombre, description=desc, price=Decimal(precio), duration_hours=horas,
                 ))
+        # 4. Asegurar usuario Administrador DIRCETUR Ica (Punto 7)
+        admin_email = "admin@dircetur.gob.pe"
+        admin_user = (await db.execute(select(User).where(User.email == admin_email))).scalar_one_or_none()
+        if admin_user is None:
+            admin_user = User(
+                email=admin_email,
+                full_name="Administrador DIRCETUR Ica",
+                password_hash=hash_password("AdminDircetur2026!"),
+                role=UserRole.DIRCETUR_ADMIN,
+                role_id=ROLE_DIRCETUR_ADMIN_ID,
+                auth_provider=AuthProvider.EMAIL,
+                is_active=True,
+            )
+            db.add(admin_user)
+            print(f"+ Usuario Administrador DIRCETUR creado: {admin_email} (Clave: AdminDircetur2026!)")
+        else:
+            admin_user.role = UserRole.DIRCETUR_ADMIN
+            admin_user.role_id = ROLE_DIRCETUR_ADMIN_ID
+            admin_user.is_active = True
+
         await db.commit()
     await motor.dispose()
-    print("Catalogo oficial y tours de Ica sincronizados exitosamente.")
+    print("Catalogo oficial, tours y usuario DIRCETUR sincronizados exitosamente.")
 
 
 if __name__ == "__main__":

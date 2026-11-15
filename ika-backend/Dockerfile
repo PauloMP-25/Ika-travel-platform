@@ -17,4 +17,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY . .
 
 # Por defecto arranca la API
+RUN chmod +x /app/entrypoint.sh
+
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["uvicorn", "src.main:aplicacion", "--host", "0.0.0.0", "--port", "8000"]

@@ -29,6 +29,11 @@ services:
       - redis
     ports:
       - "8000:8000"
+    environment:
+      - URL_BASE_DATOS=postgresql+asyncpg://ika_usuario:ika_contrasena@db:5432/ika_travel_bd
+      - URL_REDIS=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
     env_file:
       - .env
     volumes:
@@ -41,6 +46,11 @@ services:
     depends_on:
       - redis
       - db
+    environment:
+      - URL_BASE_DATOS=postgresql+asyncpg://ika_usuario:ika_contrasena@db:5432/ika_travel_bd
+      - URL_REDIS=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
     env_file:
       - .env
     volumes:
@@ -53,6 +63,11 @@ services:
     depends_on:
       - redis
       - db
+    environment:
+      - URL_BASE_DATOS=postgresql+asyncpg://ika_usuario:ika_contrasena@db:5432/ika_travel_bd
+      - URL_REDIS=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
     env_file:
       - .env
     volumes:

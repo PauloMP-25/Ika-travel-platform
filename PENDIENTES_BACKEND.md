@@ -107,7 +107,13 @@ o quitarlas** del modelo para no cargar deuda.
 
 ---
 
-## 7. El panel DIRCETUR necesita un usuario con rol admin
+## 7. El panel DIRCETUR necesita un usuario con rol admin - [x] (COMPLETADO)
+
+**Credenciales del Administrador DIRCETUR creadas y verificadas:**
+- **Email:** 
+- **Contraseña:** 
+- **Rol:**  (ID: )
+- **Estado:** Activo e insertado en la base de datos por . Listo para probar .
 
 **Dónde:** `src/modules/users/dependencies.py` → `require_dircetur_admin`
 **Endpoints:** `GET /api/v1/emergency/admin/reports` y
