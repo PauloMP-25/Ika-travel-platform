@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'config/escala_texto.dart';
 import 'config/tema.dart';
 import 'config/tema_manager.dart';
 import 'config/idioma_manager.dart';
@@ -64,7 +65,8 @@ class IkaTravelApp extends StatelessWidget {
                     brightness: Brightness.dark,
                   ),
                 ),
-                // Pantalla de permisos al arranque; luego la lógica de sesión
+                // Pone tope a la letra grande del sistema (ver EscalaTexto).
+                builder: EscalaTexto.aplicar,
                 home: const _GateArranque(),
               );
             },
@@ -75,8 +77,14 @@ class IkaTravelApp extends StatelessWidget {
   }
 }
 
-/// Muestra primero la pantalla de permisos; una vez completada, entra a la
-/// lógica de sesión (login o app según haya usuario autenticado).
+/// Decide qué pantalla ve el usuario al abrir la app.
+///
+/// El orden importa: **primero la cuenta, después los permisos**.
+/// 1. Sin sesión → pantalla de bienvenida (de ahí a registro o login).
+/// 2. Con sesión y sin permisos aceptados → pantalla de permisos. Pedirlos
+///    recién aquí tiene sentido: el usuario ya sabe qué es la app y entiende
+///    para qué le pedimos su ubicación.
+/// 3. Con sesión y permisos → la app.
 class _GateArranque extends StatefulWidget {
   const _GateArranque();
 
@@ -89,20 +97,20 @@ class _GateArranqueState extends State<_GateArranque> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_permisosListos) {
-      return PantallaPermisos(
-        onCompletado: () {
-          if (mounted) setState(() => _permisosListos = true);
-        },
-      );
-    }
     return ValueListenableBuilder<UsuarioModelo?>(
       valueListenable: AuthService().usuarioNotifier,
       builder: (context, usuario, _) {
-        if (usuario != null) {
-          return const MainScaffold();
+        if (usuario == null) return const PantallaBienvenida();
+
+        if (!_permisosListos) {
+          return PantallaPermisos(
+            onCompletado: () {
+              if (mounted) setState(() => _permisosListos = true);
+            },
+          );
         }
-        return const PantallaBienvenida();
+
+        return const MainScaffold();
       },
     );
   }

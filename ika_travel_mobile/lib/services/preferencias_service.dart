@@ -69,6 +69,47 @@ class PreferenciasService {
     });
   }
 
+  /// Puente entre los gustos que elige el usuario en el modal de bienvenida
+  /// (texto natural, para la IA) y las claves de preferencia que guarda el
+  /// perfil del usuario (`usuario.preferences`, RF-01).
+  ///
+  /// Existe para que los dos no se contradigan: antes el modal y el diálogo
+  /// de "mis preferencias" guardaban cosas distintas en sitios distintos.
+  static const Map<String, String> _interesAClave = {
+    'Aventura y adrenalina': 'aventura',
+    'Gastronomía y pisco': 'vino_pisco',
+    'Cultura e historia': 'cultura',
+    'Naturaleza y mar': 'naturaleza',
+    'Relax y bienestar': 'sol_playa',
+    'Fotografía': 'cultura',
+    'Playas': 'sol_playa',
+    'Vida nocturna': 'vino_pisco',
+  };
+
+  /// Los gustos elegidos, traducidos a las claves del perfil del usuario.
+  List<String> get clavesDePerfil {
+    final claves = <String>{};
+    for (final interes in intereses) {
+      final clave = _interesAClave[interes];
+      if (clave != null) claves.add(clave);
+    }
+    return claves.toList();
+  }
+
+  /// Rehidrata los gustos a partir de las claves guardadas en el perfil, para
+  /// que la IA siga personalizando si el usuario los editó desde Ajustes.
+  void sincronizarDesdeClaves(List<String> claves) {
+    if (claves.isEmpty) return;
+    final etiquetas = <String>{};
+    for (final entrada in _interesAClave.entries) {
+      if (claves.contains(entrada.value)) etiquetas.add(entrada.key);
+    }
+    if (etiquetas.isEmpty) return;
+    intereses = etiquetas.toList();
+    _completado = true;
+    cambios.value = !cambios.value;
+  }
+
   /// Resumen en texto natural para inyectar en el prompt de la IA.
   /// Devuelve cadena vacía si el usuario no registró gustos.
   String resumenParaIA() {

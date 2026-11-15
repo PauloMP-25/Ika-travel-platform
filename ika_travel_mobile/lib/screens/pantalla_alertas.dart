@@ -7,7 +7,6 @@ import '../models/alerta_modelo.dart';
 import '../services/alertas_service.dart';
 import 'pantalla_configurar_alertas.dart';
 import 'pantalla_detalle_alerta.dart';
-import 'pantalla_seguimiento_destino.dart';
 
 class PantallaAlertas extends StatefulWidget {
   const PantallaAlertas({super.key});

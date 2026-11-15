@@ -336,17 +336,11 @@ class SosService {
 
   /// Generar el texto del mensaje de emergencia con coordenadas reales y remitente
   String generarMensajeEmergencia({
-    bool modoPrueba = false,
     String? nombreUsuario,
     String? telefonoUsuario,
     String? motivoAccidente,
   }) {
     final buffer = StringBuffer();
-
-    if (modoPrueba) {
-      buffer.writeln('[MODO PRUEBA IKA TRAVEL - NO ES UNA EMERGENCIA REAL]');
-      buffer.writeln();
-    }
 
     final nombre = (nombreUsuario != null && nombreUsuario.trim().isNotEmpty)
         ? nombreUsuario.trim()

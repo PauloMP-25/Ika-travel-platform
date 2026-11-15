@@ -314,7 +314,10 @@ void main() {
           find.text('Condiciones para actividades disponibles'),
           findsOneWidget,
         );
-        expect(find.text('Historial cronológico de cambios'), findsOneWidget);
+        expect(
+          find.textContaining('Historial cronologico de cambios'),
+          findsOneWidget,
+        );
         expect(
           find.text('Alertas relacionadas con el destino'),
           findsOneWidget,
@@ -428,11 +431,29 @@ void main() {
       NavegacionService.irAPronostico();
       expect(NavegacionService.indiceTabNotifier.value, equals(3));
 
-      NavegacionService.irAFavoritos();
-      expect(NavegacionService.indiceTabNotifier.value, equals(4));
-
       NavegacionService.irAInicio();
       expect(NavegacionService.indiceTabNotifier.value, equals(0));
+    });
+
+    test('irAMapaConLugar abre el mapa y marca el lugar a enfocar', () {
+      // Es lo que hace el botón "Ver en el mapa" del detalle: cambia a la
+      // pestaña del mapa y le dice qué punto centrar y ampliar.
+      NavegacionService.irAInicio();
+      NavegacionService.lugarEnfocadoNotifier.value = null;
+
+      NavegacionService.irAMapaConLugar('mock-huacachina');
+
+      expect(
+        NavegacionService.indiceTabNotifier.value,
+        equals(NavegacionService.tabMapa),
+      );
+      expect(
+        NavegacionService.lugarEnfocadoNotifier.value,
+        equals('mock-huacachina'),
+      );
+
+      NavegacionService.lugarEnfocadoNotifier.value = null;
+      NavegacionService.irAInicio();
     });
   });
 
@@ -440,29 +461,42 @@ void main() {
     final sosService = SosService();
 
     test('Permite registrar, actualizar y eliminar contacto de confianza', () {
-      sosService.guardarContacto(
+      // Parte de una lista limpia (el servicio es singleton).
+      while (sosService.contactos.isNotEmpty) {
+        sosService.eliminarContacto(0);
+      }
+
+      final agregado = sosService.guardarContacto(
         nombre: 'María Gómez',
         telefono: '+51 987654321',
         relacion: 'Hermana',
       );
 
-      expect(sosService.contactoNotifier.value, isNotNull);
-      expect(sosService.contactoNotifier.value!.nombre, equals('María Gómez'));
-      expect(
-        sosService.contactoNotifier.value!.telefono,
-        equals('+51 987654321'),
-      );
-      expect(sosService.contactoNotifier.value!.relacion, equals('Hermana'));
+      expect(agregado, isTrue);
+      expect(sosService.contactos, isNotEmpty);
+      expect(sosService.contactoPrincipal, isNotNull);
+      expect(sosService.contactoPrincipal!.nombre, equals('María Gómez'));
+      expect(sosService.contactoPrincipal!.telefono, equals('+51 987654321'));
+      expect(sosService.contactoPrincipal!.relacion, equals('Hermana'));
 
-      sosService.eliminarContacto();
-      expect(sosService.contactoNotifier.value, isNull);
+      // Actualiza el contacto en la posición 0.
+      sosService.guardarContacto(
+        indice: 0,
+        nombre: 'María G.',
+        telefono: '+51 900000000',
+        relacion: 'Hermana',
+      );
+      expect(sosService.contactoPrincipal!.nombre, equals('María G.'));
+      expect(sosService.contactoPrincipal!.telefono, equals('+51 900000000'));
+
+      sosService.eliminarContacto(0);
+      expect(sosService.contactos, isEmpty);
+      expect(sosService.contactoPrincipal, isNull);
     });
 
     test('Genera mensaje de emergencia con ubicación GPS cuando el permiso está concedido', () {
       sosService.setPermisoUbicacion(true);
-      final mensajeConGps = sosService.generarMensajeEmergencia(
-        modoPrueba: false,
-      );
+      final mensajeConGps = sosService.generarMensajeEmergencia();
 
       expect(mensajeConGps.contains('¡NECESITO AYUDA!'), isTrue);
       expect(mensajeConGps.contains('https://maps.google.com'), isTrue);
@@ -471,25 +505,20 @@ void main() {
 
     test('Genera mensaje sin coordenadas cuando el permiso de ubicación es revocado', () {
       sosService.setPermisoUbicacion(false);
-      final mensajeSinGps = sosService.generarMensajeEmergencia(
-        modoPrueba: false,
-      );
+      final mensajeSinGps = sosService.generarMensajeEmergencia();
 
       expect(mensajeSinGps.contains('¡NECESITO AYUDA!'), isTrue);
       expect(mensajeSinGps.contains('Ubicación GPS no disponible'), isTrue);
       expect(mensajeSinGps.contains('https://maps.google.com'), isFalse);
     });
 
-    test('Modo prueba agrega etiqueta explícita de simulación', () {
-      final mensajePrueba = sosService.generarMensajeEmergencia(
-        modoPrueba: true,
-      );
-      expect(
-        mensajePrueba.contains(
-          '[MODO PRUEBA IKA TRAVEL - NO ES UNA EMERGENCIA REAL]',
-        ),
-        isTrue,
-      );
+    test('El mensaje SOS nunca se marca como simulación', () {
+      // El "modo prueba" se retiró: un mensaje que llegue a un contacto de
+      // confianza siempre debe leerse como una emergencia real, nunca como
+      // un simulacro que pueda hacer que lo ignoren.
+      final mensaje = sosService.generarMensajeEmergencia();
+      expect(mensaje.toUpperCase().contains('MODO PRUEBA'), isFalse);
+      expect(mensaje.toUpperCase().contains('NO ES UNA EMERGENCIA'), isFalse);
     });
 
     testWidgets(
@@ -504,8 +533,10 @@ void main() {
 
         expect(find.text('Asistencia y SOS'), findsOneWidget);
         expect(find.text('ACTIVAR SOS DE EMERGENCIA'), findsOneWidget);
-        expect(find.text('Modo Prueba (Simular sin enviar)'), findsOneWidget);
-        expect(find.text('Contacto de Confianza'), findsOneWidget);
+        expect(find.text('Opciones manuales'), findsOneWidget);
+        // El "modo prueba" se retiró de la interfaz.
+        expect(find.textContaining('Modo Prueba'), findsNothing);
+        expect(find.textContaining('Contactos de confianza'), findsOneWidget);
         expect(find.text('Ubicación en el Mensaje'), findsOneWidget);
         expect(find.text('Vista Previa del Texto SOS'), findsOneWidget);
         expect(find.text('Centrales de Emergencia Oficiales'), findsOneWidget);

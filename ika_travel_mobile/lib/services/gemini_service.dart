@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import 'preferencias_service.dart';
+import 'texto_ia.dart';
 
 /// Servicio para integración directa con Google Gemini AI y respaldo offline.
 /// Permite que los desarrolladores y compañeros de equipo prueben el frontend
@@ -42,6 +43,8 @@ Genera una recomendación para visitar "$nombreAtractivo" bajo las siguientes co
 - Viento: ${viento} km/h
 - Radiación UV: ${uv}
 - Condición: $condicion$lineaPerfil
+
+No uses emojis ni símbolos decorativos en ninguna parte de la respuesta.
 
 Responde EXCLUSIVAMENTE en formato JSON con la siguiente estructura:
 {
@@ -85,8 +88,10 @@ Responde EXCLUSIVAMENTE en formato JSON con la siguiente estructura:
             'atractivo_nombre': nombreAtractivo,
             'score': (parsed['score'] as num?)?.toDouble() ?? 0.90,
             'nivel': parsed['nivel'] ?? 'excelente',
-            'recommendation_text': parsed['recommendation_text'] ?? '',
-            'consejos': List<String>.from(parsed['consejos'] ?? []),
+            // Aunque el prompt lo pida, el modelo a veces igual mete emojis.
+            'recommendation_text':
+                TextoIA.limpiar(parsed['recommendation_text'] as String?),
+            'consejos': TextoIA.limpiarLista(parsed['consejos'] as List?),
             'source': 'gemini_direct_api',
             'generated_at': DateTime.now().toIso8601String(),
           };
@@ -104,6 +109,66 @@ Responde EXCLUSIVAMENTE en formato JSON con la siguiente estructura:
       uv: (uv as num).toDouble(),
       condicion: condicion.toString(),
     );
+  }
+
+  /// Traduce texto con Gemini. Es la segunda vía del traductor: sirve cuando
+  /// el backend está caído pero el teléfono sí tiene internet.
+  ///
+  /// Devuelve `null` si no hay clave configurada o si la llamada falla, para
+  /// que quien llama pase al traductor sin conexión.
+  Future<String?> traducir({
+    required String texto,
+    required String idiomaOrigen,
+    required String idiomaDestino,
+  }) async {
+    if (ApiConfig.geminiApiKey.isEmpty) return null;
+
+    final nombres = {'es': 'español', 'en': 'inglés', 'ja': 'japonés'};
+    final origen = nombres[idiomaOrigen] ?? idiomaOrigen;
+    final destino = nombres[idiomaDestino] ?? idiomaDestino;
+
+    try {
+      final url = Uri.parse(
+        'https://generativelanguage.googleapis.com/v1beta/models/'
+        'gemini-1.5-flash:generateContent?key=${ApiConfig.geminiApiKey}',
+      );
+
+      final prompt =
+          'Traduce del $origen al $destino el siguiente texto de un turista '
+          'que viaja por la región Ica (Perú). Responde ÚNICAMENTE con la '
+          'traducción, sin comillas, sin explicaciones y sin repetir el '
+          'original.\n\nTexto: $texto';
+
+      final response = await http
+          .post(
+            url,
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode({
+              'contents': [
+                {
+                  'parts': [
+                    {'text': prompt},
+                  ],
+                },
+              ],
+              'generationConfig': {'temperature': 0.2, 'maxOutputTokens': 400},
+            }),
+          )
+          .timeout(const Duration(seconds: 12));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(utf8.decode(response.bodyBytes));
+        final crudo =
+            data['candidates']?[0]?['content']?['parts']?[0]?['text'] as String?;
+        final limpio = crudo?.trim().replaceAll(RegExp(r'^"|"$'), '').trim();
+        if (limpio != null && limpio.isNotEmpty) return limpio;
+      }
+      debugPrint('⚠️ [Gemini] Traducción sin respuesta útil '
+          '(HTTP ${response.statusCode}).');
+    } catch (e) {
+      debugPrint('⚠️ [Gemini] Error al traducir: $e');
+    }
+    return null;
   }
 
   /// Recomendación heurística enriquecida de IA cuando no hay conexión

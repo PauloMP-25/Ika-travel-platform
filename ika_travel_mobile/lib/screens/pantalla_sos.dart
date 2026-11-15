@@ -107,7 +107,7 @@ class _PantallaSosState extends State<PantallaSos> {
     super.dispose();
   }
 
-  String _obtenerMensajeSos({bool esPrueba = false, bool esModoChoque = false}) {
+  String _obtenerMensajeSos({bool esModoChoque = false}) {
     final usuario = AuthService().usuarioActual;
     final nombre = usuario != null && !usuario.esInvitado && usuario.fullName.trim().isNotEmpty
         ? usuario.fullName.trim()
@@ -124,7 +124,6 @@ class _PantallaSosState extends State<PantallaSos> {
     }
 
     return _sosService.generarMensajeEmergencia(
-      modoPrueba: esPrueba,
       nombreUsuario: nombre,
       telefonoUsuario: telefono,
       motivoAccidente: motivo,
@@ -185,7 +184,7 @@ class _PantallaSosState extends State<PantallaSos> {
   Future<ResultadoRegistroSos> _registrarAlertaEnBackend(
       {String? motivo}) async {
     final resultado = await _sosService.registrarAlertaSos(
-      mensajeAlerta: _obtenerMensajeSos(esPrueba: false),
+      mensajeAlerta: _obtenerMensajeSos(),
       motivo: motivo ??
           '$_motivoSeleccionado${_motivoDetalleCtrl.text.trim().isNotEmpty ? ' (${_motivoDetalleCtrl.text.trim()})' : ''}',
     );
@@ -206,7 +205,7 @@ class _PantallaSosState extends State<PantallaSos> {
     if (!esModoChoque && !_verificarAutenticacionOpcion()) return;
     final contactos = _sosService.contactos;
     if (contactos.isEmpty) {
-      _ejecutarAccionSos(esPrueba: false);
+      _ejecutarAccionSos();
       return;
     }
 
@@ -215,7 +214,7 @@ class _PantallaSosState extends State<PantallaSos> {
       if (mounted) setState(() {});
     }
 
-    final mensaje = _obtenerMensajeSos(esPrueba: false, esModoChoque: esModoChoque);
+    final mensaje = _obtenerMensajeSos(esModoChoque: esModoChoque);
     Clipboard.setData(ClipboardData(text: mensaje));
 
     if (!mounted) return;
@@ -241,7 +240,7 @@ class _PantallaSosState extends State<PantallaSos> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             backgroundColor: Color(0xFFD32F2F),
-            content: Text('🚨 Alerta SOS enviada por SMS silencioso con ubicación GPS.'),
+            content: Text('Alerta SOS enviada por SMS silencioso con ubicación GPS.'),
           ),
         );
       },
@@ -461,7 +460,7 @@ class _PantallaSosState extends State<PantallaSos> {
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('✅ Contacto de emergencia guardado correctamente.'),
+                      content: Text('Contacto de emergencia guardado correctamente.'),
                       backgroundColor: Colors.green,
                     ),
                   );
@@ -584,7 +583,7 @@ class _PantallaSosState extends State<PantallaSos> {
                     setState(() {});
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('✅ Número propio registrado en tu perfil de viajero.'),
+                        content: Text('Número propio registrado en tu perfil de viajero.'),
                         backgroundColor: Color(0xFF2E7D32),
                       ),
                     );
@@ -599,8 +598,9 @@ class _PantallaSosState extends State<PantallaSos> {
     );
   }
 
-  Future<void> _ejecutarAccionSos({required bool esPrueba}) async {
-    if (!esPrueba && !_verificarAutenticacionOpcion()) return;
+  /// Abre la hoja con las vías de despacho manual (WhatsApp, SMS, llamada).
+  Future<void> _ejecutarAccionSos() async {
+    if (!_verificarAutenticacionOpcion()) return;
     final contacto = _sosService.contactoPrincipal;
     final contactos = _sosService.contactos;
     if (contacto == null) {
@@ -639,7 +639,7 @@ class _PantallaSosState extends State<PantallaSos> {
       if (mounted) setState(() {});
     }
 
-    final mensaje = _obtenerMensajeSos(esPrueba: esPrueba, esModoChoque: false);
+    final mensaje = _obtenerMensajeSos(esModoChoque: false);
 
     // Copiar al portapapeles como respaldo
     Clipboard.setData(ClipboardData(text: mensaje));
@@ -679,13 +679,13 @@ class _PantallaSosState extends State<PantallaSos> {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: esPrueba ? Colors.amber.withValues(alpha: 0.2) : const Color(0xFFFFEBEE),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFFEBEE),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
-                      esPrueba ? Icons.science_outlined : Icons.shield_outlined,
-                      color: esPrueba ? Colors.amber.shade900 : const Color(0xFFD32F2F),
+                    child: const Icon(
+                      Icons.shield_outlined,
+                      color: Color(0xFFD32F2F),
                       size: 26,
                     ),
                   ),
@@ -694,21 +694,23 @@ class _PantallaSosState extends State<PantallaSos> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          esPrueba ? 'Simulación SOS (Modo Prueba)' : 'Enviar Alerta SOS en 1 Clic',
-                          style: const TextStyle(
+                        const Text(
+                          'Enviar alerta SOS',
+                          style: TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.bold,
                             color: AppColores.marronOscuro,
                           ),
                         ),
+                        const SizedBox(height: 2),
                         Text(
-                          esPrueba
-                              ? 'Prueba sin despacho real'
-                              : contactos.length > 1
-                                  ? 'Se avisará a tus ${contactos.length} contactos de confianza'
-                                  : 'Contacto: ${contacto.nombre} (${contacto.telefono})',
-                          style: const TextStyle(fontSize: 12, color: AppColores.grisTexto),
+                          contactos.length > 1
+                              ? 'Se avisará a tus ${contactos.length} contactos de confianza'
+                              : 'Contacto: ${contacto.nombre} (${contacto.telefono})',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColores.grisTexto,
+                          ),
                         ),
                       ],
                     ),
@@ -754,32 +756,21 @@ class _PantallaSosState extends State<PantallaSos> {
               ),
               const SizedBox(height: 14),
 
-              if (!esPrueba) ...[
-                // BOTÓN 1 PRINCIPAL: DISPARO AUTOMÁTICO (WhatsApp + SMS)
-                SizedBox(
+              // BOTÓN PRINCIPAL: envío automático (WhatsApp + SMS).
+              // Row + Expanded en vez de ElevatedButton.icon: el texto de dos
+              // líneas dentro de un botón no tiene ancho máximo y se desborda.
+              SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton.icon(
+                  child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFD32F2F),
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 14,
+                      ),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       elevation: 3,
-                    ),
-                    icon: const Icon(Icons.flash_on, size: 24, color: Colors.yellowAccent),
-                    label: const Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '🚨 DISPARO AUTOMÁTICO (WhatsApp + SMS)',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                        ),
-                        SizedBox(height: 2),
-                        Text(
-                          'SMS a todos tus contactos y WhatsApp al principal',
-                          style: TextStyle(fontSize: 11, color: Colors.white70),
-                        ),
-                      ],
                     ),
                     onPressed: () async {
                       Navigator.pop(ctx);
@@ -793,6 +784,36 @@ class _PantallaSosState extends State<PantallaSos> {
                         descripcionAccidente: _motivoDetalleCtrl.text,
                       );
                     },
+                    child: const Row(
+                      children: [
+                        Icon(Icons.flash_on, size: 24, color: Colors.yellowAccent),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Enviar ahora por WhatsApp y SMS',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'SMS a todos tus contactos y WhatsApp al principal',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  height: 1.25,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -858,28 +879,17 @@ class _PantallaSosState extends State<PantallaSos> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     icon: const Icon(Icons.phone),
-                    label: Text('Llamar a ${contacto.nombre} (${contacto.telefono})'),
+                    label: Text(
+                      'Llamar a ${contacto.nombre}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     onPressed: () {
                       Navigator.pop(ctx);
                       _sosService.llamarNumero(telefono: contacto.telefono);
                     },
                   ),
                 ),
-              ] else ...[
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blueGrey,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    ),
-                    onPressed: () => Navigator.pop(ctx),
-                    child: const Text('Entendido (Prueba finalizada)'),
-                  ),
-                ),
-              ],
 
               const SizedBox(height: 10),
               Center(
@@ -889,7 +899,7 @@ class _PantallaSosState extends State<PantallaSos> {
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: mensaje));
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('📋 Mensaje copiado al portapapeles.')),
+                      const SnackBar(content: Text('Mensaje copiado al portapapeles.')),
                     );
                   },
                 ),
@@ -1016,28 +1026,31 @@ class _PantallaSosState extends State<PantallaSos> {
                             onPressed: () => _iniciarCuentaRegresivaSos(esModoChoque: false),
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        TextButton.icon(
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.white,
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: BorderSide(
+                                color: Colors.white.withValues(alpha: 0.55),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 11),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            icon: const Icon(Icons.touch_app, size: 17),
+                            label: const Text(
+                              'Opciones manuales',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            onPressed: _ejecutarAccionSos,
                           ),
-                          icon: const Icon(Icons.touch_app, size: 16),
-                          label: const Text(
-                            'Opciones manuales (WhatsApp directo)',
-                            style: TextStyle(fontSize: 12, decoration: TextDecoration.underline),
-                          ),
-                          onPressed: () => _ejecutarAccionSos(esPrueba: false),
-                        ),
-                        TextButton.icon(
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.white70,
-                          ),
-                          icon: const Icon(Icons.science_outlined, size: 16),
-                          label: const Text(
-                            'Modo Prueba (Simular sin enviar)',
-                            style: TextStyle(fontSize: 12, decoration: TextDecoration.underline),
-                          ),
-                          onPressed: () => _ejecutarAccionSos(esPrueba: true),
                         ),
                       ],
                     ),
@@ -1433,8 +1446,8 @@ class _PantallaSosState extends State<PantallaSos> {
                             ),
                             Text(
                               tieneTelefono
-                                  ? '📱 Mi número: ${usuario.phone}'
-                                  : '⚠️ Sin número propio registrado',
+                                  ? 'Mi número: ${usuario.phone}'
+                                  : 'Sin número propio registrado',
                               style: TextStyle(
                                 fontSize: 11,
                                 color: tieneTelefono ? const Color(0xFF2E7D32) : const Color(0xFFE65100),
@@ -1552,7 +1565,7 @@ class _PantallaSosState extends State<PantallaSos> {
         AuthService().usuarioNotifier,
       ]),
       builder: (context, _) {
-        final mensaje = _obtenerMensajeSos(esPrueba: false);
+        final mensaje = _obtenerMensajeSos();
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(

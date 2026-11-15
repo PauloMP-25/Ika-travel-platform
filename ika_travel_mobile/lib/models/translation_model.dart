@@ -47,17 +47,35 @@ class PhrasebookResponseModel {
   }
 }
 
+/// De dónde salió una traducción. La pantalla lo usa para avisar al usuario
+/// cuando el resultado no viene de un traductor real.
+enum OrigenTraduccion {
+  /// Servicio de traducción del backend.
+  servidor,
+
+  /// Gemini, cuando hay internet pero el backend no responde.
+  asistenteIA,
+
+  /// Diccionario de viaje embebido en la app, sin internet.
+  sinConexion,
+}
+
 class TranslationResultModel {
   final String translatedText;
   final String sourceLang;
   final String targetLang;
-  final String origin;
+  final OrigenTraduccion origin;
+
+  /// true cuando la traducción puede estar incompleta (quedaron palabras sin
+  /// traducir). Solo ocurre en el modo sin conexión.
+  final bool aproximada;
 
   const TranslationResultModel({
     required this.translatedText,
     required this.sourceLang,
     required this.targetLang,
     required this.origin,
+    this.aproximada = false,
   });
 
   factory TranslationResultModel.fromJson(Map<String, dynamic> json) {
@@ -65,7 +83,7 @@ class TranslationResultModel {
       translatedText: json['translated_text'] as String? ?? '',
       sourceLang: json['source_lang'] as String? ?? 'es',
       targetLang: json['target_lang'] as String? ?? 'en',
-      origin: json['origin'] as String? ?? 'provider',
+      origin: OrigenTraduccion.servidor,
     );
   }
 }

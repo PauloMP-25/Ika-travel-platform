@@ -16,7 +16,6 @@ import 'pantalla_reporte_incidencia.dart';
 import 'pantalla_seguimiento_destino.dart';
 import 'pantalla_sos.dart';
 import 'pantalla_traduccion.dart';
-import '../widgets/dialogo_preferencias_turista.dart';
 
 class PantallaMas extends StatelessWidget {
   void _mostrarModalEducativoInvitado(BuildContext context) {
@@ -410,16 +409,8 @@ class PantallaMas extends StatelessWidget {
                       onPressed: () =>
                           _mostrarDialogoEditarTelefono(context, usuario),
                     ),
-                    IconButton(
-                      tooltip: context.tr('mis_preferencias'),
-                      icon: const Icon(
-                        Icons.tune_rounded,
-                        color: AppColores.naranjaBoton,
-                        size: 22,
-                      ),
-                      onPressed: () =>
-                          DialogoPreferenciasTurista.mostrar(context, usuario),
-                    ),
+                    // "Mis preferencias" vive solo en Ajustes (más abajo en
+                    // este menú) para no tener dos accesos al mismo diálogo.
                     IconButton(
                       tooltip: context.tr('cerrar_sesion'),
                       icon: const Icon(

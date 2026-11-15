@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 
 import '../models/translation_model.dart';
 import 'api_client.dart';
+import 'gemini_service.dart';
+import 'traductor_offline.dart';
 
 class TranslationService {
   final ApiClient _apiClient;
@@ -61,34 +63,75 @@ class TranslationService {
     );
   }
 
-  /// Traduce texto libre entre español e inglés
+  /// Traduce texto libre entre español e inglés.
+  ///
+  /// Prueba tres vías en orden, de mejor a peor, y nunca lanza excepción si
+  /// el texto se puede traducir de alguna forma:
+  ///
+  /// 1. **Servidor**: el endpoint `/translation/translate` del backend.
+  /// 2. **Asistente IA**: Gemini directo, para cuando el backend está caído
+  ///    pero el teléfono sí tiene internet.
+  /// 3. **Sin conexión**: diccionario de viaje embebido en la app.
   Future<TranslationResultModel> translate({
     required String text,
     required String sourceLang,
     required String targetLang,
   }) async {
-    final payload = {
-      'text': text,
-      'source_lang': sourceLang,
-      'target_lang': targetLang,
-    };
-
+    // 1. Backend.
     try {
-      final res = await _apiClient.post('/translation/translate', body: payload);
+      final res = await _apiClient.post(
+        '/translation/translate',
+        body: {
+          'text': text,
+          'source_lang': sourceLang,
+          'target_lang': targetLang,
+        },
+      );
       if (res is Map<String, dynamic>) {
-        return TranslationResultModel.fromJson(res);
+        final modelo = TranslationResultModel.fromJson(res);
+        if (modelo.translatedText.trim().isNotEmpty) return modelo;
       }
+      debugPrint('[TranslationService] El servidor respondió sin traducción.');
     } catch (e) {
-      debugPrint('[TranslationService] Error al traducir texto libre: $e');
-      // Si la API no está disponible en modo offline, podemos devolver una traducción aproximada o rethrow
+      debugPrint('[TranslationService] Servidor no disponible: $e');
+    }
+
+    // 2. Gemini directo.
+    final porIA = await GeminiService().traducir(
+      texto: text,
+      idiomaOrigen: sourceLang,
+      idiomaDestino: targetLang,
+    );
+    if (porIA != null && porIA.trim().isNotEmpty) {
+      debugPrint('[TranslationService] Traducción resuelta con el asistente IA.');
       return TranslationResultModel(
-        translatedText: 'Traducción simulada offline: $text ($targetLang)',
+        translatedText: porIA,
         sourceLang: sourceLang,
         targetLang: targetLang,
-        origin: 'offline-fallback',
+        origin: OrigenTraduccion.asistenteIA,
       );
     }
 
-    throw Exception('Respuesta inesperada al traducir');
+    // 3. Diccionario local.
+    if (TraductorOffline.soporta(sourceLang, targetLang)) {
+      final local = TraductorOffline.traducir(
+        texto: text,
+        origen: sourceLang,
+        destino: targetLang,
+      );
+      debugPrint('[TranslationService] Traducción sin conexión '
+          '(cobertura ${(local.cobertura * 100).toStringAsFixed(0)}%).');
+      return TranslationResultModel(
+        translatedText: local.texto,
+        sourceLang: sourceLang,
+        targetLang: targetLang,
+        origin: OrigenTraduccion.sinConexion,
+        aproximada: local.aproximada,
+      );
+    }
+
+    // Par de idiomas que el diccionario local no cubre: que la pantalla
+    // muestre su mensaje de error en vez de inventar una traducción.
+    throw Exception('No se pudo traducir de $sourceLang a $targetLang');
   }
 }

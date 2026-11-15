@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../config/tema.dart';
+import '../services/auth_service.dart';
 import '../services/preferencias_service.dart';
 
 /// Modal (hoja inferior) que aparece la primera vez que el usuario entra a la
@@ -71,12 +72,16 @@ class _ContenidoPreferenciasState extends State<_ContenidoPreferencias> {
 
   Future<void> _guardar() async {
     setState(() => _guardando = true);
-    await PreferenciasService().guardar(
+    final preferencias = PreferenciasService();
+    await preferencias.guardar(
       intereses: _interesesSel.toList(),
       estilo: _estilo,
       presupuesto: _presupuesto,
       compania: _compania,
     );
+    // Deja el perfil del usuario con los mismos gustos, para que "Mis
+    // preferencias" (Ajustes) y la IA no muestren cosas distintas.
+    await AuthService().actualizarPreferencias(preferencias.clavesDePerfil);
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -297,10 +302,16 @@ class _ContenidoPreferenciasState extends State<_ContenidoPreferencias> {
   }
 
   Widget _chipBase(_Opcion o, bool sel, VoidCallback onTap) {
+    // Sin este tope, un chip con texto largo y la letra del sistema en grande
+    // se sale de la pantalla: dentro de un Wrap cada hijo se mide con ancho
+    // infinito, así que nada lo obliga a quedarse dentro.
+    final anchoMaximo = MediaQuery.sizeOf(context).width - 56;
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
+        constraints: BoxConstraints(maxWidth: anchoMaximo),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: sel ? AppColores.naranjaBoton : Colors.white,
@@ -329,12 +340,16 @@ class _ContenidoPreferenciasState extends State<_ContenidoPreferencias> {
               color: sel ? Colors.white : AppColores.turquesaOasis,
             ),
             const SizedBox(width: 7),
-            Text(
-              o.etiqueta,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: sel ? Colors.white : AppColores.marronOscuro,
+            // Flexible + el tope de arriba: si no cabe en una línea, el texto
+            // baja a la siguiente en vez de desbordarse.
+            Flexible(
+              child: Text(
+                o.etiqueta,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: sel ? Colors.white : AppColores.marronOscuro,
+                ),
               ),
             ),
           ],
@@ -356,17 +371,14 @@ class _ContenidoPreferenciasState extends State<_ContenidoPreferencias> {
           ),
         ],
       ),
-      child: Row(
+      // Uno debajo del otro: lado a lado, "Omitir por ahora" se come el
+      // ancho y "Guardar preferencias" se desborda en pantallas angostas o
+      // con la letra del sistema en grande.
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          TextButton(
-            onPressed: _guardando ? null : _omitir,
-            style: TextButton.styleFrom(
-              foregroundColor: AppColores.grisTexto,
-            ),
-            child: const Text('Omitir por ahora'),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
+          SizedBox(
+            width: double.infinity,
             child: ElevatedButton(
               onPressed: puedeGuardar ? _guardar : null,
               style: ElevatedButton.styleFrom(
@@ -389,9 +401,22 @@ class _ContenidoPreferenciasState extends State<_ContenidoPreferencias> {
                     )
                   : const Text(
                       'Guardar preferencias',
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                           fontSize: 14.5, fontWeight: FontWeight.bold),
                     ),
+            ),
+          ),
+          const SizedBox(height: 2),
+          TextButton(
+            onPressed: _guardando ? null : _omitir,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColores.grisTexto,
+              minimumSize: const Size(double.infinity, 40),
+            ),
+            child: const Text(
+              'Omitir por ahora',
+              textAlign: TextAlign.center,
             ),
           ),
         ],

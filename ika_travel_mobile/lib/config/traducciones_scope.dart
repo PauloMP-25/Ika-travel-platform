@@ -1,6 +1,5 @@
 import 'package:flutter/widgets.dart';
 
-import 'idioma_manager.dart';
 import 'traducciones.dart';
 
 class TraduccionesScope extends InheritedNotifier<ValueNotifier<Locale>> {
