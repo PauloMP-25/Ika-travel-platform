@@ -1046,3 +1046,44 @@ async def historial_cambios(
 
     cambios.sort(key=lambda c: c["fecha"], reverse=True)
     return {"destino": destino, "cambios": cambios[:limite]}
+async def poblar_clima_al_arranque() -> None:
+    """Ejecuta la población inicial obligatoria de datos climáticos al encenderse el backend.
+
+    Consulta en vivo las 3 APIs (Open-Meteo, OpenWeatherMap, WeatherAPI) mediante el
+    patrón Aggregator, imprime la matriz comparativa de dimensiones en la consola,
+    genera las alertas meteorológicas para la región y pre-calcula la recomendación del día.
+    """
+    from src.core.database import SesionAsincronaLocal
+    from src.shared.custom_logging import BOLD, CYAN, GREEN, DIM, RESET, YELLOW
+
+    print(
+        f"\n{CYAN}╔═══════════════════════════════════════════════════════════════════════════════════════════╗{RESET}\n"
+        f"{CYAN}║{RESET} {BOLD}{GREEN}🚀 [STARTUP] POBLACIÓN INICIAL DE CLIMA EN VIVO — IKA TRAVEL BACKEND{RESET}             {CYAN}║{RESET}\n"
+        f"{CYAN}║{RESET} {DIM}Extrayendo dimensiones de 3 APIs (Open-Meteo, OpenWeatherMap, WeatherAPI)...{RESET}      {CYAN}║{RESET}\n"
+        f"{CYAN}╚═══════════════════════════════════════════════════════════════════════════════════════════╝{RESET}",
+        flush=True,
+    )
+
+    async with SesionAsincronaLocal() as db:
+        try:
+            # 1. Consulta live de las 3 APIs climáticas para la región (imprime la tabla 3xN de dimensiones)
+            clima_region = await get_fresh_snapshot(db, ubicacion_region(), forzar_refresco=True)
+
+            # 2. Generación proactiva de alertas meteorológicas (ej. Paracas vientos/oleaje)
+            alertas = await regenerar_alertas_region(db, clima_region)
+
+            # 3. Pre-calcular la recomendación del día para servirla al instante
+            rec = await recomendacion_del_dia(db)
+            dest = rec.atractivo_nombre if rec else "Región Ica"
+
+            print(
+                f"\n{GREEN}✅ [STARTUP] Módulo de clima poblado y listo para consumo:{RESET}\n"
+                f"   • {BOLD}Condición Consensuada:{RESET} {clima_region.temperatura_actual} °C, {clima_region.velocidad_viento} km/h, {clima_region.descripcion_clima}\n"
+                f"   • {BOLD}Alertas Iniciales Activas:{RESET} {alertas}\n"
+                f"   • {BOLD}Recomendación del Día Lista:{RESET} {dest} (Pre-calculada con IA y Reglas de Seguridad)\n"
+                f"{CYAN}─────────────────────────────────────────────────────────────────────────────────────────────\n{RESET}",
+                flush=True,
+            )
+        except Exception as exc:
+            logger.warning("Fallo en población inicial de clima al encenderse: %s", exc)
+            print(f"{YELLOW}⚠️  [STARTUP] Aviso: No se pudo conectar a los proveedores meteorológicos ({exc}). Continuando arranque...{RESET}", flush=True)

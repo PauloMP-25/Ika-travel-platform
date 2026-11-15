@@ -20,6 +20,17 @@ from src.redis_client import cerrar_redis
 
 @asynccontextmanager
 async def ciclo_de_vida(_: FastAPI):
+    # Tarea inicial del backend al encenderse:
+    # Extrae en vivo los datos climáticos desde las 3 APIs (Open-Meteo, OWM, WeatherAPI),
+    # imprime en consola la matriz comparativa de dimensiones, genera alertas y pre-calcula
+    # la recomendación del día sin esperar peticiones del usuario.
+    try:
+        from src.modules.weather.service import poblar_clima_al_arranque
+        await poblar_clima_al_arranque()
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("Fallo en población inicial de clima: %s", exc)
+
     yield
     await cerrar_redis()
     await motor.dispose()

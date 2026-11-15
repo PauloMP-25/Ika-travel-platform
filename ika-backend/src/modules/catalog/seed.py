@@ -335,6 +335,15 @@ async def ejecutar() -> None:
             admin_user.role_id = ROLE_DIRCETUR_ADMIN_ID
             admin_user.is_active = True
 
+        # 5. Limpieza preventiva de usuarios turistas y transacciones de prueba
+        # Mantiene agencias, atractivos, tours y el administrador DIRCETUR como nuevo.
+        from sqlalchemy import text
+        await db.execute(text("DELETE FROM favorites;"))
+        await db.execute(text("DELETE FROM sos_reports;"))
+        await db.execute(text("DELETE FROM tourist_incident_reports;"))
+        await db.execute(text("DELETE FROM password_reset_tokens;"))
+        await db.execute(text("DELETE FROM usage_events;"))
+        await db.execute(text("DELETE FROM users WHERE email != 'admin@dircetur.gob.pe';"))
 
         await db.commit()
     await motor.dispose()
