@@ -1,3 +1,4 @@
+from src.shared.custom_logging import log_auth
 """Endpoints del módulo `users` (Auth).
 
 Solo recibe la petición, delega en `service` y devuelve la respuesta:
@@ -40,6 +41,7 @@ users_router = APIRouter()
 async def register(data: UserCreate, db: DbSession) -> UserResponse:
     """Registra una cuenta nueva y devuelve el perfil creado."""
     user = await service.register_user(db, data)
+    log_auth("registro de turista", user.email, metodo="email", exitoso=True)
     return UserResponse.model_validate(user)
 
 
@@ -50,7 +52,9 @@ async def register(data: UserCreate, db: DbSession) -> UserResponse:
 )
 async def login(data: UserLogin, db: DbSession) -> TokenResponse:
     """Autentica con email/contraseña y emite un JWT."""
-    return await service.login_user(db, data)
+    res = await service.login_user(db, data)
+    log_auth("inicio de sesión", data.email, metodo="email", exitoso=True)
+    return res
 
 
 @users_router.post(
@@ -121,7 +125,9 @@ async def login_google(data: GoogleLoginRequest, db: DbSession) -> TokenSocialRe
     emite el JWT. `es_nuevo_usuario` indica si se creó la cuenta en esta
     petición (el cliente puede mostrar el onboarding).
     """
-    return await service.login_con_google(db, data)
+    res = await service.login_con_google(db, data)
+    log_auth("inicio de sesión con Google", "usuario_google", metodo="google", exitoso=True, detalle=f"nuevo_usuario={res.es_nuevo_usuario}")
+    return res
 
 
 @users_router.post(
@@ -131,4 +137,6 @@ async def login_google(data: GoogleLoginRequest, db: DbSession) -> TokenSocialRe
 )
 async def login_social(data: SocialLoginRequest, db: DbSession) -> TokenSocialResponse:
     """Alias genérico del login social (hoy solo `google`); delega en el mismo servicio."""
-    return await service.login_con_google(db, data)
+    res = await service.login_con_google(db, data)
+    log_auth("inicio de sesión con Google", "usuario_google", metodo="google", exitoso=True, detalle=f"nuevo_usuario={res.es_nuevo_usuario}")
+    return res

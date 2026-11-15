@@ -1,3 +1,4 @@
+from src.shared.custom_logging import log_emergency
 """Endpoints del módulo `emergency` (botón SOS, llamadas rápidas y reportes DIRCETUR).
 
 Solo recibe la petición, delega en `service` y devuelve la respuesta.

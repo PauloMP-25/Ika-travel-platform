@@ -115,6 +115,9 @@ class RecomendacionResponse(BaseModel):
     recommendation_text: str
     consejos: list[str] = []
     generated_at: datetime
+    es_planificacion_manana: bool = False
+    hora_sugerida: str | None = None
+    normativa_oficial: str | None = None
 
 
 # ======================================================================

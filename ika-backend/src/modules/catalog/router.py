@@ -1,3 +1,4 @@
+from src.shared.custom_logging import log_catalog
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request, Response, status
@@ -57,6 +58,7 @@ async def listar_atractivos(
         page_size=paginacion.page_size,
     )
     # Sprint 4, F3: ETag sobre el cuerpo ya filtrado y paginado (304 en revalidación).
+    log_catalog("listado de atractivos", total=resultado.total, filtros=f"cat={category}, dist={district}, search={search}")
     return responder_con_etag(request, resultado)
 
 

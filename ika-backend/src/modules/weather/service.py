@@ -1,3 +1,5 @@
+from src.modules.weather.safety import evaluar_seguridad_temporal
+from src.shared.custom_logging import registrar_log_clima, registrar_log_recomendacion
 from src.modules.weather import rules
 """Capa de orquestación del módulo weather.
 
@@ -325,6 +327,16 @@ async def get_fresh_snapshot(
         if snapshot is not None:
             respuesta = _a_respuesta(snapshot, en_cache=True)
             await _guardar_en_redis(ubicacion, respuesta)
+            registrar_log_clima(
+                destino=ubicacion.nombre,
+                origen="cache_redis",
+                temperatura=respuesta.temperatura_actual,
+                sensacion=respuesta.sensacion_termica,
+                viento=respuesta.velocidad_viento,
+                uv=respuesta.indice_uv,
+                condicion=respuesta.descripcion_clima,
+                alertas_activas=len(await get_active_alerts(db, ubicacion.nombre)),
+            )
             return respuesta
 
     if not forzar_refresco:
@@ -358,6 +370,16 @@ async def get_fresh_snapshot(
     await db.refresh(snapshot)
     respuesta = _a_respuesta(snapshot, en_cache=False)
     await _guardar_en_redis(ubicacion, respuesta)
+    registrar_log_clima(
+        destino=ubicacion.nombre,
+        origen="api_open_meteo",
+        temperatura=respuesta.temperatura_actual,
+        sensacion=respuesta.sensacion_termica,
+        viento=respuesta.velocidad_viento,
+        uv=respuesta.indice_uv,
+        condicion=respuesta.descripcion_clima,
+        alertas_activas=len(await get_active_alerts(db, ubicacion.nombre)),
+    )
     return respuesta
 
 
@@ -552,7 +574,32 @@ async def recomendacion_del_dia(
         score_final = min(score_final, 0.30)
         nivel_final = "no_recomendado"
 
-    texto_recomendacion = texto or resultado.texto
+    # Evaluación de seguridad horaria (DIRCETUR / SERNANP / DICAPI) y pronóstico para mañana
+    slugs = [c.slug for c in atractivo.categories]
+    eval_seg = evaluar_seguridad_temporal(slugs_categorias=slugs, nombre_atractivo=atractivo.name)
+    if eval_seg.es_planificacion_manana:
+        try:
+            pronostico = await obtener_pronostico(db, ubicacion_de_atractivo(atractivo))
+            eval_seg = evaluar_seguridad_temporal(
+                slugs_categorias=slugs,
+                nombre_atractivo=atractivo.name,
+                horas_pronostico=pronostico.horas,
+            )
+        except Exception as e:
+            logger.warning("No se pudo obtener pronóstico por horas para %s: %s", atractivo.name, e)
+
+    texto_base = texto or resultado.texto
+    if eval_seg.es_planificacion_manana:
+        prefijo_seguridad = (
+            f"🌅 [Planificación para Mañana]\n"
+            f"• Hora sugerida de salida / visita: {eval_seg.hora_sugerida}\n"
+            f"• Motivo de seguridad: {eval_seg.justificacion_seguridad}\n"
+            f"• Pronóstico proyectado: {eval_seg.justificacion_climatica_manana}\n\n"
+        )
+        texto_recomendacion = prefijo_seguridad + texto_base
+    else:
+        texto_recomendacion = texto_base
+
     fecha_generacion = datetime.now(tz=timezone.utc)
     await _persistir_ai_recommendation(
         db=db,
@@ -564,6 +611,20 @@ async def recomendacion_del_dia(
         fecha=fecha_generacion,
     )
 
+    registrar_log_recomendacion(
+        atractivo=atractivo.name,
+        modo="planificacion_manana" if eval_seg.es_planificacion_manana else "tiempo_real",
+        score=score_final,
+        nivel=nivel_final,
+        temperatura=clima.temperatura_actual,
+        uv=clima.indice_uv,
+        viento=clima.velocidad_viento,
+        condicion=clima.descripcion_clima,
+        hora_sugerida=eval_seg.hora_sugerida,
+        justificacion_seguridad=eval_seg.justificacion_seguridad,
+        fuente_motor="gemini" if texto else "fallback_determinista",
+    )
+
     return RecomendacionResponse(
         atractivo_id=atractivo.id,
         atractivo_nombre=atractivo.name,
@@ -572,6 +633,9 @@ async def recomendacion_del_dia(
         recommendation_text=texto_recomendacion,
         consejos=consejos_gemini or resultado.consejos,
         generated_at=fecha_generacion,
+        es_planificacion_manana=eval_seg.es_planificacion_manana,
+        hora_sugerida=eval_seg.hora_sugerida,
+        normativa_oficial=eval_seg.normativa_oficial,
     )
 
 
@@ -779,7 +843,32 @@ async def recomendacion_para_atractivo(
         score_final = min(score_final, 0.30)
         nivel_final = "no_recomendado"
 
-    texto_recomendacion = texto or resultado.texto
+    # Evaluación de seguridad horaria (DIRCETUR / SERNANP / DICAPI) y pronóstico para mañana
+    slugs = [c.slug for c in atractivo.categories]
+    eval_seg = evaluar_seguridad_temporal(slugs_categorias=slugs, nombre_atractivo=atractivo.name)
+    if eval_seg.es_planificacion_manana:
+        try:
+            pronostico = await obtener_pronostico(db, ubicacion_de_atractivo(atractivo))
+            eval_seg = evaluar_seguridad_temporal(
+                slugs_categorias=slugs,
+                nombre_atractivo=atractivo.name,
+                horas_pronostico=pronostico.horas,
+            )
+        except Exception as e:
+            logger.warning("No se pudo obtener pronóstico por horas para %s: %s", atractivo.name, e)
+
+    texto_base = texto or resultado.texto
+    if eval_seg.es_planificacion_manana:
+        prefijo_seguridad = (
+            f"🌅 [Planificación para Mañana]\n"
+            f"• Hora sugerida de salida / visita: {eval_seg.hora_sugerida}\n"
+            f"• Motivo de seguridad: {eval_seg.justificacion_seguridad}\n"
+            f"• Pronóstico proyectado: {eval_seg.justificacion_climatica_manana}\n\n"
+        )
+        texto_recomendacion = prefijo_seguridad + texto_base
+    else:
+        texto_recomendacion = texto_base
+
     fecha_generacion = datetime.now(tz=timezone.utc)
     await _persistir_ai_recommendation(
         db=db,
@@ -791,6 +880,20 @@ async def recomendacion_para_atractivo(
         fecha=fecha_generacion,
     )
 
+    registrar_log_recomendacion(
+        atractivo=atractivo.name,
+        modo="planificacion_manana" if eval_seg.es_planificacion_manana else "tiempo_real",
+        score=score_final,
+        nivel=nivel_final,
+        temperatura=clima.temperatura_actual,
+        uv=clima.indice_uv,
+        viento=clima.velocidad_viento,
+        condicion=clima.descripcion_clima,
+        hora_sugerida=eval_seg.hora_sugerida,
+        justificacion_seguridad=eval_seg.justificacion_seguridad,
+        fuente_motor="gemini" if texto else "fallback_determinista",
+    )
+
     return RecomendacionResponse(
         atractivo_id=atractivo.id,
         atractivo_nombre=atractivo.name,
@@ -799,6 +902,9 @@ async def recomendacion_para_atractivo(
         recommendation_text=texto_recomendacion,
         consejos=consejos_gemini or resultado.consejos,
         generated_at=fecha_generacion,
+        es_planificacion_manana=eval_seg.es_planificacion_manana,
+        hora_sugerida=eval_seg.hora_sugerida,
+        normativa_oficial=eval_seg.normativa_oficial,
     )
 
 

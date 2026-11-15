@@ -28,7 +28,7 @@ async def _ejecutar(operacion):
 
 @shared_task(name="weather.refrescar_cache_clima")
 def refrescar_cache_clima() -> dict[str, int]:
-    """RN-03: refresca clima, alertas y recomendaciones (cada 5 h < 6 h de vigencia)."""
+    """RN-03: refresca clima, alertas y recomendaciones (cada 3 h < 6 h de vigencia)."""
     resultado = asyncio.run(_ejecutar(service.refrescar_todo))
     logger.info("Clima refrescado: %s", resultado)
     return resultado
