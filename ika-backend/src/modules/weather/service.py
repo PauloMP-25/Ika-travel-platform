@@ -473,11 +473,28 @@ async def listar_recomendaciones(
     recomendaciones: list[RecomendacionResponse] = []
     for atractivo in await _atractivos_activos(db):
         clima = await get_fresh_snapshot(db, ubicacion_de_atractivo(atractivo))
-        recomendaciones.append(
-            _a_recomendacion_response(
-                atractivo, _recomendar(atractivo, clima, preferencias=preferencias_usuario)
-            )
+        resultado = _recomendar(atractivo, clima, preferencias=preferencias_usuario)
+        alertas = rules.evaluar_alertas(
+            temperatura=clima.temperatura_actual,
+            uv=clima.indice_uv,
+            viento=clima.velocidad_viento,
+            precipitacion=clima.probabilidad_precipitacion / 100.0 * 3.0,
+            temperatura_arena=clima.temperatura_suelo_arena,
+            zona=atractivo.name,
         )
+        hay_peligro = any(a.severity == "high" for a in alertas)
+        score_evaluado = min(resultado.score, 0.30) if hay_peligro else resultado.score
+        nivel_evaluado = "no_recomendado" if hay_peligro else resultado.nivel
+        res_eval = scoring.ResultadoRecomendacion(
+            score=score_evaluado,
+            nivel=nivel_evaluado,
+            texto=f"Condiciones de riesgo en {atractivo.name}." if hay_peligro else resultado.texto,
+            factores=resultado.factores,
+            consejos=resultado.consejos,
+            perfil=resultado.perfil,
+            afinidad_preferencia=resultado.afinidad_preferencia,
+        )
+        recomendaciones.append(_a_recomendacion_response(atractivo, res_eval))
     return sorted(recomendaciones, key=lambda r: r.score, reverse=True)
 
 
@@ -562,10 +579,24 @@ async def recomendacion_del_dia(
     nombres_alertas = [a.message for a in alertas_candidatas]
     hay_peligro = any(a.severity == "high" for a in alertas_candidatas)
 
+    score_final = min(resultado.score, 0.30) if hay_peligro else resultado.score
+    nivel_final = "no_recomendado" if hay_peligro else resultado.nivel
+
+    resultado_evaluado = scoring.ResultadoRecomendacion(
+        score=score_final,
+        nivel=nivel_final,
+        texto=f"Condiciones de riesgo en {atractivo.name}. Se desaconseja la visita temporalmente." if hay_peligro else resultado.texto,
+        factores=resultado.factores,
+        consejos=resultado.consejos,
+        perfil=resultado.perfil,
+        afinidad_preferencia=resultado.afinidad_preferencia,
+    )
+
     top_alternativos_nombres = [r.atractivo_nombre for r in ranking if r.atractivo_id != atractivo.id][:2]
     texto, consejos_gemini = await ai_engine.redactar_con_gemini(
         nombre_atractivo=atractivo.name,
-        resultado=resultado,
+        resultado=resultado_evaluado,
+        alertas_activas=nombres_alertas,
         atractivos_alternativos=top_alternativos_nombres,
         temperatura=clima.temperatura_actual,
         uv=clima.indice_uv,
@@ -582,12 +613,6 @@ async def recomendacion_del_dia(
         altura_ola=clima.altura_ola_metros,
         narrativa_previa=narrativa_previa,
     )
-
-    score_final = resultado.score
-    nivel_final = resultado.nivel
-    if hay_peligro:
-        score_final = min(score_final, 0.30)
-        nivel_final = "no_recomendado"
 
     # Evaluación de seguridad horaria (DIRCETUR / SERNANP / DICAPI) y pronóstico para mañana
     slugs = [c.slug for c in atractivo.categories]
@@ -829,12 +854,27 @@ async def recomendacion_para_atractivo(
         temperatura_arena=clima.temperatura_suelo_arena,
         zona=atractivo.name,
     )
+    nombres_alertas = [a.message for a in alertas_candidatas]
     hay_peligro = any(a.severity == "high" for a in alertas_candidatas)
 
-    # Texto generado por Gemini
+    score_final = min(resultado.score, 0.30) if hay_peligro else resultado.score
+    nivel_final = "no_recomendado" if hay_peligro else resultado.nivel
+
+    resultado_evaluado = scoring.ResultadoRecomendacion(
+        score=score_final,
+        nivel=nivel_final,
+        texto=f"Condiciones de riesgo en {atractivo.name}. Se desaconseja la visita temporalmente." if hay_peligro else resultado.texto,
+        factores=resultado.factores,
+        consejos=resultado.consejos,
+        perfil=resultado.perfil,
+        afinidad_preferencia=resultado.afinidad_preferencia,
+    )
+
+    # Texto generado por Gemini (con resultado evaluado y alertas activas)
     texto, consejos_gemini = await ai_engine.redactar_con_gemini(
         nombre_atractivo=atractivo.name,
-        resultado=resultado,
+        resultado=resultado_evaluado,
+        alertas_activas=nombres_alertas,
         atractivos_alternativos=[],
         temperatura=clima.temperatura_actual,
         uv=clima.indice_uv,
@@ -851,12 +891,6 @@ async def recomendacion_para_atractivo(
         altura_ola=clima.altura_ola_metros,
         narrativa_previa=rec_previa,
     )
-
-    score_final = resultado.score
-    nivel_final = resultado.nivel
-    if hay_peligro:
-        score_final = min(score_final, 0.30)
-        nivel_final = "no_recomendado"
 
     # Evaluación de seguridad horaria (DIRCETUR / SERNANP / DICAPI) y pronóstico para mañana
     slugs = [c.slug for c in atractivo.categories]

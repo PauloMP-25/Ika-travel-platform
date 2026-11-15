@@ -6,3 +6,8 @@ Thumbs.db
 
 # Unused boilerplate / local directory
 ika_mobile/
+
+# Protección estricta de variables de producción
+.env
+.env.*
+!.env*.example

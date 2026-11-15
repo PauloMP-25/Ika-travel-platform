@@ -55,8 +55,14 @@ class _PantallaDetalleDiaState extends State<PantallaDetalleDia> {
 
   Future<void> _cargarDatosClima() async {
     try {
-      final clima = await _weatherService.obtenerClimaActual();
-      final pron = await _weatherService.obtenerPronostico();
+      final clima = await _weatherService.obtenerClimaActual(
+        destino: widget.tituloActividad,
+        attractionId: widget.atractivoId,
+      );
+      await _weatherService.obtenerPronostico(
+        destino: widget.tituloActividad,
+        attractionId: widget.atractivoId,
+      );
 
       // NUEVO: si hay atractivoId, usa el endpoint específico
       final recIA = widget.atractivoId != null

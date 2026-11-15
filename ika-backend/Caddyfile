@@ -1,0 +1,18 @@
+{
+    email {$ACME_EMAIL:admin@ikatravel.pe}
+}
+
+{$DOMAIN_NAME:localhost} {
+    reverse_proxy api:8000 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    # Registro de accesos
+    log {
+        output stdout
+        format console
+    }
+}

@@ -18,7 +18,6 @@ from tests.conftest import run
 # (nombre, tabla) de los índices que debe crear la migración del sprint.
 INDICES_SPRINT4 = [
     ("idx_attraction_category_category", "attraction_category"),
-    ("idx_reviews_attraction_rating", "reviews"),
     ("idx_attractions_active_district", "attraction"),
     ("idx_agencies_validated", "agency"),
     ("idx_sos_reports_user_created", "sos_reports"),

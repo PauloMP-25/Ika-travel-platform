@@ -68,6 +68,44 @@ def generar_prompt_recomendacion_turistica(
 </narrativa_previa_del_dia>
 """
 
+    lugares_alt = ', '.join(atractivos_alternativos) if atractivos_alternativos else 'Oasis de Huacachina, Bodega Tacama, Pueblo de Cachiche, Reserva Nacional de Paracas'
+    lugares_top2 = ', '.join(atractivos_alternativos[:2]) if atractivos_alternativos else 'Plaza de Armas de Ica, Bodega Tacama'
+
+    if nivel_calculado == "no_recomendado":
+        bloque_tarea = f"""<instruccion_prioritaria_seguridad>
+ATENCIÓN CRÍTICA: El dictamen oficial del sistema para {nombre_atractivo} es NO_RECOMENDADO (Score: {score_calculado:.2f}/1.00, Nivel: no_recomendado).
+Bajo NINGUNA circunstancia debes elogiar la visita ni invitar a ir hoy. Tu deber como asistente oficial de DIRCETUR Ica es proteger al turista, justificar el riesgo meteorológico de manera transparente y orientar hacia alternativas seguras.
+</instruccion_prioritaria_seguridad>
+
+<tarea>
+Genera la recomendación estructurada para el turista en {idioma_nombre}:
+1. 'summary': Advertencia oficial clara, empática y preventiva de DIRCETUR Ica desaconsejando la visita a {nombre_atractivo} en este momento debido a las condiciones adversas identificadas ({alertas_str}).
+2. 'climate_justification': Justificación meteorológica rigurosa que explique con claridad POR QUÉ NO ES SEGURO O PROPICIO acudir a {nombre_atractivo} hoy (ej. vientos fuertes, oleaje anómalo, calor extremo o alertas activas). Sugiere explícitamente postergar la visita o dirigirse a atractivos alternativos más seguros ({lugares_alt}).
+3. 'clothing': Vestimenta de protección adecuada para resguardarse de las condiciones adversas reportadas.
+4. 'precautions': Lista de 2 a 4 precauciones estrictas de seguridad (respetar directivas de capitanía/autoridades, no exponerse a zonas de peligro) y sugerencias directas de alternativas seguras en Ica ({lugares_top2}).
+5. 'suitability_score': Mantén el valor exacto de {score_calculado:.2f} proveniente del cálculo del sistema.
+</tarea>"""
+    elif nivel_calculado == "regular":
+        bloque_tarea = f"""<tarea>
+El sistema ha evaluado condiciones MODERADAS/REGULARES para visitar {nombre_atractivo} (Score: {score_calculado:.2f}/1.00, Nivel: regular).
+Genera la recomendación estructurada para el turista en {idioma_nombre}:
+1. 'summary': Recomendación con precaución moderada para visitar {nombre_atractivo}, indicando que la visita es factible pero requiere precauciones específicas.
+2. 'climate_justification': Justificación meteorológica objetiva que señale factores favorables y factores que exigen precaución (viento moderado, radiación UV o calor), comparándola con otras opciones ({lugares_top2}).
+3. 'clothing': Lista de 2 a 4 prendas recomendadas para adaptarse a la variabilidad del clima.
+4. 'precautions': Lista de 2 a 4 recomendaciones y precauciones prácticas, indicando las mejores franjas horarias para el recorrido.
+5. 'suitability_score': Mantén el valor exacto de {score_calculado:.2f} proveniente del cálculo del sistema.
+</tarea>"""
+    else:
+        bloque_tarea = f"""<tarea>
+El sistema ha determinado condiciones FAVORABLES para visitar {nombre_atractivo} (Score: {score_calculado:.2f}/1.00, Nivel: {nivel_calculado}).
+Genera la recomendación estructurada para el turista en {idioma_nombre}:
+1. 'summary': Resumen cálido y persuasivo invitando a visitar {nombre_atractivo} según el clima actual favorable de Ica.
+2. 'climate_justification': Justificación meteorológica detallada que explique cómo las condiciones actuales (temperatura, viento, UV) favorecen la visita, comparándola con los otros atractivos sugeridos ({lugares_top2}).
+3. 'clothing': Lista de 2 a 4 prendas recomendadas (ropa ligera, protección solar o cortavientos según corresponda).
+4. 'precautions': Lista de 2 a 4 recomendaciones y precauciones prácticas, mencionando los otros lugares de alto índice calculados para visitar hoy ({lugares_top2}), explicando en qué momento del día conviene ir según el clima.
+5. 'suitability_score': Mantén el valor exacto de {score_calculado:.2f} proveniente del cálculo del sistema.
+</tarea>"""
+
     return f"""<rol>Asistente Oficial Inteligente de DIRCETUR Ica, Perú</rol>
 <contexto>
 Eres el recomendador turístico oficial para la región Ica (balnearios, oasis, desierto, reservas y valles vitivinícolas).
@@ -96,14 +134,7 @@ Tu única función es redactar la narrativa turística oficial en {idioma_nombre
 - Consejos calculados por reglas: {consejos_str}
 </calculos_previos_sistema>
 
-<tarea>
-Genera la recomendación estructurada para el turista en {idioma_nombre}:
-1. 'summary': Resumen cálido y persuasivo invitando a visitar {nombre_atractivo} según el clima actual de Ica.
-2. 'climate_justification': Justificación meteorológica detallada que explique cómo las condiciones actuales (temperatura, viento, UV) favorecen la visita, comparándola con los otros atractivos sugeridos.
-3. 'clothing': Lista de 2 a 4 prendas recomendadas (si la arena está caliente o el UV es alto, menciona calzado cerrado y protección).
-4. 'precautions': Lista de 2 a 4 recomendaciones y precauciones prácticas. DEBES incluir aquí consejos específicos mencionando los otros lugares de alto índice calculados para visitar hoy ({', '.join(atractivos_alternativos[:2]) if atractivos_alternativos else 'Plaza de Armas de Ica, Bodega Tacama'}), explicando en qué momento del día conviene ir según el clima.
-5. 'suitability_score': Mantén el valor exacto de {score_calculado:.2f} proveniente del cálculo del sistema.
-</tarea>
+{bloque_tarea}
 
 <restricciones>
 1. Responde ÚNICAMENTE en el idioma solicitado: {idioma_nombre}.

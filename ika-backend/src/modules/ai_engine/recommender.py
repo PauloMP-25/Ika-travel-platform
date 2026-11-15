@@ -94,15 +94,19 @@ async def generar_recomendacion_enriquecida(
     if ventana_pico_uv:
         precauciones.append(f"Evitar exposición solar directa entre {ventana_pico_uv}")
 
-    resumen = (
-        f"Condiciones óptimas en {nombre_atractivo} para disfrutar al máximo."
-        if resultado.score >= 0.7
-        else f"Visita moderada en {nombre_atractivo}; toma en cuenta las condiciones del clima."
-    )
+    if resultado.nivel == "no_recomendado":
+        resumen = f"No se recomienda visitar {nombre_atractivo} en este momento debido a condiciones climáticas o alertas de seguridad vigentes."
+        justificacion = f"Condiciones adversas en la zona ({temperatura:.0f} °C, viento {viento:.0f} km/h, UV {uv:.0f}). Se desaconseja la visita temporalmente por seguridad."
+    elif resultado.nivel == "regular":
+        resumen = f"Visita con precaución moderada en {nombre_atractivo}; toma en cuenta las condiciones del clima."
+        justificacion = f"Clima moderado en la zona: {temperatura:.0f} °C con viento de {viento:.0f} km/h y UV {uv:.0f}."
+    else:
+        resumen = f"Condiciones óptimas en {nombre_atractivo} para disfrutar al máximo."
+        justificacion = f"Clima favorable en Ica: {temperatura:.0f} °C con viento de {viento:.0f} km/h y UV {uv:.0f}."
 
     return RecomendacionEnriquecida(
         summary=resumen,
-        climate_justification=f"Clima en Ica: {temperatura:.0f} °C con viento de {viento:.0f} km/h y UV {uv:.0f}.",
+        climate_justification=justificacion,
         clothing=prendas[:4],
         precautions=precauciones[:4],
         suitability_score=resultado.score,
@@ -119,6 +123,7 @@ async def redactar_con_gemini(
     uv: float,
     viento: float,
     condicion: str,
+    alertas_activas: list[str] | None = None,
     preferencias_usuario: list[str] | None = None,
     idioma: str = "es",
     # Nuevos kwargs opcionales para máxima flexibilidad
@@ -140,6 +145,7 @@ async def redactar_con_gemini(
         uv=uv,
         viento=viento,
         condicion=condicion,
+        alertas_activas=alertas_activas,
         preferencias_usuario=preferencias_usuario,
         idioma=idioma,
         presion_hpa=presion_hpa,

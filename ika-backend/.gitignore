@@ -20,3 +20,8 @@ env/
 celerybeat-schedule
 
 # Alembic (dejar versions/, ignorar solo si aplica)
+
+# Protección estricta de variables de producción
+.env
+.env.*
+!.env*.example

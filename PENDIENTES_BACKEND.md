@@ -179,3 +179,23 @@ No se arregla con un `git pull`, porque no vive en el repositorio:
   - Interacción táctil: Al pulsar el banner, emite vibración háptica y navega inmediatamente a `PantallaDetalleAlerta` para que el turista lea todas las recomendaciones oficiales de seguridad y alternativas terrestres.
   - Descarte intuitivo: Deslizable hacia arriba o cierre manual con botón (X), con auto-cierre a los 6.5 segundos.
   - Botón de prueba: Disponible en `PantallaConfigurarAlertas` para simular y validar la experiencia en caliente.
+
+---
+
+## 11. Coherencia Climática por Destino, Narrativa Gemini según Riesgo y Despliegue en VPS
+
+### Coherencia Climática por Destino vs. Región
+- **Resolución de Datos por Atractivo:** En `PantallaDetalleDia`, las métricas en tiempo real superiores ahora pasan `destino` y `attractionId` al servicio de clima (`WeatherService.obtenerClimaActual`), mostrando las condiciones meteorológicas exactas del destino seleccionado (ej. Islas Ballestas en Paracas: 27°C, 66% humedad, viento 8 km/h) en lugar de las estadísticas regionales genéricas de Ica ciudad (32°C).
+
+### Eliminación de Falsos Positivos en Alertas de Seguridad (`hot_sand`)
+- **Restricción Geográfica Estricta:** La regla de `hot_sand` (temperatura de arena/suelo > 45°C) en `rules.py` se restringió exclusivamente a zonas de dunas y desierto (`Huacachina`, `Dunas`, `Cañón de los Perdidos`, etc.). Se eliminó el falso positivo que catalogaba a atractivos marítimos/insulares (como Islas Ballestas) como `NO_RECOMENDADO` por temperatura de suelo del desierto.
+
+### Alineación Estricta entre Scoring y Narrativa de Gemini AI
+- **Prioridad de Evaluación de Riesgo:** En `service.py`, las alertas y el peligro se evalúan antes de redactar la recomendación con Gemini. Si un atractivo tiene alertas de riesgo alto o está catalogado como `no_recomendado`, el prompt estructurado en XML exige a Gemini emitir una advertencia formal y empática de DIRCETUR, justificar con rigor el riesgo meteorológico y orientar hacia alternativas seguras, prohibiendo de manera taxativa invitar o elogiar la visita en condiciones adversas.
+- **Priorización en Ranking:** En `listar_recomendaciones`, los destinos con alertas críticas reciben penalización en su score para descender al final de la lista, garantizando que el `#1` de la recomendación del día sea siempre un destino seguro y propicio.
+
+### Infraestructura y Guía de Despliegue en VPS (24/7)
+- **Contenedores de Producción:** Configuración completa en `docker-compose.prod.yml` que orquesta PostgreSQL (con volumen persistente), Redis (con persistencia AOF), FastAPI (workers de producción), Celery Worker, Celery Beat y Caddy Reverse Proxy.
+- **HTTPS Automático:** Caddy administra y renueva certificados SSL/TLS oficiales de Let's Encrypt de forma automática sin intervención manual.
+- **Protección de Credenciales:** Plantilla `.env.production.example` con comentarios detallados y `.gitignore` reforzado para impedir la fuga de secretos.
+- **Guía de Despliegue:** Documento detallado en `docs/despliegue_vps.md` con instrucciones paso a paso para el aprovisionamiento y mantenimiento en el VPS.

@@ -233,8 +233,12 @@ def evaluar_alertas(
     elif precipitacion >= u_lluvia.warning:
         alertas.append(AlertaCandidata("rain_hazard", "medium", f"Lluvias Fuertes ({precipitacion:.1f} mm): precaución en rutas terrestres.", zona))
 
-    # 5. Temperatura de la Arena en Dunas
-    if temperatura_arena is not None:
+    # 5. Temperatura de la Arena en Dunas (solo en desierto y dunas, no en mar/islas/bodegas/ciudad)
+    es_zona_dunas = any(
+        kw in zona_lower
+        for kw in ["huacachina", "duna", "sandboarding", "desierto", "buggy", "tubular", "perdidos", "calicanto", "ocucaje"]
+    )
+    if es_zona_dunas and temperatura_arena is not None:
         u_arena = UMBRALES_ICA["hot_sand"]
         if temperatura_arena >= u_arena.danger:
             alertas.append(AlertaCandidata("hot_sand", "high", f"Arena en Dunas Muy Caliente ({temperatura_arena:.0f} °C): riesgo de quemaduras. Prohibido descalzo.", zona))

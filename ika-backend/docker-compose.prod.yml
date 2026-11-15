@@ -1,0 +1,128 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: ika_db_prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ika_usuario}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ika_contrasena_segura}
+      POSTGRES_DB: ${POSTGRES_DB:-ika_travel_bd}
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ika_usuario} -d ${POSTGRES_DB:-ika_travel_bd}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ika_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: ika_redis_prod
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data_prod:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ika_net
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ika_api_prod
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env.production
+    environment:
+      - URL_BASE_DATOS=postgresql+asyncpg://${POSTGRES_USER:-ika_usuario}:${POSTGRES_PASSWORD:-ika_contrasena_segura}@db:5432/${POSTGRES_DB:-ika_travel_bd}
+      - URL_REDIS=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+    command: uvicorn src.main:aplicacion --host 0.0.0.0 --port 8000 --workers 2
+    networks:
+      - ika_net
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ika_celery_worker_prod
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env.production
+    environment:
+      - URL_BASE_DATOS=postgresql+asyncpg://${POSTGRES_USER:-ika_usuario}:${POSTGRES_PASSWORD:-ika_contrasena_segura}@db:5432/${POSTGRES_DB:-ika_travel_bd}
+      - URL_REDIS=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+    command: celery -A celery_worker.celery_app worker -l info -c 2
+    networks:
+      - ika_net
+
+  beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ika_celery_beat_prod
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env.production
+    environment:
+      - URL_BASE_DATOS=postgresql+asyncpg://${POSTGRES_USER:-ika_usuario}:${POSTGRES_PASSWORD:-ika_contrasena_segura}@db:5432/${POSTGRES_DB:-ika_travel_bd}
+      - URL_REDIS=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+    command: celery -A celery_worker.celery_app beat -l info
+    networks:
+      - ika_net
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: ika_caddy_prod
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN_NAME=${DOMAIN_NAME:-localhost}
+      - ACME_EMAIL=${EMAIL_NOTIFICACIONES_ADMIN:-admin@ikatravel.pe}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - ika_net
+
+networks:
+  ika_net:
+    driver: bridge
+
+volumes:
+  postgres_data_prod:
+  redis_data_prod:
+  caddy_data:
+  caddy_config:

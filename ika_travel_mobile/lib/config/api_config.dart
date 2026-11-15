@@ -103,7 +103,7 @@ class ApiConfig {
   //   flutter run --dart-define=GOOGLE_WEB_CLIENT_ID=xxxx.apps.googleusercontent.com
   static const String googleWebClientId = String.fromEnvironment(
     'GOOGLE_WEB_CLIENT_ID',
-    defaultValue: '',
+    defaultValue: '575307622274-shcaqq8vgqgqitc82rjp43m3ujt7dvg8.apps.googleusercontent.com',
   );
 
   // --- IA & GEMINI ---

@@ -10,14 +10,23 @@ class WeatherService {
   final GeminiService _geminiService = GeminiService();
 
   // 1. Obtener el clima actual (con timestamp para validar RN-03)
-  //    Acepta un `destino` opcional para consultar Paracas, Huacachina, etc.
-  Future<Map<String, dynamic>?> obtenerClimaActual({String? destino}) async {
+  //    Acepta `destino` y/o `attractionId` para consultar clima exacto del atractivo
+  Future<Map<String, dynamic>?> obtenerClimaActual({
+    String? destino,
+    String? attractionId,
+  }) async {
     try {
-      final uri = destino != null && destino.isNotEmpty
-          ? Uri.parse(
-              '${ApiConfig.weatherCurrent}?destino=${Uri.encodeComponent(destino)}',
-            )
-          : Uri.parse(ApiConfig.weatherCurrent);
+      final params = <String, String>{};
+      if (attractionId != null && attractionId.isNotEmpty) {
+        params['attraction_id'] = attractionId;
+      }
+      if (destino != null && destino.isNotEmpty) {
+        params['destino'] = destino;
+      }
+      final baseUri = Uri.parse(ApiConfig.weatherCurrent);
+      final uri = params.isNotEmpty
+          ? baseUri.replace(queryParameters: params)
+          : baseUri;
 
       final response = await http
           .get(uri, headers: ApiConfig.defaultHeaders)
@@ -52,9 +61,13 @@ class WeatherService {
   Future<Map<String, dynamic>?> obtenerPronostico({
     int days = 7,
     String? destino,
+    String? attractionId,
   }) async {
     try {
       final params = <String, String>{'days': '$days'};
+      if (attractionId != null && attractionId.isNotEmpty) {
+        params['attraction_id'] = attractionId;
+      }
       if (destino != null && destino.isNotEmpty) {
         params['destino'] = destino;
       }
