@@ -130,6 +130,93 @@ def registrar_log_clima(
     print(banner, flush=True)
 
 
+def imprimir_tabla_comparativa_apis(
+    resultados_por_proveedor: dict[str, Any],
+    consenso: Any,
+) -> None:
+    """Imprime una tabla comparativa vistosa de 3 APIs x dimensiones extraídas."""
+    def _val(prov: str, campo: str, unidad: str = "", formato: str = ".1f") -> str:
+        if prov == "Consenso Final":
+            obj = consenso
+        else:
+            # Buscar por coincidencia flexible (ej. open-meteo, weatherapi, openweathermap)
+            obj = None
+            t = prov.lower().replace("-", "").replace("_", "")
+            for k, v in resultados_por_proveedor.items():
+                if t in k.lower().replace("-", "").replace("_", ""):
+                    obj = v
+                    break
+            if obj is None:
+                obj = resultados_por_proveedor.get(prov)
+
+        if obj is None or isinstance(obj, Exception):
+            return "N/D / Fallo"
+        v = getattr(obj, campo, None)
+        if v is None:
+            return "N/D"
+        if isinstance(v, (int, float)):
+            return f"{v:{formato}} {unidad}".strip()
+        return str(v)
+
+    dimensiones = [
+        ("🌡️  Temperatura", "temperatura_actual", "°C", ".1f"),
+        ("🌡️  Sensación Térmica", "sensacion_termica", "°C", ".1f"),
+        ("💨 Velocidad Viento", "velocidad_viento", "km/h", ".1f"),
+        ("💨 Ráfagas de Viento", "rafagas_viento", "km/h", ".1f"),
+        ("💧 Humedad Relativa", "humedad", "%", ".0f"),
+        ("☀️  Índice UV", "indice_uv", "", ".1f"),
+        ("🌧️  Prob. Precipitación", "probabilidad_precipitacion", "%", ".0f"),
+        ("🧭 Presión Atmosférica", "presion_atmosferica", "hPa", ".0f"),
+        ("☁️  Condición / Clima", "descripcion_clima", "", "s"),
+    ]
+
+    ancho_dim = 26
+    ancho_col = 20
+
+    sep = f"{CYAN}├─{'─' * ancho_dim}─┼─{'─' * ancho_col}─┼─{'─' * ancho_col}─┼─{'─' * ancho_col}─┼─{'─' * ancho_col}─┤{RESET}"
+    top = f"{CYAN}┌─{'─' * ancho_dim}─┬─{'─' * ancho_col}─┬─{'─' * ancho_col}─┬─{'─' * ancho_col}─┬─{'─' * ancho_col}─┐{RESET}"
+    bot = f"{CYAN}└─{'─' * ancho_dim}─┴─{'─' * ancho_col}─┴─{'─' * ancho_col}─┴─{'─' * ancho_col}─┴─{'─' * ancho_col}─┘{RESET}"
+
+    header = (
+        f"{CYAN}│{RESET} {BOLD}{'Dimensión':<{ancho_dim}}{RESET} "
+        f"{CYAN}│{RESET} {BOLD}{'Open-Meteo':<{ancho_col}}{RESET} "
+        f"{CYAN}│{RESET} {BOLD}{'OpenWeatherMap':<{ancho_col}}{RESET} "
+        f"{CYAN}│{RESET} {BOLD}{'WeatherAPI':<{ancho_col}}{RESET} "
+        f"{CYAN}│{RESET} {BOLD}{GREEN}{'Consenso Final':<{ancho_col}}{RESET} {CYAN}│{RESET}"
+    )
+
+    titulo = (
+        f"\n{CYAN}┌─────────────────────────────────────────────────────────────────────────────────────────────────┐{RESET}\n"
+        f"{CYAN}│{RESET} {BOLD}📊 CONFRONTACIÓN DE 3 APIS METEOROLÓGICAS (PATRÓN AGGREGATOR) — IKA TRAVEL{RESET}\n"
+        f"{CYAN}└─────────────────────────────────────────────────────────────────────────────────────────────────┘{RESET}"
+    )
+
+    filas = [titulo, top, header, sep]
+    for etiqueta, campo, unidad, fmt in dimensiones:
+        v_om = _val("Open-Meteo", campo, unidad, fmt)
+        v_owm = _val("OpenWeatherMap", campo, unidad, fmt)
+        v_wapi = _val("WeatherAPI", campo, unidad, fmt)
+        v_cons = _val("Consenso Final", campo, unidad, fmt)
+
+        def _pad(s: str, w: int) -> str:
+            raw = s.replace(DIM, "").replace(RESET, "").replace(BOLD, "").replace(GREEN, "")
+            if len(raw) > w:
+                return s[:w-1] + "…"
+            return s + " " * max(0, w - len(raw))
+
+        fila = (
+            f"{CYAN}│{RESET} {etiqueta:<{ancho_dim}} "
+            f"{CYAN}│{RESET} {_pad(v_om, ancho_col)} "
+            f"{CYAN}│{RESET} {_pad(v_owm, ancho_col)} "
+            f"{CYAN}│{RESET} {_pad(v_wapi, ancho_col)} "
+            f"{CYAN}│{RESET} {_pad(v_cons, ancho_col)} {CYAN}│{RESET}"
+        )
+        filas.append(fila)
+    filas.append(bot)
+
+    print("\n".join(filas), flush=True)
+
+
 def log_auth(accion: str, email: str, metodo: str = "email", exitoso: bool = True, detalle: str = "") -> None:
     """Registra eventos de autenticación de forma clara y profesional."""
     estado = f"{GREEN}EXITOSO{RESET}" if exitoso else f"{RED}FALLIDO{RESET}"

@@ -1,5 +1,5 @@
 from src.modules.weather.safety import evaluar_seguridad_temporal
-from src.shared.custom_logging import registrar_log_clima, registrar_log_recomendacion
+from src.shared.custom_logging import imprimir_tabla_comparativa_apis, registrar_log_clima, registrar_log_recomendacion
 from src.modules.weather import rules
 """Capa de orquestación del módulo weather.
 
@@ -93,7 +93,18 @@ class AgregadorClima:
             len(exitosos),
             ", ".join(nombres_exitosos),
         )
-        return self._promediar_resultados(exitosos, nombres_exitosos)
+        consenso = self._promediar_resultados(exitosos, nombres_exitosos)
+
+        try:
+            resultados_map = {}
+            for i, res in enumerate(resultados):
+                nombre = self.adaptadores[i].nombre_proveedor
+                resultados_map[nombre] = res if not isinstance(res, Exception) else None
+            imprimir_tabla_comparativa_apis(resultados_map, consenso)
+        except Exception as e:
+            logger.warning("Error imprimiendo tabla comparativa de clima: %s", e)
+
+        return consenso
 
     def _promediar_resultados(
         self, resultados: list[ClimaActual], nombres: list[str]
@@ -335,7 +346,7 @@ async def get_fresh_snapshot(
                 viento=respuesta.velocidad_viento,
                 uv=respuesta.indice_uv,
                 condicion=respuesta.descripcion_clima,
-                alertas_activas=len(await get_active_alerts(db, ubicacion.nombre)),
+                alertas_activas=0,
             )
             return respuesta
 
@@ -378,16 +389,20 @@ async def get_fresh_snapshot(
         viento=respuesta.velocidad_viento,
         uv=respuesta.indice_uv,
         condicion=respuesta.descripcion_clima,
-        alertas_activas=len(await get_active_alerts(db, ubicacion.nombre)),
+        alertas_activas=0,
     )
     return respuesta
 
 
 async def obtener_clima_actual(
-    db: AsyncSession, *, atractivo_id: UUID | None = None, destino: str | None = None
+    db: AsyncSession,
+    *,
+    atractivo_id: UUID | None = None,
+    destino: str | None = None,
+    forzar_refresco: bool = False,
 ) -> ClimaActualResponse:
     ubicacion = await resolver_ubicacion(db, atractivo_id=atractivo_id, destino=destino)
-    return await get_fresh_snapshot(db, ubicacion)
+    return await get_fresh_snapshot(db, ubicacion, forzar_refresco=forzar_refresco)
 
 
 TTL_PRONOSTICO_SEGUNDOS = 3 * 60 * 60

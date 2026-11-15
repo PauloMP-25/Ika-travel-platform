@@ -160,3 +160,22 @@ No se arregla con un `git pull`, porque no vive en el repositorio:
 - **SHA-1 de cada máquina que compila la app** debe estar registrada en el
   cliente OAuth de tipo *Android* del proyecto de Google Cloud (paquete
   `com.example.ika_travel_mobile`). Si falta, sale `ApiException: 10`.
+
+---
+
+## 10. Sistema de Consenso Climático (3 APIs) y Notificaciones Móviles en Tiempo Real
+
+### Backend: Confrontación de 3 APIs y Logging en Consola (Patrón Aggregator)
+- **Consenso de 3 APIs Meteorológicas:** Se ejecutan en paralelo peticiones asíncronas a `Open-Meteo`, `OpenWeatherMap` y `WeatherAPI` normalizadas al esquema estándar `ClimaActual`.
+- **Tabla Comparativa de 3 APIs x N Dimensiones:** Cada vez que se consulta o refresca el clima (`/api/v1/weather/current` o periodicidad de Celery), se imprime en la consola del backend una tabla ANSI formateada comparando:
+  - Dimensiones: Temperatura (°C), Sensación Térmica (°C), Velocidad del Viento (km/h), Ráfagas (km/h), Humedad Relativa (%), Índice UV, Probabilidad de Precipitación (%), Presión Atmosférica (hPa) y Condición/Cielo.
+  - Columnas: `Open-Meteo` | `OpenWeatherMap` | `WeatherAPI` | `Consenso Final`.
+- **Fuerzo de Refresco:** Se habilitó el parámetro `force_refresh=true` en `/api/v1/weather/current` para pruebas en vivo sin esperar expiración de Redis.
+
+### Frontend: Notificaciones Flotantes Heads-Up (Estilo WhatsApp) ante Alertas en Paracas
+- **Monitoreo Proactivo:** `AlertasService` escucha cambios periódicos (cada 5 min y al arrancar). Al detectar una nueva alerta meteorológica activa que afecte a la **Reserva Nacional de Paracas** o a destinos/actividades seguidas:
+  - Despliega automáticamente una notificación flotante emergente estilo WhatsApp (`NotificacionFlotanteAlerta`) en la parte superior de la pantalla.
+  - Visualización: Banner con insignia de severidad (rojo/naranja), hora actual, título del fenómeno y mensaje explicativo.
+  - Interacción táctil: Al pulsar el banner, emite vibración háptica y navega inmediatamente a `PantallaDetalleAlerta` para que el turista lea todas las recomendaciones oficiales de seguridad y alternativas terrestres.
+  - Descarte intuitivo: Deslizable hacia arriba o cierre manual con botón (X), con auto-cierre a los 6.5 segundos.
+  - Botón de prueba: Disponible en `PantallaConfigurarAlertas` para simular y validar la experiencia en caliente.

@@ -1,3 +1,4 @@
+import 'config/navegacion_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
@@ -36,6 +37,7 @@ class IkaTravelApp extends StatelessWidget {
             valueListenable: modoOscuroActivo,
             builder: (context, isDarkMode, child) {
               return MaterialApp(
+                navigatorKey: NavegacionService.navigatorKey,
                 title: 'Ika Travel',
                 debugShowCheckedModeBanner: false,
 

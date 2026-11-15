@@ -5,6 +5,11 @@ import 'package:flutter/material.dart';
 class NavegacionService {
   const NavegacionService._();
 
+  /// Clave global de navegación para abrir diálogos, overlays o pantallas
+  /// desde cualquier servicio o listener sin necesitar un BuildContext explícito.
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
+
   /// Índices de las pestañas de `MainScaffold`, en el mismo orden.
   static const int tabInicio = 0;
   static const int tabActividades = 1;

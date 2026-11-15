@@ -1,3 +1,4 @@
+import '../services/alertas_service.dart';
 import 'package:flutter/material.dart';
 
 import '../config/tema.dart';
@@ -359,6 +360,40 @@ class _PantallaConfigurarAlertasState extends State<PantallaConfigurarAlertas> {
       indent: 16,
       endIndent: 16,
       color: color.withValues(alpha: 0.2),
+    );
+  }
+
+  Widget _buildSimulateButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 48,
+      child: OutlinedButton.icon(
+        icon: const Icon(Icons.notifications_active_outlined, color: AppColores.naranjaBoton),
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: AppColores.naranjaBoton, width: 1.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        onPressed: () {
+          AlertasService().simularAlertaParacas();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Simulación de alerta Paracas activada (notificación emergente).'),
+              duration: Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        },
+        label: const Text(
+          'Probar notificación de alerta en Paracas',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: AppColores.naranjaBoton,
+          ),
+        ),
+      ),
     );
   }
 

@@ -50,6 +50,7 @@ async def obtener_usuario_opcional(
 async def obtener_clima_actual(
     attraction_id: UUID | None = Query(None, description="Atractivo del catálogo"),
     destino: str | None = Query(None, description="Nombre de destino conocido, ej. 'Huacachina'"),
+    force_refresh: bool = Query(False, description="Fuerza consulta en vivo a las 3 APIs (Open-Meteo, OWM, WeatherAPI) ignorando caché"),
     db: AsyncSession = Depends(obtener_bd),
 ) -> ClimaActualResponse:
     """RF-06: clima actual consensuado (OpenWeatherMap, WeatherAPI, Open-Meteo).
@@ -58,7 +59,9 @@ async def obtener_clima_actual(
     las 6 h; si no se puede refrescar responde 503. `is_cached` indica si salió
     de Redis o de un snapshot reciente.
     """
-    return await service.obtener_clima_actual(db, atractivo_id=attraction_id, destino=destino)
+    return await service.obtener_clima_actual(
+        db, atractivo_id=attraction_id, destino=destino, forzar_refresco=force_refresh
+    )
 
 
 @router.get("/forecast", response_model=PronosticoResponse)

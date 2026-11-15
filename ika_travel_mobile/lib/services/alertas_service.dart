@@ -1,3 +1,4 @@
+import '../widgets/notificacion_flotante_alerta.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -67,6 +68,7 @@ class AlertasService {
 
   Timer? _refrescoTimer;
   bool _cargandoDesdeBackend = false;
+  final Set<String> _alertasNotificadas = <String>{};
   bool _marcando = false;
   DateTime? _ultimaActualizacion;
   String? _ultimoError;
@@ -139,6 +141,9 @@ class AlertasService {
       alertasNotifier.value = alertasBackend;
       _ultimoError = null;
       _ultimaActualizacion = DateTime.now();
+
+      // Detección proactiva de alertas nuevas en Paracas o destinos seguidos
+      _evaluarYNotificarNuevasAlertas(alertasBackend);
 
       debugPrint(
         '[AlertasService] ${alertasBackend.length} alertas activas cargadas',
@@ -448,6 +453,85 @@ class AlertasService {
 
   void actualizarConfiguracion(ConfiguracionNotificaciones nuevaConfig) {
     configNotifier.value = nuevaConfig;
+  }
+
+
+  // ---------------------------------------------------------------
+  // Notificación Flotante In-App (Estilo WhatsApp)
+  // ---------------------------------------------------------------
+
+  void _evaluarYNotificarNuevasAlertas(List<AlertaClima> alertas) {
+    if (!configNotifier.value.pushHabilitado) return;
+
+    for (final alerta in alertas) {
+      if (!alerta.activa) continue;
+      if (_alertasNotificadas.contains(alerta.id)) continue;
+
+      // Registrar como notificada para no repetir
+      _alertasNotificadas.add(alerta.id);
+
+      final destino = alerta.destino.toLowerCase();
+      final esParacas = destino.contains('paracas');
+      final sigueDestino = estaSiguiendoDestino(alerta.destino);
+      final sigueAct = estaSiguiendoActividad(alerta.actividad);
+
+      // Si es Paracas (alta prioridad) o un destino/actividad seguida, notificar
+      if (esParacas || sigueDestino || sigueAct) {
+        debugPrint(
+          '[AlertasService] 🚨 Disparando notificación flotante para ${alerta.titulo} en ${alerta.destino}',
+        );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          NotificacionFlotanteAlerta.mostrar(alerta: alerta);
+        });
+        break; // Mostrar la más prioritaria primero
+      }
+    }
+  }
+
+  /// Permite simular y probar de forma inmediata una alerta de Paracas
+  /// mostrando el banner flotante estilo WhatsApp que lleva a PantallaDetalleAlerta.
+  void simularAlertaParacas() {
+    final alertaPrueba = AlertaClima(
+      id: 'alerta-sim-paracas-${DateTime.now().millisecondsSinceEpoch}',
+      titulo: 'Vientos Paracas en Reserva Nacional',
+      destino: 'Paracas',
+      actividad: 'Reserva Nacional\nde Paracas',
+      fechaHora: DateTime.now(),
+      nivelRiesgo: NivelRiesgo.alto,
+      motivoCambio:
+          'Ráfagas de viento de hasta 48 km/h en la zona costera. Capitanía de Puerto restringe zarpes a Islas Ballestas.',
+      impactoActividad:
+          'Se suspenden temporalmente actividades marítimas y se recomienda precaución en senderos desérticos.',
+      condicionAnterior: CondicionClima(
+        fechaHora: DateTime.now().subtract(const Duration(hours: 2)),
+        estadoCielo: 'Despejado',
+        temperatura: '24°C',
+        velocidadViento: '18 km/h',
+        probabilidadLluvia: '0%',
+        indiceUv: '8.0',
+        estadoMar: 'Calmo',
+      ),
+      condicionActual: CondicionClima(
+        fechaHora: DateTime.now(),
+        estadoCielo: 'Ventoso',
+        temperatura: '22°C',
+        velocidadViento: '48 km/h',
+        probabilidadLluvia: '0%',
+        indiceUv: '7.5',
+        estadoMar: 'Oleaje moderado',
+      ),
+      recomendacionesSeguridad: [
+        'Proteger ojos con gafas cerradas ante tormentas de arena.',
+        'No acercarse a bordes de acantilados en la Reserva de Paracas.',
+        'Atender disposiciones de guardaparques de SERNANP.',
+      ],
+      esMock: false,
+      activa: true,
+    );
+
+    // Agregar temporalmente al notifier para que el detalle la reconozca
+    alertasNotifier.value = [alertaPrueba, ...alertasNotifier.value];
+    NotificacionFlotanteAlerta.mostrar(alerta: alertaPrueba);
   }
 
   void dispose() {
