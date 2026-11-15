@@ -185,9 +185,26 @@ async def list_favorites(
     current_user: CurrentUser,
     db: DbSession,
 ) -> list[FavoriteItemResponse]:
-    """Retorna la lista de favoritos guardados por el turista."""
+    """Retorna la lista de favoritos guardados por el turista enriquecida con datos del atractivo."""
     favs = await service.list_user_favorites(db, current_user.id)
-    return [FavoriteItemResponse.model_validate(f) for f in favs]
+    items = []
+    for f in favs:
+        cover = None
+        if f.attraction and f.attraction.images:
+            sorted_imgs = sorted(f.attraction.images, key=lambda img: img.display_order)
+            if sorted_imgs:
+                cover = sorted_imgs[0].url
+        items.append(
+            FavoriteItemResponse(
+                id=f.id,
+                attraction_id=f.attraction_id,
+                created_at=f.created_at,
+                name=f.attraction.name if f.attraction else None,
+                district=f.attraction.district if f.attraction else None,
+                cover_image_url=cover,
+            )
+        )
+    return items
 
 
 @reviews_router.get(

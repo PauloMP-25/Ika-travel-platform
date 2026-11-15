@@ -5,7 +5,7 @@ from uuid import UUID
 from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import joinedload, selectinload
 
 from src.modules.catalog.models import Attraction
 from src.modules.reviews.exceptions import (
@@ -242,9 +242,12 @@ async def list_user_favorites(
     db: AsyncSession,
     user_id: UUID,
 ) -> list[Favorite]:
-    """Retorna los atractivos favoritos del usuario logueado."""
+    """Retorna los atractivos favoritos del usuario logueado enriquecidos con datos del atractivo."""
     result = await db.execute(
         select(Favorite)
+        .options(
+            joinedload(Favorite.attraction).selectinload(Attraction.images)
+        )
         .where(Favorite.user_id == user_id)
         .order_by(Favorite.created_at.desc())
     )

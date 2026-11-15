@@ -73,10 +73,13 @@ class FavoriteToggleResponse(BaseModel):
 
 
 class FavoriteItemResponse(BaseModel):
-    """Elemento del listado de favoritos del usuario."""
+    """Elemento del listado de favoritos del usuario enriquecido con datos del atractivo."""
 
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
     attraction_id: UUID
     created_at: datetime
+    name: str | None = None
+    district: str | None = None
+    cover_image_url: str | None = None

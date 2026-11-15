@@ -1,3 +1,4 @@
+import '../models/lugar_modelo.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -41,24 +42,40 @@ bool esFavorito(String titulo) {
 /// aparezcan también al cambiar de teléfono o reinstalar. El endpoint solo
 /// devuelve los ids, así que el nombre y la imagen salen del catálogo.
 Future<void> sincronizarFavoritosDesdeServidor() async {
-  final ids = await _favService.obtenerIdsFavoritos();
-  if (ids.isEmpty) return;
+  final remotos = await _favService.obtenerFavoritosCompletos();
+  if (remotos.isEmpty) return;
 
   final lugares = await LugaresService().obtenerLugares();
   final favs = List<Map<String, dynamic>>.from(listaFavoritos.value);
   var agregados = 0;
 
-  for (final id in ids) {
-    final lugar = lugares.firstWhere(
-      (l) => l.id == id,
-      orElse: () => lugares.first,
-    );
-    if (lugar.id != id) continue; // No está en el catálogo cargado.
+  for (final item in remotos) {
+    final attractionId = item['attraction_id']?.toString() ?? '';
+    if (attractionId.isEmpty) continue;
 
-    final yaEsta = favs.any((f) => f['titulo'] == lugar.nombre);
+    // Buscar en catálogo si ya está en memoria
+    final enCatalogo = lugares.where((l) => l.id == attractionId).firstOrNull;
+
+    final nombre = item['name']?.toString() ?? enCatalogo?.nombre ?? '';
+    if (nombre.isEmpty) continue;
+
+    final yaEsta = favs.any((f) => f['titulo'] == nombre || f['id'] == attractionId);
     if (yaEsta) continue;
 
-    favs.add(lugar.aFavorito());
+    if (enCatalogo != null) {
+      favs.add(enCatalogo.aFavorito());
+    } else {
+      final cover = item['cover_image_url']?.toString();
+      final distrito = item['district']?.toString() ?? 'Ica';
+      favs.add({
+        'id': attractionId,
+        'titulo': nombre,
+        'subtitulo': distrito,
+        'categoria': 'Turismo',
+        'imagen': (cover != null && cover.isNotEmpty) ? cover : LugarIca.imagenPorDefecto,
+        'imagenes_detalle': [(cover != null && cover.isNotEmpty) ? cover : LugarIca.imagenPorDefecto],
+      });
+    }
     agregados++;
   }
 

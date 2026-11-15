@@ -73,7 +73,7 @@ visit_duration_minutes: Mapped[int | None] = mapped_column(Integer, nullable=Tru
 
 ---
 
-## 5. `FavoriteItemResponse` no trae datos del atractivo
+## 5. `FavoriteItemResponse` no trae datos del atractivo - [x] (COMPLETADO)
 
 **Dónde:** `src/modules/reviews/schemas.py` → `class FavoriteItemResponse`
 **Endpoint:** `GET /api/v1/users/me/favorites`

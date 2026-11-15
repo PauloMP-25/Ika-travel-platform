@@ -38,6 +38,24 @@ class FavoritesService {
     return null;
   }
 
+  /// Obtiene la lista completa de favoritos enriquecidos desde el servidor
+  /// con name, district y cover_image_url.
+  Future<List<Map<String, dynamic>>> obtenerFavoritosCompletos() async {
+    if (!_sesionValida()) return const [];
+
+    try {
+      final res = await _apiClient.get('/users/me/favorites');
+      if (res is List) {
+        return res
+            .whereType<Map<String, dynamic>>()
+            .toList();
+      }
+    } catch (e) {
+      debugPrint('[FavoritesService] Error al listar favoritos remotos completos: $e');
+    }
+    return const [];
+  }
+
   /// Ids de los atractivos que el usuario tiene en favoritos en el servidor.
   ///
   /// Sirve para recuperar los favoritos al iniciar sesión (en otro teléfono o

@@ -278,12 +278,17 @@ def test_favorite_toggle_and_list_lifecycle(
     assert chk2.status_code == 200
     assert chk2.json() is True
 
-    # 4. Listar favoritos del usuario
+    # 4. Listar favoritos del usuario enriquecidos con datos del atractivo
     list_fav = client.get(f"{API}/users/me/favorites", headers=headers)
     assert list_fav.status_code == 200
     favs = list_fav.json()
     assert len(favs) == 1
     assert favs[0]["attraction_id"] == str(attraction_id)
+    assert "name" in favs[0]
+    assert "district" in favs[0]
+    assert "cover_image_url" in favs[0]
+    assert favs[0]["name"].startswith("Laguna de Huacachina")
+    assert favs[0]["district"] == "Ica"
 
     # 5. Toggle de nuevo -> Retirar de favoritos
     tgl2 = client.post(
