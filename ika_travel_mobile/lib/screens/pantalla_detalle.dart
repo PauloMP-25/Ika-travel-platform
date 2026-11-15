@@ -250,6 +250,7 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
                   children: [
                     for (final categoria in _lugar.categorias.take(3))
                       _chipCategoria(categoria),
+                    _chipDuracion(_lugar.duracionVisitaFormateada),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -384,6 +385,31 @@ class _PantallaDetalleState extends State<PantallaDetalle> {
           const SizedBox(width: 4),
           Text(
             categoria,
+            style: const TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _chipDuracion(String duracionTexto) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColores.naranjaBoton,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.schedule_rounded, size: 12, color: Colors.white),
+          const SizedBox(width: 4),
+          Text(
+            duracionTexto,
             style: const TextStyle(
               fontSize: 10.5,
               fontWeight: FontWeight.bold,

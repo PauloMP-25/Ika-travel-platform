@@ -11,7 +11,8 @@ PLAYAS_Y_DESTINOS = [
         -13.911591, -76.318357, "Paracas",
         "Llevar sombrilla, bloqueador solar y agua. Respetar las zonas designadas de baño.",
         ["naturaleza", "aventura", "sol_playa"],
-        "assets/images/act_reserva1.jpg"
+        "assets/images/act_reserva1.jpg",
+        180
     ),
     (
         "Playa Roja",
@@ -19,7 +20,8 @@ PLAYAS_Y_DESTINOS = [
         -13.8867, -76.2872, "Paracas",
         "Zona protegida: no descender al acantilado ni retirar arena del lugar.",
         ["naturaleza", "cultural", "sol_playa"],
-        "assets/images/act_reserva1.jpg"
+        "assets/images/act_reserva1.jpg",
+        60
     ),
     (
         "Playa El Chaco",
@@ -27,7 +29,8 @@ PLAYAS_Y_DESTINOS = [
         -13.830083, -76.247116, "Paracas",
         "Revisar alertas de oleaje y viento antes de abordar embarcaciones turísticas.",
         ["aventura", "gastronomia", "naturaleza", "sol_playa"],
-        "assets/images/act_ballestas1.jpg"
+        "assets/images/act_ballestas1.jpg",
+        90
     ),
     (
         "Playa Hermosa de Marcona",
@@ -35,7 +38,8 @@ PLAYAS_Y_DESTINOS = [
         -15.3583, -75.1750, "Marcona",
         "Ideal para caminatas y contemplación de formaciones rocosas al atardecer.",
         ["naturaleza", "sol_playa"],
-        "assets/images/act_reserva1.jpg"
+        "assets/images/act_reserva1.jpg",
+        150
     ),
     (
         "Islas Ballestas",
@@ -43,7 +47,8 @@ PLAYAS_Y_DESTINOS = [
         -13.735943, -76.394191, "Paracas",
         "Uso obligatorio de chaleco salvavidas en el deslizador turístico.",
         ["naturaleza", "aventura"],
-        "assets/images/act_ballestas1.jpg"
+        "assets/images/act_ballestas1.jpg",
+        120
     ),
     (
         "Reserva Nacional de Paracas",
@@ -51,7 +56,8 @@ PLAYAS_Y_DESTINOS = [
         -13.911640, -76.318399, "Paracas",
         "Ingreso con ticket SERNANP. No arrojar residuos en el desierto.",
         ["naturaleza", "aventura"],
-        "assets/images/act_reserva1.jpg"
+        "assets/images/act_reserva1.jpg",
+        240
     ),
     (
         "Viña Tacama",
@@ -59,7 +65,8 @@ PLAYAS_Y_DESTINOS = [
         -14.000958, -75.716955, "Ica",
         "Visitas recomendadas de 10:00 AM a 04:00 PM bajo sombra arbolada.",
         ["gastronomia", "cultural"],
-        "assets/images/act_vinos.jpg"
+        "assets/images/act_vinos.jpg",
+        150
     ),
 ]
 
@@ -77,7 +84,7 @@ async def seed_playas():
         todas_cats = (await db.execute(select(Category))).scalars().all()
         cat_map = {c.slug: c.id for c in todas_cats}
 
-        for nombre, desc, lat, lon, dist, rec, slugs, img in PLAYAS_Y_DESTINOS:
+        for nombre, desc, lat, lon, dist, rec, slugs, img, duracion in PLAYAS_Y_DESTINOS:
             q = await db.execute(select(Attraction).where(Attraction.name == nombre))
             existente = q.scalar_one_or_none()
             if not existente:
@@ -90,6 +97,7 @@ async def seed_playas():
                     longitude=lon,
                     district=dist,
                     official_recommendation=rec,
+                    visit_duration_minutes=duracion,
                     is_active=True,
                 )
                 db.add(attr)

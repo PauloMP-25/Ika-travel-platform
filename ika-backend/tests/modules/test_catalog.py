@@ -32,6 +32,7 @@ def _crear_atractivo(
         latitude=-14.0873,
         longitude=-75.7637,
         district=distrito,
+        visit_duration_minutes=120,
         is_active=True,
         created_at=_dt.datetime.now(_dt.timezone.utc),
         updated_at=_dt.datetime.now(_dt.timezone.utc),
@@ -199,3 +200,19 @@ def test_listar_atractivos_incluye_coordenadas_y_descripcion(
     assert encontrado["latitude"] == -14.0873
     assert encontrado["longitude"] == -75.7637
     assert encontrado["description"] == "Dunas y oasis en el desierto de Ica."
+
+
+def test_listar_atractivos_incluye_duracion_visita(
+    client: TestClient, db_session: AsyncSession
+) -> None:
+    """Verifica que AttractionListItem devuelva visit_duration_minutes no nulo."""
+    atractivo_id = _crear_atractivo(db_session, nombre="Huacachina Duracion", distrito="Ica")
+
+    resp = client.get(f"{API}/catalog/attractions")
+    assert resp.status_code == 200
+    data = resp.json()
+    items = data["items"]
+    encontrado = next((i for i in items if i["id"] == str(atractivo_id)), None)
+    assert encontrado is not None
+    assert "visit_duration_minutes" in encontrado
+    assert encontrado["visit_duration_minutes"] == 120

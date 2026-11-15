@@ -454,6 +454,36 @@ class _PantallaActividadesState extends State<PantallaActividades> {
                             ),
                           ),
                         ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColores.naranjaBoton.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.schedule_rounded,
+                                size: 11,
+                                color: AppColores.naranjaBoton,
+                              ),
+                              const SizedBox(width: 3),
+                              Text(
+                                lugar.duracionVisitaFormateada,
+                                style: const TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColores.naranjaBoton,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                         if (lugar.tieneCoordenadas) ...[
                           const SizedBox(width: 6),
                           IconButton(

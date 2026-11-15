@@ -62,6 +62,7 @@ class Attraction(Base):
     longitude: Mapped[float] = mapped_column(Float, nullable=False)
     district: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
     official_recommendation: Mapped[str | None] = mapped_column(Text, nullable=True)
+    visit_duration_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     # Extensión sobre el modelo documentado: permite ocultar atractivos sin borrarlos
     # (weather.refresh_weather_cache "recorre atractivos activos").
     is_active: Mapped[bool] = mapped_column(

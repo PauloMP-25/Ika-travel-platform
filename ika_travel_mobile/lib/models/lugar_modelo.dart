@@ -44,6 +44,10 @@ class LugarIca {
   /// Promedio de reseñas (solo lo devuelve el detalle).
   final double? ratingPromedio;
 
+  /// Tiempo sugerido de visita en minutos (`attraction.visit_duration_minutes`).
+  /// Nunca es nulo ni vacío (por defecto 60 minutos si no viene especificado).
+  final int duracionVisitaMinutos;
+
   /// `true` cuando los datos provienen de los mocks locales y no de la BD.
   final bool esMock;
 
@@ -58,6 +62,7 @@ class LugarIca {
     this.imagenes = const [],
     this.recomendacionOficial,
     this.ratingPromedio,
+    this.duracionVisitaMinutos = 60,
     this.esMock = false,
   });
 
@@ -81,6 +86,16 @@ class LugarIca {
   /// Imágenes para el carrusel del detalle (nunca vacío).
   List<String> get imagenesDetalle =>
       imagenes.isNotEmpty ? imagenes : const [imagenPorDefecto];
+
+  /// Formato legible de la duración de visita (ej: "45 min", "1h 30m", "2h").
+  /// Garantizado: siempre devuelve un tiempo válido y no nulo.
+  String get duracionVisitaFormateada {
+    final mTotal = duracionVisitaMinutos > 0 ? duracionVisitaMinutos : 60;
+    if (mTotal < 60) return '$mTotal min';
+    final h = mTotal ~/ 60;
+    final m = mTotal % 60;
+    return m == 0 ? '${h}h' : '${h}h ${m}m';
+  }
 
   EstiloCategoria get estilo => CategoriasLugar.estilo(categoriaPrincipal);
 
@@ -118,6 +133,7 @@ class LugarIca {
     List<String>? imagenes,
     String? recomendacionOficial,
     double? ratingPromedio,
+    int? duracionVisitaMinutos,
     bool? esMock,
   }) {
     return LugarIca(
@@ -131,6 +147,7 @@ class LugarIca {
       imagenes: imagenes ?? this.imagenes,
       recomendacionOficial: recomendacionOficial ?? this.recomendacionOficial,
       ratingPromedio: ratingPromedio ?? this.ratingPromedio,
+      duracionVisitaMinutos: duracionVisitaMinutos ?? this.duracionVisitaMinutos,
       esMock: esMock ?? this.esMock,
     );
   }
@@ -151,6 +168,7 @@ class LugarIca {
       categorias: _categoriasDe(json['categories']),
       latitud: (json['latitude'] as num?)?.toDouble(),
       longitud: (json['longitude'] as num?)?.toDouble(),
+      duracionVisitaMinutos: (json['visit_duration_minutes'] as num?)?.toInt() ?? 60,
       imagenes: (portada != null && portada.isNotEmpty) ? [portada] : const [],
     );
   }
@@ -166,6 +184,7 @@ class LugarIca {
       categorias: _categoriasDe(json['categories']),
       latitud: (json['latitude'] as num?)?.toDouble(),
       longitud: (json['longitude'] as num?)?.toDouble(),
+      duracionVisitaMinutos: (json['visit_duration_minutes'] as num?)?.toInt() ?? 60,
       imagenes: (portada != null && portada.isNotEmpty) ? [portada] : const [],
     );
   }
@@ -187,6 +206,7 @@ class LugarIca {
       imagenes: imagenes,
       recomendacionOficial: json['official_recommendation']?.toString(),
       ratingPromedio: (json['avg_rating'] as num?)?.toDouble(),
+      duracionVisitaMinutos: (json['visit_duration_minutes'] as num?)?.toInt() ?? 60,
     );
   }
 
@@ -199,6 +219,7 @@ class LugarIca {
     'categoria': categoriaPrincipal,
     'imagen': imagenPrincipal,
     'imagenes_detalle': imagenesDetalle,
+    'duracion_visita_minutos': duracionVisitaMinutos,
   };
 
   /// Reconstruye un lugar a partir de un favorito guardado.
@@ -217,6 +238,7 @@ class LugarIca {
       categorias: (categoria != null && categoria.isNotEmpty)
           ? [categoria]
           : const [],
+      duracionVisitaMinutos: (fav['duracion_visita_minutos'] as num?)?.toInt() ?? 60,
       imagenes: (imagenes != null && imagenes.isNotEmpty)
           ? imagenes
           : (portada != null && portada.isNotEmpty ? [portada] : const []),

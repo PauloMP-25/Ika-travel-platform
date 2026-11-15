@@ -48,6 +48,7 @@ class LugaresMock {
         'assets/images/detalle_sandboarding_2.jpg',
         'assets/images/detalle_sandboarding_3.jpg',
       ],
+      duracionVisitaMinutos: 180,
       esMock: true,
     ),
     LugarIca(
@@ -66,6 +67,7 @@ class LugaresMock {
         'assets/images/detalle_buggy_2.jpg',
         'assets/images/detalle_buggy_3.jpg',
       ],
+      duracionVisitaMinutos: 60,
       esMock: true,
     ),
     LugarIca(
@@ -82,6 +84,7 @@ class LugaresMock {
         'assets/images/carrusel_3_sandboarding.jpg',
         'assets/images/carrusel_2_vinos.jpg',
       ],
+      duracionVisitaMinutos: 45,
       esMock: true,
     ),
     LugarIca(
@@ -102,6 +105,7 @@ class LugaresMock {
         'assets/images/detalle_vinos_2.jpg',
         'assets/images/detalle_vinos_3.jpg',
       ],
+      duracionVisitaMinutos: 150,
       esMock: true,
     ),
     LugarIca(
@@ -121,6 +125,7 @@ class LugaresMock {
         'assets/images/detalle_vinos_2.jpg',
         'assets/images/act_vinos.jpg',
       ],
+      duracionVisitaMinutos: 90,
       esMock: true,
     ),
     LugarIca(
@@ -140,6 +145,7 @@ class LugaresMock {
         'assets/images/detalle_vinos_3.jpg',
         'assets/images/act_vinos.jpg',
       ],
+      duracionVisitaMinutos: 90,
       esMock: true,
     ),
     LugarIca(
@@ -159,6 +165,7 @@ class LugaresMock {
         'assets/images/act_buggy1.jpg',
         'assets/images/detalle_buggy_3.jpg',
       ],
+      duracionVisitaMinutos: 300,
       esMock: true,
     ),
     LugarIca(
@@ -179,6 +186,7 @@ class LugaresMock {
         'assets/images/detalle_ballestas_2.jpg',
         'assets/images/detalle_ballestas_3.jpg',
       ],
+      duracionVisitaMinutos: 120,
       esMock: true,
     ),
     LugarIca(
@@ -199,6 +207,7 @@ class LugaresMock {
         'assets/images/detalle_reserva_2.jpg',
         'assets/images/detalle_reserva_3.jpg',
       ],
+      duracionVisitaMinutos: 240,
       esMock: true,
     ),
     LugarIca(
@@ -218,6 +227,7 @@ class LugaresMock {
         'assets/images/detalle_reserva_2.jpg',
         'assets/images/act_reserva1.jpg',
       ],
+      duracionVisitaMinutos: 60,
       esMock: true,
     ),
     LugarIca(
@@ -236,6 +246,7 @@ class LugaresMock {
         'assets/images/detalle_reserva_3.jpg',
         'assets/images/act_reserva1.jpg',
       ],
+      duracionVisitaMinutos: 180,
       esMock: true,
     ),
     LugarIca(
@@ -254,6 +265,7 @@ class LugaresMock {
         'assets/images/act_reserva1.jpg',
         'assets/images/detalle_reserva_2.jpg',
       ],
+      duracionVisitaMinutos: 150,
       esMock: true,
     ),
   ];

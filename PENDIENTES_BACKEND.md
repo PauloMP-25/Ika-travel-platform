@@ -54,7 +54,7 @@ Contexto del alineamiento ya hecho en el móvil:
 
 ---
 
-## 4. `attraction` no guarda la duración de la visita
+## 4. `attraction` no guarda la duración de la visita - [x] (COMPLETADO)
 
 **Dónde:** `src/modules/catalog/models.py` → `class Attraction`
 

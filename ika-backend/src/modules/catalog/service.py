@@ -56,6 +56,7 @@ def _a_list_item(atractivo: Attraction) -> AttractionListItem:
         latitude=float(atractivo.latitude),
         longitude=float(atractivo.longitude),
         description=atractivo.description,
+        visit_duration_minutes=atractivo.visit_duration_minutes,
     )
 
 
@@ -138,6 +139,7 @@ async def _construir_detalle(db: AsyncSession, atractivo: Attraction) -> Attract
         images=[i.url for i in atractivo.images],
         categories=[CategoryResponse.model_validate(c) for c in atractivo.categories],
         avg_rating=round(promedio, 1) if promedio is not None else None,
+        visit_duration_minutes=atractivo.visit_duration_minutes,
     )
 
 
@@ -225,6 +227,7 @@ async def create_attraction(db: AsyncSession, data: AttractionCreate) -> Attract
         longitude=data.longitude,
         district=data.district.strip(),
         official_recommendation=data.official_recommendation,
+        visit_duration_minutes=data.visit_duration_minutes,
         is_active=data.is_active,
         categories=categorias,
         images=_crear_imagenes(data.image_urls),

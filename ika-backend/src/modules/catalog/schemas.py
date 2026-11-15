@@ -38,6 +38,7 @@ class AttractionListItem(BaseModel):
     latitude: float
     longitude: float
     description: str | None = None
+    visit_duration_minutes: int | None = None
 
 
 class PaginatedAttractionsResponse(BaseModel):
@@ -59,6 +60,7 @@ class AttractionDetailResponse(BaseModel):
     images: list[str]
     categories: list[CategoryResponse]
     avg_rating: float | None
+    visit_duration_minutes: int | None = None
 
 
 class AttractionCreate(BaseModel):
@@ -70,6 +72,7 @@ class AttractionCreate(BaseModel):
     official_recommendation: str | None = None
     category_slugs: list[str] = Field(default_factory=list)
     image_urls: list[str] = Field(default_factory=list, description="La primera es la portada.")
+    visit_duration_minutes: int | None = Field(default=None, ge=1, le=1440, description="Duración estimada de visita en minutos")
     is_active: bool = True
 
 
@@ -85,6 +88,7 @@ class AttractionUpdate(BaseModel):
     official_recommendation: str | None = None
     category_slugs: list[str] | None = None
     image_urls: list[str] | None = None
+    visit_duration_minutes: int | None = Field(default=None, ge=1, le=1440)
     is_active: bool | None = None
 
 

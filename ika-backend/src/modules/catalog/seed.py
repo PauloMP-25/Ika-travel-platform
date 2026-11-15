@@ -109,6 +109,21 @@ ATRACTIVOS = [
 ]
 
 # nombre, ruc, validada, registro, teléfono, email
+DURACIONES_ATRACTIVOS: dict[str, int] = {
+    "Oasis de Huacachina": 180,
+    "Palmera de las 7 Cabezas (Cachiche)": 60,
+    "Plaza de Armas de Ica": 45,
+    "Viña Tacama": 150,
+    "Bodega y Viñedos Sotelo (Subtanjalla)": 90,
+    "Bodega Tres Generaciones (Subtanjalla)": 90,
+    "Cañón de los Perdidos": 300,
+    "Islas Ballestas": 120,
+    "Reserva Nacional de Paracas": 240,
+    "Playa Roja": 60,
+    "Playa La Mina": 180,
+    "Playa Hermosa de Marcona": 150,
+}
+
 CDN_BASE = "https://raw.githubusercontent.com/PauloMP-25/Ika-travel-platform/main/imagenes_lugares_turisticos"
 
 FOTOS_ATRACTIVOS: dict[str, list[str]] = {
@@ -254,10 +269,12 @@ async def ejecutar() -> None:
                 nombre,
                 [f"{CDN_BASE}/carrusel_1_huacachina.jpg", f"{CDN_BASE}/act_reserva1.jpg"]
             )
+            duracion = DURACIONES_ATRACTIVOS.get(nombre, 90)
             if atr is None:
                 atr = Attraction(
                     name=nombre, description=desc, latitude=lat, longitude=lon,
                     district=distrito, official_recommendation=reco,
+                    visit_duration_minutes=duracion,
                     categories=[categorias[s] for s in slugs],
                     images=[
                         AttractionImage(url=url_foto, display_order=n)
@@ -266,6 +283,7 @@ async def ejecutar() -> None:
                 )
                 db.add(atr)
             else:
+                atr.visit_duration_minutes = duracion
                 # Actualizar imágenes si tenían placehold.co o estaban vacías
                 if any("placehold.co" in img.url for img in atr.images) or not atr.images:
                     atr.images.clear()

@@ -15,12 +15,8 @@ class DestinosService {
   factory DestinosService() => _instancia;
   DestinosService._();
 
-  /// Duración de visita por omisión, en minutos.
-  ///
-  /// La tabla `attraction` todavía no guarda cuánto dura la visita (está en la
-  /// lista de pendientes del backend), así que se usa este valor y el usuario
-  /// puede ajustarlo en el planificador.
-  static const int _minutosVisitaPorDefecto = 90;
+  /// Duración de visita de respaldo, en minutos, si un lugar llegara sin tiempo.
+  static const int _minutosVisitaPorDefecto = 60;
 
   List<PuntoItinerario>? _cache;
 
@@ -59,7 +55,9 @@ class DestinosService {
           ? '${lugar.distrito} — $categorias'
           : lugar.distrito,
       coordenadas: lugar.coordenadas!,
-      tiempoVisitaMinutos: _minutosVisitaPorDefecto,
+      tiempoVisitaMinutos: lugar.duracionVisitaMinutos > 0
+          ? lugar.duracionVisitaMinutos
+          : _minutosVisitaPorDefecto,
     );
   }
 

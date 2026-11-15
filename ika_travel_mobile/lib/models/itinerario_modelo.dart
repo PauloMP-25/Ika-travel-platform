@@ -102,10 +102,10 @@ class PuntoItinerario {
   });
 
   String get tiempoVisitaFormateado {
-    if (tiempoVisitaMinutos <= 0) return '';
-    if (tiempoVisitaMinutos < 60) return '$tiempoVisitaMinutos min';
-    final h = tiempoVisitaMinutos ~/ 60;
-    final m = tiempoVisitaMinutos % 60;
+    final mTotal = tiempoVisitaMinutos > 0 ? tiempoVisitaMinutos : 45;
+    if (mTotal < 60) return '$mTotal min';
+    final h = mTotal ~/ 60;
+    final m = mTotal % 60;
     return m == 0 ? '${h}h' : '${h}h ${m}m';
   }
 
