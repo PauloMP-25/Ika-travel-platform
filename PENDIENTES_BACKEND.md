@@ -137,12 +137,11 @@ verificarlo.
 
 ## 8. Cosas menores
 
-- **`official_recommendation` vacío en varios atractivos.** Plaza de Armas de
-  Ica lo tiene en `None`. El móvil oculta la tarjeta verde de "Recomendación
-  oficial" cuando falta, así que no se rompe, pero queda la pantalla más pobre.
+- **`official_recommendation` vacío en varios atractivos.** ✅ RESUELTO: Se agregó recomendación oficial en `seed.py` y se actualizó la base de datos para la Plaza de Armas de Ica (*"Visita al atardecer para disfrutar de la iluminación de la plaza y degustar las tradicionales tejas y chocotejas iqueñas en los portales."*). Todos los atractivos cuentan ahora con recomendación oficial.
 - **Nombres de categoría.** En la BD son `Cultural` y `Gastronomía y vino`; la
   interfaz en español dice "Cultura" y "Gastronomía". El móvil ya normaliza
-  acentos y variantes al filtrar, así que no hace falta cambiar la BD; se deja
+  acentos y variantes al filtrar, así que n
+  o hace falta cambiar la BD; se deja
   anotado para que nadie "corrija" un lado y rompa el otro.
 - **El túnel de ngrok responde 400.** Durante estas pruebas,
   `https://dreary-flap-stole.ngrok-free.dev` devolvía `HTTP 400` en todos los

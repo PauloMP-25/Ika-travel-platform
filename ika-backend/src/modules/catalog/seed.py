@@ -42,7 +42,7 @@ ATRACTIVOS = [
         "Plaza de Armas de Ica",
         "Centro histórico de la ciudad, rodeado de la catedral y edificios coloniales.",
         -14.063804, -75.728825, "Ica",
-        None,
+        "Visita al atardecer para disfrutar de la iluminación de la plaza y degustar las tradicionales tejas y chocotejas iqueñas en los portales.",
         ["cultural"],
     ),
     (
