@@ -47,8 +47,8 @@ class ApiConfig {
   static String geoNearby({
     double lat = -14.0685,
     double lon = -75.7288,
-    int radiusM = 100000,
-    int limit = 50,
+    int radiusM = 300000,
+    int limit = 100,
   }) =>
       '$baseUrl/api/v1/geo/nearby?lat=$lat&lon=$lon&radius_m=$radiusM'
       '&limit=$limit';

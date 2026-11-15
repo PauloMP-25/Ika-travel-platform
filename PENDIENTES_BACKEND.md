@@ -33,20 +33,14 @@ Contexto del alineamiento ya hecho en el móvil:
 
 ---
 
-## 2. `/geo/nearby` no alcanza a cubrir toda la región de Ica
+## 2. `/geo/nearby` no alcanza a cubrir toda la región de Ica - ✅ COMPLETADO
 
 **Dónde:** `src/modules/geo/router.py` → `atractivos_cercanos`
 
-Los topes actuales son `radius_m ≤ 100_000` (100 km) y `limit ≤ 50`. Desde el
-centro de Ica, **Playa Hermosa de Marcona** (`-15.3583, -75.1750`) queda a más
-de 100 km, así que no entra en la respuesta y ese lugar se queda sin
-coordenadas.
-
-**Opciones (en orden de preferencia):**
-
-1. Resolver el punto 1 y dejar `/geo/nearby` solo para "cerca de mí" (su
-   propósito real).
-2. Subir el tope de `radius_m` a 300 000 m y `limit` a 100.
+**Estado:** Resuelto el 2026-11-15.
+- Se elevó el tope de `radius_m` a 300,000 m (300 km) y `limit` a 100 en `src/modules/geo/router.py`.
+- Se actualizaron los valores por defecto en `ApiConfig.geoNearby` (`radiusM: 300000`, `limit: 100`) en `ika_travel_mobile/lib/config/api_config.dart`.
+- Se añadió prueba unitaria en `tests/modules/test_geo.py` verificando que `/geo/nearby` cubra atractivos lejanos (>140 km como Playa Hermosa de Marcona).
 
 ---
 

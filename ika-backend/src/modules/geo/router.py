@@ -22,9 +22,9 @@ router = APIRouter(prefix="/geo", tags=["geo"])
 async def atractivos_cercanos(
     lat: float = Query(..., ge=-90, le=90, description="Latitud del usuario"),
     lon: float = Query(..., ge=-180, le=180, description="Longitud del usuario"),
-    radius_m: int = Query(10_000, ge=100, le=100_000, description="Radio de búsqueda en metros"),
+    radius_m: int = Query(10_000, ge=100, le=300_000, description="Radio de búsqueda en metros"),
     category: str | None = Query(None, description="Slug de categoría"),
-    limit: int = Query(20, ge=1, le=50),
+    limit: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(obtener_bd),
 ):
     return await service.find_nearby_attractions(
