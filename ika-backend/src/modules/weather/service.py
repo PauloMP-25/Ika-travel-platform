@@ -1,3 +1,5 @@
+from src.modules.weather.strategies import RecommendationStrategyFactory
+from src.modules.weather.facade import WeatherRecommendationFacade
 from src.modules.weather.safety import evaluar_seguridad_temporal
 from src.shared.custom_logging import imprimir_tabla_comparativa_apis, registrar_log_clima, registrar_log_recomendacion
 from src.modules.weather import rules
@@ -473,7 +475,18 @@ async def listar_recomendaciones(
     recomendaciones: list[RecomendacionResponse] = []
     for atractivo in await _atractivos_activos(db):
         clima = await get_fresh_snapshot(db, ubicacion_de_atractivo(atractivo))
+        slugs = [c.slug for c in atractivo.categories]
+        estrategia = RecommendationStrategyFactory.obtener_estrategia(
+            preferencias_turista=preferencias_usuario,
+            categoria_principal=slugs[0] if slugs else "general",
+        )
         resultado = _recomendar(atractivo, clima, preferencias=preferencias_usuario)
+        afinidad = estrategia.calcular_afinidad(preferencias_usuario, slugs)
+        ajuste_clima = estrategia.calcular_ajuste_climatico(
+            clima.temperatura_actual, clima.velocidad_viento, clima.indice_uv
+        )
+        score_combinado = min(1.0, (resultado.score * 0.8 + afinidad) * ajuste_clima)
+
         alertas = rules.evaluar_alertas(
             temperatura=clima.temperatura_actual,
             uv=clima.indice_uv,
@@ -483,16 +496,16 @@ async def listar_recomendaciones(
             zona=atractivo.name,
         )
         hay_peligro = any(a.severity == "high" for a in alertas)
-        score_evaluado = min(resultado.score, 0.30) if hay_peligro else resultado.score
-        nivel_evaluado = "no_recomendado" if hay_peligro else resultado.nivel
+        score_evaluado = min(score_combinado, 0.30) if hay_peligro else score_combinado
+        nivel_evaluado = "no_recomendado" if hay_peligro else rules.nivel_desde_puntaje(score_evaluado)
         res_eval = scoring.ResultadoRecomendacion(
-            score=score_evaluado,
+            score=round(score_evaluado, 2),
             nivel=nivel_evaluado,
             texto=f"Condiciones de riesgo en {atractivo.name}." if hay_peligro else resultado.texto,
             factores=resultado.factores,
             consejos=resultado.consejos,
             perfil=resultado.perfil,
-            afinidad_preferencia=resultado.afinidad_preferencia,
+            afinidad_preferencia=afinidad,
         )
         recomendaciones.append(_a_recomendacion_response(atractivo, res_eval))
     return sorted(recomendaciones, key=lambda r: r.score, reverse=True)
@@ -547,7 +560,12 @@ async def _persistir_ai_recommendation(
 
 
 async def recomendacion_del_dia(
-    db: AsyncSession, preferencias_usuario: list[str] | None = None, idioma: str = "es"
+    db: AsyncSession,
+    preferencias_usuario: list[str] | None = None,
+    estilo: str | None = None,
+    presupuesto: str | None = None,
+    compania: str | None = None,
+    idioma: str = "es",
 ) -> RecomendacionResponse | None:
     ranking = await listar_recomendaciones(db, preferencias_usuario=preferencias_usuario)
     if not ranking:
@@ -555,9 +573,7 @@ async def recomendacion_del_dia(
     mejor = ranking[0]
     atractivo = next(a for a in await _atractivos_activos(db) if a.id == mejor.atractivo_id)
     clima = await get_fresh_snapshot(db, ubicacion_de_atractivo(atractivo))
-    resultado = _recomendar(atractivo, clima, preferencias=preferencias_usuario)
 
-    narrativa_previa = None
     consulta_anterior = (
         select(AIRecommendation.recommendation_text)
         .where(AIRecommendation.atractivo_id == atractivo.id)
@@ -565,118 +581,52 @@ async def recomendacion_del_dia(
         .limit(1)
     )
     rec_previa = (await db.execute(consulta_anterior)).scalar_one_or_none()
-    if rec_previa:
-        narrativa_previa = rec_previa
+    top_alternativos = [r.atractivo_nombre for r in ranking if r.atractivo_id != atractivo.id][:2]
 
-    alertas_candidatas = rules.evaluar_alertas(
-        temperatura=clima.temperatura_actual,
-        uv=clima.indice_uv,
-        viento=clima.velocidad_viento,
-        precipitacion=clima.precipitacion_mm or 0.0,
-        temperatura_arena=clima.temperatura_suelo_arena,
-        zona=atractivo.name,
-    )
-    nombres_alertas = [a.message for a in alertas_candidatas]
-    hay_peligro = any(a.severity == "high" for a in alertas_candidatas)
+    horas_pronostico = []
+    try:
+        pronostico = await obtener_pronostico(db, ubicacion_de_atractivo(atractivo))
+        horas_pronostico = pronostico.horas
+    except Exception:
+        pass
 
-    score_final = min(resultado.score, 0.30) if hay_peligro else resultado.score
-    nivel_final = "no_recomendado" if hay_peligro else resultado.nivel
-
-    resultado_evaluado = scoring.ResultadoRecomendacion(
-        score=score_final,
-        nivel=nivel_final,
-        texto=f"Condiciones de riesgo en {atractivo.name}. Se desaconseja la visita temporalmente." if hay_peligro else resultado.texto,
-        factores=resultado.factores,
-        consejos=resultado.consejos,
-        perfil=resultado.perfil,
-        afinidad_preferencia=resultado.afinidad_preferencia,
-    )
-
-    top_alternativos_nombres = [r.atractivo_nombre for r in ranking if r.atractivo_id != atractivo.id][:2]
-    texto, consejos_gemini = await ai_engine.redactar_con_gemini(
-        nombre_atractivo=atractivo.name,
-        resultado=resultado_evaluado,
-        alertas_activas=nombres_alertas,
-        atractivos_alternativos=top_alternativos_nombres,
-        temperatura=clima.temperatura_actual,
-        uv=clima.indice_uv,
-        viento=clima.velocidad_viento,
-        condicion=clima.descripcion_clima,
+    respuesta, _ = await WeatherRecommendationFacade.generar_recomendacion_personalizada(
+        atractivo=atractivo,
+        clima=clima,
         preferencias_usuario=preferencias_usuario,
+        estilo=estilo,
+        presupuesto=presupuesto,
+        compania=compania,
         idioma=idioma,
-        presion_hpa=clima.presion_atmosferica,
-        precipitacion_mm=clima.precipitacion_mm,
-        temperatura_arena=clima.temperatura_suelo_arena,
-        pm10=clima.calidad_aire_pm10,
-        ventana_pico_uv=clima.ventana_pico_uv,
-        horas_sol=clima.horas_sol_directo,
-        altura_ola=clima.altura_ola_metros,
-        narrativa_previa=narrativa_previa,
-    )
-
-    # Evaluación de seguridad horaria (DIRCETUR / SERNANP / DICAPI) y pronóstico para mañana
-    slugs = [c.slug for c in atractivo.categories]
-    eval_seg = evaluar_seguridad_temporal(slugs_categorias=slugs, nombre_atractivo=atractivo.name)
-    if eval_seg.es_planificacion_manana:
-        try:
-            pronostico = await obtener_pronostico(db, ubicacion_de_atractivo(atractivo))
-            eval_seg = evaluar_seguridad_temporal(
-                slugs_categorias=slugs,
-                nombre_atractivo=atractivo.name,
-                horas_pronostico=pronostico.horas,
-            )
-        except Exception as e:
-            logger.warning("No se pudo obtener pronóstico por horas para %s: %s", atractivo.name, e)
-
-    texto_base = texto or resultado.texto
-    if eval_seg.es_planificacion_manana:
-        prefijo_seguridad = (
-            f"🌅 [Planificación para Mañana]\n"
-            f"• Hora sugerida de salida / visita: {eval_seg.hora_sugerida}\n"
-            f"• Motivo de seguridad: {eval_seg.justificacion_seguridad}\n"
-            f"• Pronóstico proyectado: {eval_seg.justificacion_climatica_manana}\n\n"
-        )
-        texto_recomendacion = prefijo_seguridad + texto_base
-    else:
-        texto_recomendacion = texto_base
-
-    fecha_generacion = datetime.now(tz=timezone.utc)
-    await _persistir_ai_recommendation(
-        db=db,
-        atractivo_id=atractivo.id,
-        atractivo_nombre=atractivo.name,
-        texto=texto_recomendacion,
-        score=score_final,
-        nivel=nivel_final,
-        fecha=fecha_generacion,
+        narrativa_previa=rec_previa,
+        atractivos_alternativos=top_alternativos,
+        horas_pronostico=horas_pronostico,
     )
 
     registrar_log_recomendacion(
         atractivo=atractivo.name,
-        modo="planificacion_manana" if eval_seg.es_planificacion_manana else "tiempo_real",
-        score=score_final,
-        nivel=nivel_final,
+        modo="planificacion_manana" if respuesta.es_planificacion_manana else "tiempo_real",
+        score=respuesta.score,
+        nivel=respuesta.nivel,
         temperatura=clima.temperatura_actual,
         uv=clima.indice_uv,
         viento=clima.velocidad_viento,
         condicion=clima.descripcion_clima,
-        hora_sugerida=eval_seg.hora_sugerida,
-        justificacion_seguridad=eval_seg.justificacion_seguridad,
-        fuente_motor="gemini" if texto else "fallback_determinista",
+        hora_sugerida=respuesta.hora_sugerida,
+        justificacion_seguridad=respuesta.normativa_oficial,
+        fuente_motor="gemini",
     )
 
-    return RecomendacionResponse(
+    await _persistir_ai_recommendation(
+        db=db,
         atractivo_id=atractivo.id,
         atractivo_nombre=atractivo.name,
-        score=score_final,
-        nivel=nivel_final,
-        recommendation_text=texto_recomendacion,
-        consejos=consejos_gemini or resultado.consejos,
-        generated_at=fecha_generacion,
-        es_planificacion_manana=eval_seg.es_planificacion_manana,
-        hora_sugerida=eval_seg.hora_sugerida,
-        normativa_oficial=eval_seg.normativa_oficial,
+        texto=respuesta.recommendation_text,
+        score=respuesta.score,
+        nivel=respuesta.nivel,
+        fecha=respuesta.generated_at,
     )
+    return respuesta
 
 
 # ======================================================================
@@ -818,14 +768,21 @@ async def purgar_antiguos(db: AsyncSession, *, dias: int = 7) -> int:
 
 async def recomendacion_para_atractivo(
     db: AsyncSession,
-    atractivo_id: UUID,
+    atractivo_id: UUID | None = None,
+    attraction_id: UUID | None = None,
     preferencias_usuario: list[str] | None = None,
+    estilo: str | None = None,
+    presupuesto: str | None = None,
+    compania: str | None = None,
     idioma: str = "es",
 ) -> RecomendacionResponse | None:
-    """Recomendación específica de un atractivo, redactada por Gemini."""
+    """Recomendación específica de un atractivo personalizada mediante Facade y Strategy Pattern."""
+    target_id = atractivo_id or attraction_id
+    if target_id is None:
+        return None
     resultado_db = await db.execute(
         select(Attraction)
-        .where(Attraction.id == atractivo_id, Attraction.is_active.is_(True))
+        .where(Attraction.id == target_id, Attraction.is_active.is_(True))
         .options(selectinload(Attraction.categories))
     )
     atractivo = resultado_db.scalar_one_or_none()
@@ -833,9 +790,6 @@ async def recomendacion_para_atractivo(
         return None
 
     clima = await get_fresh_snapshot(db, ubicacion_de_atractivo(atractivo))
-    resultado = _recomendar(atractivo, clima, preferencias=preferencias_usuario)
-
-    # Narrativa previa para continuidad
     rec_previa = (
         await db.execute(
             select(AIRecommendation.recommendation_text)
@@ -845,116 +799,50 @@ async def recomendacion_para_atractivo(
         )
     ).scalar_one_or_none()
 
-    # Alertas activas para este atractivo
-    alertas_candidatas = rules.evaluar_alertas(
-        temperatura=clima.temperatura_actual,
-        uv=clima.indice_uv,
-        viento=clima.velocidad_viento,
-        precipitacion=clima.precipitacion_mm or 0.0,
-        temperatura_arena=clima.temperatura_suelo_arena,
-        zona=atractivo.name,
-    )
-    nombres_alertas = [a.message for a in alertas_candidatas]
-    hay_peligro = any(a.severity == "high" for a in alertas_candidatas)
+    horas_pronostico = []
+    try:
+        pronostico = await obtener_pronostico(db, ubicacion_de_atractivo(atractivo))
+        horas_pronostico = pronostico.horas
+    except Exception:
+        pass
 
-    score_final = min(resultado.score, 0.30) if hay_peligro else resultado.score
-    nivel_final = "no_recomendado" if hay_peligro else resultado.nivel
-
-    resultado_evaluado = scoring.ResultadoRecomendacion(
-        score=score_final,
-        nivel=nivel_final,
-        texto=f"Condiciones de riesgo en {atractivo.name}. Se desaconseja la visita temporalmente." if hay_peligro else resultado.texto,
-        factores=resultado.factores,
-        consejos=resultado.consejos,
-        perfil=resultado.perfil,
-        afinidad_preferencia=resultado.afinidad_preferencia,
-    )
-
-    # Texto generado por Gemini (con resultado evaluado y alertas activas)
-    texto, consejos_gemini = await ai_engine.redactar_con_gemini(
-        nombre_atractivo=atractivo.name,
-        resultado=resultado_evaluado,
-        alertas_activas=nombres_alertas,
-        atractivos_alternativos=[],
-        temperatura=clima.temperatura_actual,
-        uv=clima.indice_uv,
-        viento=clima.velocidad_viento,
-        condicion=clima.descripcion_clima,
+    respuesta, _ = await WeatherRecommendationFacade.generar_recomendacion_personalizada(
+        atractivo=atractivo,
+        clima=clima,
         preferencias_usuario=preferencias_usuario,
+        estilo=estilo,
+        presupuesto=presupuesto,
+        compania=compania,
         idioma=idioma,
-        presion_hpa=clima.presion_atmosferica,
-        precipitacion_mm=clima.precipitacion_mm,
-        temperatura_arena=clima.temperatura_suelo_arena,
-        pm10=clima.calidad_aire_pm10,
-        ventana_pico_uv=clima.ventana_pico_uv,
-        horas_sol=clima.horas_sol_directo,
-        altura_ola=clima.altura_ola_metros,
         narrativa_previa=rec_previa,
-    )
-
-    # Evaluación de seguridad horaria (DIRCETUR / SERNANP / DICAPI) y pronóstico para mañana
-    slugs = [c.slug for c in atractivo.categories]
-    eval_seg = evaluar_seguridad_temporal(slugs_categorias=slugs, nombre_atractivo=atractivo.name)
-    if eval_seg.es_planificacion_manana:
-        try:
-            pronostico = await obtener_pronostico(db, ubicacion_de_atractivo(atractivo))
-            eval_seg = evaluar_seguridad_temporal(
-                slugs_categorias=slugs,
-                nombre_atractivo=atractivo.name,
-                horas_pronostico=pronostico.horas,
-            )
-        except Exception as e:
-            logger.warning("No se pudo obtener pronóstico por horas para %s: %s", atractivo.name, e)
-
-    texto_base = texto or resultado.texto
-    if eval_seg.es_planificacion_manana:
-        prefijo_seguridad = (
-            f"🌅 [Planificación para Mañana]\n"
-            f"• Hora sugerida de salida / visita: {eval_seg.hora_sugerida}\n"
-            f"• Motivo de seguridad: {eval_seg.justificacion_seguridad}\n"
-            f"• Pronóstico proyectado: {eval_seg.justificacion_climatica_manana}\n\n"
-        )
-        texto_recomendacion = prefijo_seguridad + texto_base
-    else:
-        texto_recomendacion = texto_base
-
-    fecha_generacion = datetime.now(tz=timezone.utc)
-    await _persistir_ai_recommendation(
-        db=db,
-        atractivo_id=atractivo.id,
-        atractivo_nombre=atractivo.name,
-        texto=texto_recomendacion,
-        score=score_final,
-        nivel=nivel_final,
-        fecha=fecha_generacion,
+        atractivos_alternativos=[],
+        horas_pronostico=horas_pronostico,
     )
 
     registrar_log_recomendacion(
         atractivo=atractivo.name,
-        modo="planificacion_manana" if eval_seg.es_planificacion_manana else "tiempo_real",
-        score=score_final,
-        nivel=nivel_final,
+        modo="planificacion_manana" if respuesta.es_planificacion_manana else "tiempo_real",
+        score=respuesta.score,
+        nivel=respuesta.nivel,
         temperatura=clima.temperatura_actual,
         uv=clima.indice_uv,
         viento=clima.velocidad_viento,
         condicion=clima.descripcion_clima,
-        hora_sugerida=eval_seg.hora_sugerida,
-        justificacion_seguridad=eval_seg.justificacion_seguridad,
-        fuente_motor="gemini" if texto else "fallback_determinista",
+        hora_sugerida=respuesta.hora_sugerida,
+        justificacion_seguridad=respuesta.normativa_oficial,
+        fuente_motor="gemini",
     )
 
-    return RecomendacionResponse(
+    await _persistir_ai_recommendation(
+        db=db,
         atractivo_id=atractivo.id,
         atractivo_nombre=atractivo.name,
-        score=score_final,
-        nivel=nivel_final,
-        recommendation_text=texto_recomendacion,
-        consejos=consejos_gemini or resultado.consejos,
-        generated_at=fecha_generacion,
-        es_planificacion_manana=eval_seg.es_planificacion_manana,
-        hora_sugerida=eval_seg.hora_sugerida,
-        normativa_oficial=eval_seg.normativa_oficial,
+        texto=respuesta.recommendation_text,
+        score=respuesta.score,
+        nivel=respuesta.nivel,
+        fecha=respuesta.generated_at,
     )
+    return respuesta
 
 
 # ======================================================================

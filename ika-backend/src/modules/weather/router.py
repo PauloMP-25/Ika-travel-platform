@@ -117,13 +117,28 @@ async def listar_recomendaciones(
 
 @router.get("/recommendation-of-the-day", response_model=RecomendacionResponse | None)
 async def recomendacion_del_dia(
+    preferencias: list[str] | None = Query(None, description="Preferencias turísticas (ej. aventura, vino_pisco, naturaleza)"),
+    estilo: str | None = Query(None, description="Estilo de viaje: Tranquilo, Aventurero, Equilibrado"),
+    presupuesto: str | None = Query(None, description="Presupuesto: Económico, Medio, Premium"),
+    compania: str | None = Query(None, description="Compañía: Solo, Pareja, Familia, Amigos"),
     usuario_opcional: User | None = Depends(obtener_usuario_opcional),
     db: AsyncSession = Depends(obtener_bd),
 ) -> RecomendacionResponse | None:
-    """Top 1 de recomendaciones; alimentado por IA con personalización según perfil del turista."""
-    preferencias = usuario_opcional.preferences if usuario_opcional else None
+    """Top 1 de recomendaciones personalizadas por perfil (Strategy Pattern + Gemini AI)."""
+    prefs_finales = list(preferencias or [])
+    if usuario_opcional and usuario_opcional.preferences:
+        for p in usuario_opcional.preferences:
+            if p not in prefs_finales:
+                prefs_finales.append(p)
     idioma = usuario_opcional.preferred_language if usuario_opcional else "es"
-    return await service.recomendacion_del_dia(db, preferencias_usuario=preferencias, idioma=idioma)
+    return await service.recomendacion_del_dia(
+        db,
+        preferencias_usuario=prefs_finales or None,
+        estilo=estilo,
+        presupuesto=presupuesto,
+        compania=compania,
+        idioma=idioma,
+    )
 
 
 @router.get(
@@ -132,16 +147,27 @@ async def recomendacion_del_dia(
 )
 async def recomendacion_por_atractivo(
     attraction_id: UUID,
+    preferencias: list[str] | None = Query(None),
+    estilo: str | None = Query(None),
+    presupuesto: str | None = Query(None),
+    compania: str | None = Query(None),
     usuario_opcional: User | None = Depends(obtener_usuario_opcional),
     db: AsyncSession = Depends(obtener_bd),
 ) -> RecomendacionResponse | None:
-    """Recomendación específica de un atractivo, redactada por Gemini."""
-    preferencias = usuario_opcional.preferences if usuario_opcional else None
+    """Recomendación específica de un atractivo personalizada por perfil (Strategy Pattern + Gemini AI)."""
+    prefs_finales = list(preferencias or [])
+    if usuario_opcional and usuario_opcional.preferences:
+        for p in usuario_opcional.preferences:
+            if p not in prefs_finales:
+                prefs_finales.append(p)
     idioma = usuario_opcional.preferred_language if usuario_opcional else "es"
     return await service.recomendacion_para_atractivo(
         db,
-        attraction_id,
-        preferencias_usuario=preferencias,
+        atractivo_id=attraction_id,
+        preferencias_usuario=prefs_finales or None,
+        estilo=estilo,
+        presupuesto=presupuesto,
+        compania=compania,
         idioma=idioma,
     )
 

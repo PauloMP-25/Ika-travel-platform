@@ -20,7 +20,7 @@ class GeminiService {
     Map<String, dynamic>? clima,
     String nombreAtractivo = 'Oasis de Huacachina',
   }) async {
-    final temp = clima?['temperatura_actual'] ?? 26.0;
+    final temp = (clima?['temperatura_actual'] as num?)?.toDouble() ?? 32.0;
     final viento = clima?['velocidad_viento'] ?? 14.0;
     final uv = clima?['indice_uv'] ?? 9.0;
     final condicion = clima?['descripcion_clima'] ?? 'Cielo despejado con sol radiante';
@@ -39,9 +39,9 @@ class GeminiService {
         final prompt = '''
 Eres un guía turístico experto en la región Ica (Perú) y seguridad meteorológica.
 Genera una recomendación para visitar "$nombreAtractivo" bajo las siguientes condiciones climáticas:
-- Temperatura: ${temp}°C
-- Viento: ${viento} km/h
-- Radiación UV: ${uv}
+- Temperatura: $temp°C
+- Viento: $viento km/h
+- Radiación UV: $uv
 - Condición: $condicion$lineaPerfil
 
 No uses emojis ni símbolos decorativos en ninguna parte de la respuesta.

@@ -110,16 +110,26 @@ class TourResponse(BaseModel):
 class AgencyListItem(BaseModel):
     id: UUID
     name: str
+    ruc: str
+    dircetur_registry_number: str | None = None
     is_validated: bool
+    contact_phone: str | None = None
+    contact_email: str | None = None
+    address: str | None = None
+    business_hours: str | None = None
     tour_count: int
 
 
 class AgencyDetailResponse(BaseModel):
     id: UUID
     name: str
+    ruc: str
+    dircetur_registry_number: str | None = None
     is_validated: bool
-    contact_phone: str | None
-    contact_email: str | None
+    contact_phone: str | None = None
+    contact_email: str | None = None
+    address: str | None = None
+    business_hours: str | None = None
     tours: list[TourResponse]
 
 

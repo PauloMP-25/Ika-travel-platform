@@ -1,3 +1,5 @@
+import 'preferencias_service.dart';
+import 'auth_service.dart';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -43,7 +45,7 @@ class WeatherService {
 
     // Devolver referencia con fecha actual para modo offline controlado
     return {
-      'temperatura_actual': 26.0,
+      'temperatura_actual': 32.0,
       'sensacion_termica': 27.0,
       'probabilidad_precipitacion': 0.0,
       'humedad': 48.0,
@@ -126,18 +128,45 @@ class WeatherService {
     return {'destino': destino ?? 'Ica', 'horas': horas, 'dias': dias};
   }
 
-  // 3. Obtener recomendación de la IA para un atractivo o la del día (Gemini)
+  // 3. Obtener recomendación de la IA para la recomendación del día (Gemini)
   Future<Map<String, dynamic>?> obtenerRecomendacionDelDia() async {
     try {
+      final user = AuthService().usuarioActual;
+      final prefs = PreferenciasService();
+      final queryParams = <String, String>{};
+
+      final intereses = prefs.clavesDePerfil;
+      if (intereses.isNotEmpty) {
+        queryParams['preferencias'] = intereses.first;
+      }
+      if (prefs.estilo.isNotEmpty) {
+        queryParams['estilo'] = prefs.estilo;
+      }
+      if (prefs.presupuesto.isNotEmpty) {
+        queryParams['presupuesto'] = prefs.presupuesto;
+      }
+      if (prefs.compania.isNotEmpty) {
+        queryParams['compania'] = prefs.compania;
+      }
+
+      final uri = Uri.parse(ApiConfig.recommendationOfDay).replace(
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
+      );
+
+      final headers = Map<String, String>.from(ApiConfig.defaultHeaders);
+      if (user?.token != null && user!.token!.isNotEmpty) {
+        headers['Authorization'] = 'Bearer ${user.token}';
+      }
+
       final response = await http
-          .get(
-            Uri.parse(ApiConfig.recommendationOfDay),
-            headers: ApiConfig.defaultHeaders,
-          )
-          .timeout(const Duration(seconds: 8));
+          .get(uri, headers: headers)
+          .timeout(const Duration(seconds: 25));
 
       if (response.statusCode == 200) {
-        return json.decode(utf8.decode(response.bodyBytes));
+        final body = utf8.decode(response.bodyBytes);
+        if (body.isNotEmpty && body != 'null') {
+          return json.decode(body);
+        }
       }
     } catch (e) {
       debugPrint(
@@ -145,7 +174,16 @@ class WeatherService {
       );
     }
 
-    return _geminiService.generarRecomendacionDelDia();
+    // Respaldo dinámico: usar clima real de Huacachina en lugar de hardcode
+    Map<String, dynamic>? climaReal;
+    try {
+      climaReal = await obtenerClimaActual(destino: 'Laguna de Huacachina');
+    } catch (_) {}
+
+    return _geminiService.generarRecomendacionDelDia(
+      clima: climaReal,
+      nombreAtractivo: 'Oasis de Huacachina',
+    );
   }
 
   // 4. Obtener recomendaciones filtradas para todos los atractivos
@@ -175,12 +213,36 @@ class WeatherService {
     String atractivoId,
   ) async {
     try {
+      final user = AuthService().usuarioActual;
+      final prefs = PreferenciasService();
+      final queryParams = <String, String>{};
+
+      final intereses = prefs.clavesDePerfil;
+      if (intereses.isNotEmpty) {
+        queryParams['preferencias'] = intereses.first;
+      }
+      if (prefs.estilo.isNotEmpty) {
+        queryParams['estilo'] = prefs.estilo;
+      }
+      if (prefs.presupuesto.isNotEmpty) {
+        queryParams['presupuesto'] = prefs.presupuesto;
+      }
+      if (prefs.compania.isNotEmpty) {
+        queryParams['compania'] = prefs.compania;
+      }
+
+      final uri = Uri.parse('${ApiConfig.recommendations}/$atractivoId').replace(
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
+      );
+
+      final headers = Map<String, String>.from(ApiConfig.defaultHeaders);
+      if (user?.token != null && user!.token!.isNotEmpty) {
+        headers['Authorization'] = 'Bearer ${user.token}';
+      }
+
       final response = await http
-          .get(
-            Uri.parse('${ApiConfig.recommendations}/$atractivoId'),
-            headers: ApiConfig.defaultHeaders,
-          )
-          .timeout(const Duration(seconds: 20));
+          .get(uri, headers: headers)
+          .timeout(const Duration(seconds: 25));
 
       if (response.statusCode == 200) {
         final body = utf8.decode(response.bodyBytes);

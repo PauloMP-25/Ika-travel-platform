@@ -168,7 +168,18 @@ async def search_agencies(
         db, search_term=query, limit=limit, offset=offset
     )
     return [
-        AgencyListItem(id=a.id, name=a.name, is_validated=a.is_validated, tour_count=total)
+        AgencyListItem(
+            id=a.id,
+            name=a.name,
+            ruc=a.ruc,
+            dircetur_registry_number=a.dircetur_registry_number,
+            is_validated=a.is_validated,
+            contact_phone=a.contact_phone,
+            contact_email=a.contact_email,
+            address=getattr(a, "address", "Ica, Perú") or "Ica, Perú",
+            business_hours=getattr(a, "business_hours", "Lunes a Domingo: 08:00 - 18:00") or "Lunes a Domingo: 08:00 - 18:00",
+            tour_count=total,
+        )
         for a, total in filas
     ]
 
@@ -183,9 +194,13 @@ async def get_agency_detail(db: AsyncSession, agency_id: UUID) -> AgencyDetailRe
     return AgencyDetailResponse(
         id=agencia.id,
         name=agencia.name,
+        ruc=agencia.ruc,
+        dircetur_registry_number=agencia.dircetur_registry_number,
         is_validated=agencia.is_validated,
         contact_phone=agencia.contact_phone,
         contact_email=agencia.contact_email,
+        address=getattr(agencia, "address", "Ica, Perú") or "Ica, Perú",
+        business_hours=getattr(agencia, "business_hours", "Lunes a Domingo: 08:00 - 18:00") or "Lunes a Domingo: 08:00 - 18:00",
         tours=[_a_tour_response(t, agencia, t.attraction) for t in tours],
     )
 

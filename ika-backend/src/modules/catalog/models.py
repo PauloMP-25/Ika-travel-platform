@@ -116,6 +116,8 @@ class Agency(Base):
     validated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     contact_phone: Mapped[str | None] = mapped_column(String(30), nullable=True)
     contact_email: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    address: Mapped[str | None] = mapped_column(String(250), nullable=True, default="Ica, Perú")
+    business_hours: Mapped[str | None] = mapped_column(String(100), nullable=True, default="Lunes a Domingo: 08:00 - 18:00")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

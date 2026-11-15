@@ -162,10 +162,14 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
     }
   }
 
-  void _mostrarDetallePrestador(PrestadorServicioModel prestador) {
+  void _mostrarDetallePrestador(PrestadorServicioModel prestadorInicial) {
     final colorTexto = TemaApp.texto(context);
     final colorTextoSec = TemaApp.textoSecundario(context);
     final colorTarjeta = TemaApp.tarjeta(context);
+
+    PrestadorServicioModel prestadorActual = prestadorInicial;
+    bool cargandoDetalles = prestadorInicial.tours.isEmpty;
+    bool peticionDisparada = false;
 
     showModalBottomSheet(
       context: context,
@@ -175,390 +179,450 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.75,
-          minChildSize: 0.45,
-          maxChildSize: 0.95,
-          expand: false,
-          builder: (_, scrollController) {
-            return SafeArea(
-              top: false,
-              child: SingleChildScrollView(
-                controller: scrollController,
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 30),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 44,
-                        height: 5,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade400,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Row(
+        return StatefulBuilder(
+          builder: (modalCtx, setModalState) {
+            if (cargandoDetalles && !peticionDisparada) {
+              peticionDisparada = true;
+              _prestadoresService
+                  .obtenerDetallePrestador(prestadorInicial.id)
+                  .then((det) {
+                if (det != null && modalCtx.mounted) {
+                  setModalState(() {
+                    prestadorActual = det;
+                    cargandoDetalles = false;
+                  });
+                } else if (modalCtx.mounted) {
+                  setModalState(() {
+                    cargandoDetalles = false;
+                  });
+                }
+              }).catchError((_) {
+                if (modalCtx.mounted) {
+                  setModalState(() {
+                    cargandoDetalles = false;
+                  });
+                }
+              });
+            }
+
+            final prestador = prestadorActual;
+            return DraggableScrollableSheet(
+              initialChildSize: 0.75,
+              minChildSize: 0.45,
+              maxChildSize: 0.95,
+              expand: false,
+              builder: (_, scrollController) {
+                return SafeArea(
+                  top: false,
+                  child: SingleChildScrollView(
+                    controller: scrollController,
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 30),
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF2E7D32)
-                                .withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Icon(
-                            Icons.verified_user_rounded,
-                            color: Color(0xFF2E7D32),
-                            size: 30,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                prestador.name,
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: colorTexto,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 3,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF2E7D32)
-                                      .withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  context.tr('empadronado_validado'),
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF2E7D32),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? const Color(0xFF252525)
-                            : const Color(0xFFF7F4EE),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: Colors.black12),
-                      ),
-                      child: Column(
-                        children: [
-                          if (prestador.ruc != null)
-                            _filaDato(
-                              'RUC:',
-                              prestador.ruc!,
-                              colorTexto,
-                              colorTextoSec,
-                            ),
-                          if (prestador.dirceturRegistryNumber != null)
-                            _filaDato(
-                              'N° Padrón DIRCETUR:',
-                              prestador.dirceturRegistryNumber!,
-                              colorTexto,
-                              colorTextoSec,
-                            ),
-                          _filaDato(
-                            'Estado en padrón:',
-                            'Vigente y Validado',
-                            colorTexto,
-                            Colors.green.shade700,
-                          ),
-                          _filaDato(
-                            'Intermediación de pagos:',
-                            'No aplica (Contratación directa)',
-                            colorTexto,
-                            colorTextoSec,
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-                    Text(
-                      context.tr('canales_contacto'),
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: colorTexto,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        if (prestador.contactPhone != null) ...[
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF25D366),
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 11,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              icon: const Icon(Icons.chat, size: 18),
-                              label: const Text(
-                                'WhatsApp',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              onPressed: () => _abrirWhatsApp(
-                                prestador.contactPhone,
-                                prestador.name,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: AppColores.naranjaBoton,
-                                side: const BorderSide(
-                                  color: AppColores.naranjaBoton,
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 11,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              icon: const Icon(Icons.phone, size: 18),
-                              label: Text(
-                                context.tr('llamar'),
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              onPressed: () =>
-                                  _llamarTelefono(prestador.contactPhone),
-                            ),
-                          ),
-                        ],
-                        if (prestador.contactEmail != null) ...[
-                          const SizedBox(width: 8),
-                          IconButton(
-                            tooltip: 'Enviar correo',
-                            style: IconButton.styleFrom(
-                              backgroundColor: Colors.blue.shade50,
-                              foregroundColor: Colors.blue.shade700,
-                            ),
-                            icon: const Icon(Icons.email_outlined),
-                            onPressed: () => _enviarCorreo(
-                              prestador.contactEmail,
-                              prestador.name,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-
-                    const SizedBox(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            '${context.tr('servicios_tours_cert')} (${prestador.tours.length})',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: colorTexto,
+                        Center(
+                          child: Container(
+                            width: 44,
+                            height: 5,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade400,
+                              borderRadius: BorderRadius.circular(10),
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          context.tr('precios_referenciales'),
-                          style: TextStyle(fontSize: 11, color: colorTextoSec),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-
-                    if (prestador.tours.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        child: Text(
-                          context.tr('consulta_prestador'),
-                          style: TextStyle(color: colorTextoSec, fontSize: 13),
-                        ),
-                      )
-                    else
-                      ...prestador.tours.map(
-                        (tour) => Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color:
-                                Theme.of(context).brightness == Brightness.dark
-                                ? const Color(0xFF2C2C2C)
-                                : Colors.white,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: Colors.black.withValues(alpha: 0.06),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.03),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
+                        const SizedBox(height: 18),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF2E7D32)
+                                    .withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(16),
                               ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
+                              child: const Icon(
+                                Icons.verified_user_rounded,
+                                color: Color(0xFF2E7D32),
+                                size: 30,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Expanded(
-                                    child: Text(
-                                      tour.name,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                        color: colorTexto,
-                                      ),
+                                  Text(
+                                    prestador.name,
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: colorTexto,
                                     ),
                                   ),
+                                  const SizedBox(height: 4),
                                   Container(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 8,
                                       vertical: 3,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: AppColores.naranjaBoton.withValues(
-                                        alpha: 0.12,
-                                      ),
-                                      borderRadius: BorderRadius.circular(8),
+                                      color: const Color(0xFF2E7D32)
+                                          .withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(
-                                      'S/ ${tour.price.toStringAsFixed(0)}',
+                                      context.tr('empadronado_validado'),
                                       style: const TextStyle(
-                                        color: AppColores.naranjaBoton,
+                                        fontSize: 11,
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 13,
+                                        color: Color(0xFF2E7D32),
                                       ),
                                     ),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 6),
-                              Text(
-                                tour.description,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: colorTextoSec,
-                                  height: 1.3,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 18),
+
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF252525)
+                                : const Color(0xFFF7F4EE),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: Colors.black12),
+                          ),
+                          child: Column(
+                            children: [
+                              if (prestador.ruc != null && prestador.ruc!.isNotEmpty)
+                                _filaDato(
+                                  'RUC:',
+                                  prestador.ruc!,
+                                  colorTexto,
+                                  colorTextoSec,
                                 ),
+                              if (prestador.dirceturRegistryNumber != null &&
+                                  prestador.dirceturRegistryNumber!.isNotEmpty)
+                                _filaDato(
+                                  'N° Padrón DIRCETUR:',
+                                  prestador.dirceturRegistryNumber!,
+                                  colorTexto,
+                                  colorTextoSec,
+                                ),
+                              if (prestador.address != null &&
+                                  prestador.address!.isNotEmpty)
+                                _filaDato(
+                                  'Dirección:',
+                                  prestador.address!,
+                                  colorTexto,
+                                  colorTextoSec,
+                                  maxLines: 2,
+                                ),
+                              if (prestador.businessHours != null &&
+                                  prestador.businessHours!.isNotEmpty)
+                                _filaDato(
+                                  'Horario de atención:',
+                                  prestador.businessHours!,
+                                  colorTexto,
+                                  colorTextoSec,
+                                ),
+                              _filaDato(
+                                'Estado en padrón:',
+                                'Vigente y Validado',
+                                colorTexto,
+                                Colors.green.shade700,
                               ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.schedule,
-                                    size: 14,
-                                    color: colorTextoSec,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${context.tr('duracion_aprox')} ${tour.durationHours} ${tour.durationHours == 1 ? context.tr('hora_u') : context.tr('horas_u')}',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: colorTextoSec,
-                                    ),
-                                  ),
-                                  if (tour.attractionName != null) ...[
-                                    const SizedBox(width: 10),
-                                    Icon(
-                                      Icons.place_outlined,
-                                      size: 14,
-                                      color: colorTextoSec,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Expanded(
-                                      child: Text(
-                                        tour.attractionName!,
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: colorTextoSec,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                ],
+                              _filaDato(
+                                'Intermediación de pagos:',
+                                'No aplica (Contratación directa)',
+                                colorTexto,
+                                colorTextoSec,
                               ),
                             ],
                           ),
                         ),
-                      ),
 
-                    const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.amber.shade50,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.amber.shade200),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            Icons.info_outline,
-                            color: Colors.amber.shade800,
-                            size: 18,
+                        const SizedBox(height: 20),
+                        Text(
+                          context.tr('canales_contacto'),
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: colorTexto,
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            if (prestador.contactPhone != null &&
+                                prestador.contactPhone!.isNotEmpty) ...[
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF25D366),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 11,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  icon: const Icon(Icons.chat, size: 18),
+                                  label: const Text(
+                                    'WhatsApp',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  onPressed: () => _abrirWhatsApp(
+                                    prestador.contactPhone,
+                                    prestador.name,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: AppColores.naranjaBoton,
+                                    side: const BorderSide(
+                                      color: AppColores.naranjaBoton,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 11,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  icon: const Icon(Icons.phone, size: 18),
+                                  label: Text(
+                                    context.tr('llamar'),
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  onPressed: () =>
+                                      _llamarTelefono(prestador.contactPhone),
+                                ),
+                              ),
+                            ],
+                            if (prestador.contactEmail != null &&
+                                prestador.contactEmail!.isNotEmpty) ...[
+                              const SizedBox(width: 8),
+                              IconButton(
+                                tooltip: 'Enviar correo',
+                                style: IconButton.styleFrom(
+                                  backgroundColor: Colors.blue.shade50,
+                                  foregroundColor: Colors.blue.shade700,
+                                ),
+                                icon: const Icon(Icons.email_outlined),
+                                onPressed: () => _enviarCorreo(
+                                  prestador.contactEmail,
+                                  prestador.name,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+
+                        const SizedBox(height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${context.tr("servicios_tours_cert")} (${cargandoDetalles ? "..." : prestador.tours.length})',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: colorTexto,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              context.tr('precios_referenciales'),
+                              style: TextStyle(fontSize: 11, color: colorTextoSec),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+
+                        if (cargandoDetalles)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 20),
+                            child: Center(
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            ),
+                          )
+                        else if (prestador.tours.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
                             child: Text(
-                              context.tr('nota_contratacion'),
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.brown.shade900,
-                                height: 1.3,
+                              context.tr('consulta_prestador'),
+                              style: TextStyle(color: colorTextoSec, fontSize: 13),
+                            ),
+                          )
+                        else
+                          ...prestador.tours.map(
+                            (tour) => Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? const Color(0xFF2C2C2C)
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: Colors.black.withValues(alpha: 0.06),
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.03),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          tour.name,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                            color: colorTexto,
+                                          ),
+                                        ),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppColores.naranjaBoton
+                                              .withValues(alpha: 0.12),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          'S/ ${tour.price.toStringAsFixed(0)}',
+                                          style: const TextStyle(
+                                            color: AppColores.naranjaBoton,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    tour.description,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: colorTextoSec,
+                                      height: 1.3,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.schedule,
+                                        size: 14,
+                                        color: colorTextoSec,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '${context.tr("duracion_aprox")} ${tour.durationHours} ${tour.durationHours == 1 ? context.tr("hora_u") : context.tr("horas_u")}',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: colorTextoSec,
+                                        ),
+                                      ),
+                                      if (tour.attractionName != null) ...[
+                                        const SizedBox(width: 10),
+                                        Icon(
+                                          Icons.place_outlined,
+                                          size: 14,
+                                          color: colorTextoSec,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          child: Text(
+                                            tour.attractionName!,
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: colorTextoSec,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ],
                               ),
                             ),
                           ),
-                        ],
-                      ),
+
+                        const SizedBox(height: 10),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.shade50,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.amber.shade200),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                color: Colors.amber.shade800,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  context.tr('nota_contratacion'),
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.brown.shade900,
+                                    height: 1.3,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             );
           },
         );
@@ -570,26 +634,28 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
     String etiqueta,
     String valor,
     Color colorTxt,
-    Color colorVal,
-  ) {
+    Color colorVal, {
+    int maxLines = 1,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: maxLines > 1 ? CrossAxisAlignment.start : CrossAxisAlignment.center,
         children: [
           Flexible(
+            flex: 2,
             child: Text(
               etiqueta,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
               style: TextStyle(fontSize: 12, color: colorTxt),
             ),
           ),
           const SizedBox(width: 8),
           Flexible(
+            flex: 3,
             child: Text(
               valor,
-              maxLines: 1,
+              maxLines: maxLines,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.right,
               style: TextStyle(
@@ -677,7 +743,7 @@ class _PantallaPrestadoresState extends State<PantallaPrestadores> {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 scrollDirection: Axis.horizontal,
                 itemCount: _categoriasFiltro.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
                 itemBuilder: (context, index) {
                   final cat = _categoriasFiltro[index];
                   final activa = _filtroTipo == cat;

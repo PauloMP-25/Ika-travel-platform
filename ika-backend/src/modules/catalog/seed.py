@@ -192,13 +192,13 @@ FOTOS_ATRACTIVOS: dict[str, list[str]] = {
 }
 
 AGENCIAS = [
-    ("Ika Travel and Experience", "20608912345", True, "DIR-ICA-0010", "+51 956 789 000", "contacto@ikatravel.pe"),
-    ("Oro Travel Peru S.A.C.", "20600883446", True, "DIR-ICA-0104", "+51 956 789 123", "contacto@orotravelperu.com"),
-    ("Paracas Sight & Tours S.A.C.", "20494562716", True, "DIR-ICA-0188", "+51 956 112 233", "reservas@paracassighttours.com"),
-    ("Ica Trip Agency S.A.C.", "20600495519", True, "DIR-ICA-0215", "+51 956 445 566", "informes@icatrip.pe"),
-    ("Inversiones Turísticas Ica S.A.C.", "20601775540", True, "DIR-ICA-0290", "+51 956 778 899", "tours@invturisticaica.pe"),
-    ("Turismo Ica Peru E.I.R.L.", "20604989958", True, "DIR-ICA-0312", "+51 956 990 011", "operaciones@turismoicaperu.com"),
-    ("Ica Aventura Tours Express E.I.R.L.", "20609998811", False, None, "+51 956 001 122", "informes@icaaventuraexpress.pe"),
+    ("Ika Travel and Experience", "20608912345", True, "DIR-ICA-0010", "+51 956 789 000", "contacto@ikatravel.pe", "Balneario de Huacachina s/n (Frente a la Laguna)", "Lunes a Domingo: 07:00 - 19:00"),
+    ("Oro Travel Peru S.A.C.", "20600883446", True, "DIR-ICA-0104", "+51 956 789 123", "contacto@orotravelperu.com", "Av. Los Maestros 214, Urb. San José, Ica", "Lunes a Sábado: 08:00 - 18:30"),
+    ("Paracas Sight & Tours S.A.C.", "20494562716", True, "DIR-ICA-0188", "+51 956 112 233", "reservas@paracassighttours.com", "Av. San Martín s/n, Muelle El Chaco, Paracas", "Lunes a Domingo: 06:30 - 17:00"),
+    ("Ica Trip Agency S.A.C.", "20600495519", True, "DIR-ICA-0215", "+51 956 445 566", "informes@icatrip.pe", "Calle Bolívar 142, Cercado de Ica", "Lunes a Domingo: 08:00 - 18:00"),
+    ("Inversiones Turísticas Ica S.A.C.", "20601775540", True, "DIR-ICA-0290", "+51 956 778 899", "tours@invturisticaica.pe", "Av. Municipalidad 230, Cercado de Ica", "Lunes a Domingo: 07:30 - 18:00"),
+    ("Turismo Ica Peru E.I.R.L.", "20604989958", True, "DIR-ICA-0312", "+51 956 990 011", "operaciones@turismoicaperu.com", "Av. Cutervo 118, Cercado de Ica", "Lunes a Domingo: 08:00 - 18:00"),
+    ("Ica Aventura Tours Express E.I.R.L.", "20609998811", False, None, "+51 956 001 122", "informes@icaaventuraexpress.pe", "Av. Arenales 350, Ica", "Lunes a Domingo: 09:00 - 16:00"),
 ]
 
 # agencia_ruc, atractivo_nombre, nombre_tour, descripción, precio, horas
@@ -295,7 +295,10 @@ async def ejecutar() -> None:
         await db.flush()
 
         agencias: dict[str, Agency] = {}
-        for nombre, ruc, validada, registro, tel, email in AGENCIAS:
+        for item in AGENCIAS:
+            nombre, ruc, validada, registro, tel, email = item[:6]
+            dir_agencia = item[6] if len(item) > 6 else "Ica, Perú"
+            horario = item[7] if len(item) > 7 else "Lunes a Domingo: 08:00 - 18:00"
             ag = (await db.execute(select(Agency).where(Agency.ruc == ruc))).scalar_one_or_none()
             if ag is None:
                 ag = Agency(
@@ -303,8 +306,15 @@ async def ejecutar() -> None:
                     dircetur_registry_number=registro,
                     validated_at=utc_ahora() if validada else None,
                     contact_phone=tel, contact_email=email,
+                    address=dir_agencia, business_hours=horario,
                 )
                 db.add(ag)
+            else:
+                ag.contact_phone = tel
+                ag.contact_email = email
+                ag.address = dir_agencia
+                ag.business_hours = horario
+                ag.dircetur_registry_number = registro
             agencias[ruc] = ag
         await db.flush()
 

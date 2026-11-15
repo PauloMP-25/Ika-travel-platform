@@ -24,6 +24,10 @@ def generar_prompt_recomendacion_turistica(
     alertas_activas: list[str],
     consejos_base: list[str],
     intereses_turista: list[str] | None = None,
+    estilo: str | None = None,
+    presupuesto: str | None = None,
+    compania: str | None = None,
+    directiva_estrategia: str | None = None,
     idioma: str = "es",
     # Variables ampliadas de Ica
     presion_hpa: float | None = None,
@@ -127,10 +131,17 @@ Tu única función es redactar la narrativa turística oficial en {idioma_nombre
 {bloque_extras}
 </condiciones_meteorologicas>
 
+<perfil_turista>
+- Intereses prioritarios: {intereses_str}
+- Estilo de viaje: {estilo or 'Equilibrado / Activo'}
+- Presupuesto: {presupuesto or 'Estándar'}
+- Compañía: {compania or 'Viajero independiente / Grupo'}
+- Directiva de personalización: {directiva_estrategia or 'Recomendación turística adaptada a la región Ica'}
+</perfil_turista>
+
 <calculos_previos_sistema>
 - Score de idoneidad calculado: {score_calculado:.2f} (Nivel: {nivel_calculado})
 - Coincidencia con preferencias del turista: {'Sí' if afinidad_preferencias else 'No'}
-- Preferencias del turista: {intereses_str}
 - Consejos calculados por reglas: {consejos_str}
 </calculos_previos_sistema>
 

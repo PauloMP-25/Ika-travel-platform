@@ -107,3 +107,5 @@ def generar_recomendacion(
         perfil=perfil.nombre,
         afinidad_preferencia=afinidad,
     )
+
+clasificar_nivel = nivel_desde_puntaje

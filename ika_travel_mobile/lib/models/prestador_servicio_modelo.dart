@@ -58,6 +58,8 @@ class PrestadorServicioModel {
   final String? dirceturRegistryNumber;
   final String? contactPhone;
   final String? contactEmail;
+  final String? address;
+  final String? businessHours;
   final int tourCount;
   final List<TourPrestadorModel> tours;
 
@@ -69,6 +71,8 @@ class PrestadorServicioModel {
     this.dirceturRegistryNumber,
     this.contactPhone,
     this.contactEmail,
+    this.address,
+    this.businessHours,
     this.tourCount = 0,
     this.tours = const [],
   });
@@ -89,6 +93,8 @@ class PrestadorServicioModel {
       dirceturRegistryNumber: json['dircetur_registry_number']?.toString(),
       contactPhone: json['contact_phone']?.toString(),
       contactEmail: json['contact_email']?.toString(),
+      address: json['address']?.toString(),
+      businessHours: json['business_hours']?.toString(),
       tourCount: (json['tour_count'] as num?)?.toInt() ?? toursList.length,
       tours: toursList,
     );
@@ -103,6 +109,8 @@ class PrestadorServicioModel {
       'dircetur_registry_number': dirceturRegistryNumber,
       'contact_phone': contactPhone,
       'contact_email': contactEmail,
+      'address': address,
+      'business_hours': businessHours,
       'tour_count': tourCount,
       'tours': tours.map((t) => t.toJson()).toList(),
     };
@@ -116,6 +124,8 @@ class PrestadorServicioModel {
     String? dirceturRegistryNumber,
     String? contactPhone,
     String? contactEmail,
+    String? address,
+    String? businessHours,
     int? tourCount,
     List<TourPrestadorModel>? tours,
   }) {
@@ -128,6 +138,8 @@ class PrestadorServicioModel {
           dirceturRegistryNumber ?? this.dirceturRegistryNumber,
       contactPhone: contactPhone ?? this.contactPhone,
       contactEmail: contactEmail ?? this.contactEmail,
+      address: address ?? this.address,
+      businessHours: businessHours ?? this.businessHours,
       tourCount: tourCount ?? this.tourCount,
       tours: tours ?? this.tours,
     );
@@ -146,6 +158,8 @@ final ValueNotifier<List<PrestadorServicioModel>> prestadoresGlobales =
         dirceturRegistryNumber: 'DIRCETUR-ICA-AG-2024-042',
         contactPhone: '+51 956 123 456',
         contactEmail: 'operaciones@icadesert.pe',
+        address: 'Balneario de Huacachina s/n, Ica',
+        businessHours: 'Lunes a Domingo: 07:00 - 19:00',
         tourCount: 2,
         tours: [
           TourPrestadorModel(
@@ -168,6 +182,8 @@ final ValueNotifier<List<PrestadorServicioModel>> prestadoresGlobales =
         dirceturRegistryNumber: 'DIRCETUR-ICA-AG-2023-118',
         contactPhone: '+51 987 654 321',
         contactEmail: 'informes@paracasmarina.pe',
+        address: 'Av. Alan García Pérez s/n, El Chaco, Paracas',
+        businessHours: 'Lunes a Domingo: 06:30 - 17:00',
         tourCount: 1,
         tours: [
           TourPrestadorModel(
@@ -190,6 +206,8 @@ final ValueNotifier<List<PrestadorServicioModel>> prestadoresGlobales =
         dirceturRegistryNumber: 'DIRCETUR-ICA-AG-2024-009',
         contactPhone: '+51 956 789 123',
         contactEmail: 'tours@rutapisqueraica.com',
+        address: 'Fundo San José s/n, Los Aquijes, Ica',
+        businessHours: 'Lunes a Sábado: 09:00 - 18:00',
         tourCount: 1,
         tours: [
           TourPrestadorModel(
