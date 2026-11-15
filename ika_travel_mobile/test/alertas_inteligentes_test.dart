@@ -314,7 +314,10 @@ void main() {
           find.text('Condiciones para actividades disponibles'),
           findsOneWidget,
         );
-        expect(find.text('Historial cronológico de cambios'), findsOneWidget);
+        expect(
+          find.textContaining('Historial cronologico de cambios'),
+          findsOneWidget,
+        );
         expect(
           find.text('Alertas relacionadas con el destino'),
           findsOneWidget,
@@ -440,22 +443,37 @@ void main() {
     final sosService = SosService();
 
     test('Permite registrar, actualizar y eliminar contacto de confianza', () {
-      sosService.guardarContacto(
+      // Parte de una lista limpia (el servicio es singleton).
+      while (sosService.contactos.isNotEmpty) {
+        sosService.eliminarContacto(0);
+      }
+
+      final agregado = sosService.guardarContacto(
         nombre: 'María Gómez',
         telefono: '+51 987654321',
         relacion: 'Hermana',
       );
 
-      expect(sosService.contactoNotifier.value, isNotNull);
-      expect(sosService.contactoNotifier.value!.nombre, equals('María Gómez'));
-      expect(
-        sosService.contactoNotifier.value!.telefono,
-        equals('+51 987654321'),
-      );
-      expect(sosService.contactoNotifier.value!.relacion, equals('Hermana'));
+      expect(agregado, isTrue);
+      expect(sosService.contactos, isNotEmpty);
+      expect(sosService.contactoPrincipal, isNotNull);
+      expect(sosService.contactoPrincipal!.nombre, equals('María Gómez'));
+      expect(sosService.contactoPrincipal!.telefono, equals('+51 987654321'));
+      expect(sosService.contactoPrincipal!.relacion, equals('Hermana'));
 
-      sosService.eliminarContacto();
-      expect(sosService.contactoNotifier.value, isNull);
+      // Actualiza el contacto en la posición 0.
+      sosService.guardarContacto(
+        indice: 0,
+        nombre: 'María G.',
+        telefono: '+51 900000000',
+        relacion: 'Hermana',
+      );
+      expect(sosService.contactoPrincipal!.nombre, equals('María G.'));
+      expect(sosService.contactoPrincipal!.telefono, equals('+51 900000000'));
+
+      sosService.eliminarContacto(0);
+      expect(sosService.contactos, isEmpty);
+      expect(sosService.contactoPrincipal, isNull);
     });
 
     test('Genera mensaje de emergencia con ubicación GPS cuando el permiso está concedido', () {
@@ -505,7 +523,7 @@ void main() {
         expect(find.text('Asistencia y SOS'), findsOneWidget);
         expect(find.text('ACTIVAR SOS DE EMERGENCIA'), findsOneWidget);
         expect(find.text('Modo Prueba (Simular sin enviar)'), findsOneWidget);
-        expect(find.text('Contacto de Confianza'), findsOneWidget);
+        expect(find.textContaining('Contactos de confianza'), findsOneWidget);
         expect(find.text('Ubicación en el Mensaje'), findsOneWidget);
         expect(find.text('Vista Previa del Texto SOS'), findsOneWidget);
         expect(find.text('Centrales de Emergencia Oficiales'), findsOneWidget);

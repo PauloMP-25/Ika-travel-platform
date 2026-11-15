@@ -134,30 +134,31 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
       _errorTraduccion = null;
     });
 
-    // CAMBIO CLAVE: Usamos es_ES (España) que siempre está en Android,
-    // si no, usamos es_US (Latinoamérica) o en_US.
-    final localeId = _sourceLang == 'es' ? 'es_ES' : 'en_US';
-    debugPrint('🎙️ [VOZ] Idioma de dictado configurado: $localeId');
-
     try {
-      await _speech.listen(
-        onResult: _onSpeechResult,
-        localeId: localeId,
-        listenFor: const Duration(minutes: 5), // Escucha hasta 5 minutos máximo
-        pauseFor: const Duration(
-          seconds: 15,
-        ), // Espera 15 segundos de silencio antes de cortarse
-        partialResults: true,
-        cancelOnError: false, // NO cancelar al primer error
-        listenMode: stt.ListenMode.dictation, // Modo dictado (más flexible)
-      );
-
+      await _iniciarListen();
       debugPrint('🎙️ [VOZ] Comando listen() enviado.');
       if (mounted) setState(() => _escuchando = true);
     } catch (e) {
       debugPrint('🎙️ [VOZ] Error al intentar escuchar: $e');
       if (mounted) setState(() => _escuchando = false);
     }
+  }
+
+  /// Inicia el reconocimiento de voz con el idioma de origen actual.
+  /// Separado para poder reiniciarlo en vivo al cambiar de idioma (Corrección N°16).
+  Future<void> _iniciarListen() async {
+    // es_ES (España) siempre está disponible en Android; en_US para inglés.
+    final localeId = _sourceLang == 'es' ? 'es_ES' : 'en_US';
+    debugPrint('🎙️ [VOZ] Idioma de dictado configurado: $localeId');
+    await _speech.listen(
+      onResult: _onSpeechResult,
+      localeId: localeId,
+      listenFor: const Duration(minutes: 5), // Escucha hasta 5 minutos máximo
+      pauseFor: const Duration(seconds: 15), // Silencio antes de cortarse
+      partialResults: true,
+      cancelOnError: false, // NO cancelar al primer error
+      listenMode: stt.ListenMode.dictation, // Modo dictado (más flexible)
+    );
   }
 
   void _onSpeechResult(SpeechRecognitionResult result) {
@@ -194,7 +195,7 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
     }
   }
 
-  void _intercambiarIdiomas() {
+  Future<void> _intercambiarIdiomas() async {
     setState(() {
       final tmp = _sourceLang;
       _sourceLang = _targetLang;
@@ -202,11 +203,37 @@ class _PantallaTraduccionState extends State<PantallaTraduccion> {
       _errorTraduccion = null;
     });
 
-    // Si hay texto escrito, traducimos automáticamente
+    // Corrección N°16: si se está dictando, reinicia el reconocimiento de voz
+    // en el nuevo idioma de origen al instante (sin tener que soltar el micro).
+    if (_escuchando) {
+      debugPrint('🎙️ [VOZ] Cambio de idioma en vivo durante el dictado.');
+      await _speech.stop();
+      await Future.delayed(const Duration(milliseconds: 250));
+      if (!mounted) return;
+      try {
+        await _iniciarListen();
+        if (mounted) {
+          setState(() => _escuchando = true);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Dictado cambiado a ${_sourceLang == 'es' ? 'Español' : 'Inglés'}',
+              ),
+              backgroundColor: AppColores.turquesaOasis,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      } catch (e) {
+        debugPrint('🎙️ [VOZ] Error al reiniciar escucha: $e');
+        if (mounted) setState(() => _escuchando = false);
+      }
+    }
+
+    // Si hay texto escrito, lo traducimos automáticamente al nuevo idioma.
     if (_textoController.text.trim().isNotEmpty) {
-      debugPrint(
-        '🔄 [IA] Idioma intercambiado. Traduciendo texto existente...',
-      );
+      debugPrint('🔄 [IA] Idioma intercambiado. Traduciendo texto existente...');
       _realizarTraduccion();
     }
   }
