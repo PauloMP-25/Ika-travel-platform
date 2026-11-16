@@ -6,8 +6,9 @@ import 'excepciones_api.dart';
 import 'auth_service.dart';
 
 class ApiClient {
-  // En Android Emulator 10.0.2.2 es localhost de la máquina host.
-  // En dispositivo físico, Linux o Web se usa el túnel o la variable de entorno.
+  // Por defecto se usa el servidor de produccion (ApiConfig.urlProduccion).
+  // API_BASE_URL y API_URL solo sirven para apuntar a otro entorno al
+  // compilar, por ejemplo un servidor local durante el desarrollo.
   static String get baseUrl {
     const customHost = String.fromEnvironment('API_BASE_URL');
     if (customHost.isNotEmpty) {

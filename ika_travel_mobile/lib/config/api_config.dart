@@ -1,12 +1,22 @@
 class ApiConfig {
+  /// URL del backend. Por defecto apunta al servidor de producción, así que
+  /// una compilación sin parámetros ya funciona contra datos reales.
+  ///
+  /// Para apuntar a otro entorno (un túnel de desarrollo, el emulador con
+  /// un servidor local durante el desarrollo) se sobreescribe al compilar:
+  ///   flutter build apk --release --dart-define=API_URL=https://otro-host
+  static const String urlProduccion = 'https://api.ika-travel.camiluxlym.com';
+
   static String baseUrl = const String.fromEnvironment(
     'API_URL',
-    defaultValue: 'https://dreary-flap-stole.ngrok-free.dev',
+    defaultValue: urlProduccion,
   );
 
   static Map<String, String> get defaultHeaders => {
     'Accept': 'application/json',
     'Accept-Language': 'es-PE,es;q=0.9',
+    // Solo lo necesita ngrok si se compila contra un túnel de
+    // desarrollo; el servidor de producción lo ignora.
     'ngrok-skip-browser-warning': 'true',
   };
 

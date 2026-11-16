@@ -1,8 +1,21 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ika_travel_mobile/config/api_config.dart';
 import 'package:ika_travel_mobile/models/usuario_modelo.dart';
 import 'package:ika_travel_mobile/services/auth_service.dart';
 
 void main() {
+  // Estas pruebas cubren el inicio de sesion **local/fallback**, que solo se
+  // activa cuando el servidor no responde. Apuntando a un puerto cerrado la
+  // peticion falla al conectar y se ejercita siempre esa rama, sin depender
+  // de que haya internet ni de que el backend este caido.
+  //
+  // Antes funcionaba por casualidad: el tunel de desarrollo estaba muerto y
+  // devolvia 404. Con el backend real en produccion responde 401 y la rama
+  // de fallback ya no se alcanzaba.
+  final urlOriginal = ApiConfig.baseUrl;
+  setUpAll(() => ApiConfig.baseUrl = 'http://127.0.0.1:1');
+  tearDownAll(() => ApiConfig.baseUrl = urlOriginal);
+
   group('Modelos de Autenticación - UsuarioModelo', () {
     test('Serializa y deserializa JSON correctamente', () {
       const original = UsuarioModelo(

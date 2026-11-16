@@ -5,7 +5,7 @@
 # dentro del JavaScript), así que hay que pasarla como build-arg:
 #
 #   docker build -f Dockerfile.web \
-#     --build-arg API_URL=https://api.tu-dominio.pe \
+#     --build-arg API_URL=https://api.ika-travel.camiluxlym.com \
 #     -t ika-travel-web .
 #
 # En Dokploy se configuran como "Build Arguments" en la aplicación.
@@ -15,7 +15,7 @@
 # existiera en el registro, usar ghcr.io/cirruslabs/flutter:stable.
 FROM ghcr.io/cirruslabs/flutter:3.47.5 AS build
 
-ARG API_URL=""
+ARG API_URL="https://api.ika-travel.camiluxlym.com"
 ARG GOOGLE_WEB_CLIENT_ID=""
 ARG GEMINI_API_KEY=""
 ARG TOMTOM_API_KEY=""
