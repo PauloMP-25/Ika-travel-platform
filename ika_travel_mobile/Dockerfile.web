@@ -11,9 +11,12 @@
 # En Dokploy se configuran como "Build Arguments" en la aplicación.
 
 # ---------- Etapa 1: compilar ----------
-# Misma version que usa el equipo en local (flutter --version). Si el tag no
-# existiera en el registro, usar ghcr.io/cirruslabs/flutter:stable.
-FROM ghcr.io/cirruslabs/flutter:3.47.5 AS build
+# Se usa el tag "stable" porque el tag de version exacta no existe en el
+# registro. Contrapartida: la imagen no queda fijada, asi que una version
+# futura de Flutter podria cambiar el resultado de la compilacion. Si eso
+# llega a pasar, fijar aqui una version concreta que si exista en
+# ghcr.io/cirruslabs/flutter.
+FROM ghcr.io/cirruslabs/flutter:stable AS build
 
 ARG API_URL="https://api.ika-travel.camiluxlym.com"
 ARG GOOGLE_WEB_CLIENT_ID=""
