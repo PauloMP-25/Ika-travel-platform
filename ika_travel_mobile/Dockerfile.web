@@ -1,14 +1,14 @@
-# Imagen de la versión web de Ika Travel: compila con Flutter y sirve el
-# resultado estático con Nginx.
+# Imagen de la version web de Ika Travel: compila con Flutter y sirve el
+# resultado estatico con Nginx.
 #
-# La URL del backend se inyecta EN TIEMPO DE COMPILACIÓN (Flutter la congela
-# dentro del JavaScript), así que hay que pasarla como build-arg:
+# La URL del backend se inyecta EN TIEMPO DE COMPILACION (Flutter la congela
+# dentro del JavaScript), asi que hay que pasarla como build-arg:
 #
 #   docker build -f ika_travel_mobile/Dockerfile.web \
 #     --build-arg API_URL=https://api.ika-travel.camiluxlym.com \
 #     -t ika-travel-web .
 #
-# En Dokploy se configuran como "Build Arguments" en la aplicación.
+# En Dokploy se configuran como "Build Arguments" en la aplicacion.
 #
 # IMPORTANTE - CONTEXTO DE CONSTRUCCION
 # Todas las rutas COPY son relativas a la RAIZ DEL REPOSITORIO, no a esta
@@ -18,12 +18,45 @@
 # Por eso el docker build de arriba tambien se lanza desde la raiz.
 
 # ---------- Etapa 1: compilar ----------
-# Se usa el tag "stable" porque el tag de version exacta no existe en el
-# registro. Contrapartida: la imagen no queda fijada, asi que una version
-# futura de Flutter podria cambiar el resultado de la compilacion. Si eso
-# llega a pasar, fijar aqui una version concreta que si exista en
-# ghcr.io/cirruslabs/flutter.
-FROM ghcr.io/cirruslabs/flutter:stable AS build
+# Flutter se instala desde el archivo oficial de Google en vez de partir de
+# una imagen ya hecha. Motivo: ghcr.io/cirruslabs/flutter no publica ninguna
+# version 3.45 o superior (la mas alta es 3.44.0) y su tag "stable" trae
+# Dart 3.12.0, que no cumple la restriccion del proyecto:
+#
+#   The current Dart SDK version is 3.12.0.
+#   Because ika_travel_mobile requires SDK version ^3.13.4, version solving failed.
+#
+# Es la misma version que usa el equipo en local, asi que el contenedor y el
+# portatil compilan lo mismo. Para subirla basta cambiar FLUTTER_VERSION por
+# otra del manifiesto oficial:
+#   https://storage.googleapis.com/flutter_infra_release/releases/releases_linux.json
+FROM debian:bookworm-slim AS build
+
+# Flutter 3.47.5 incluye Dart 3.13.4, que satisface `sdk: ^3.13.4`.
+ARG FLUTTER_VERSION=3.47.5
+
+# git es obligatorio: Flutter lo usa internamente para resolver su version.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        git \
+        unzip \
+        xz-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN curl -fsSL \
+        "https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz" \
+        -o /tmp/flutter.tar.xz \
+    && tar -xJf /tmp/flutter.tar.xz -C /opt \
+    && rm /tmp/flutter.tar.xz
+
+ENV PATH="/opt/flutter/bin:/opt/flutter/bin/cache/dart-sdk/bin:${PATH}"
+
+# El contenedor corre como root y Flutter desconfia del repositorio git que
+# acaba de extraer; sin esto las ordenes fallan con "dubious ownership".
+RUN git config --global --add safe.directory /opt/flutter \
+    && flutter --version \
+    && flutter precache --web
 
 ARG API_URL="https://api.ika-travel.camiluxlym.com"
 ARG GOOGLE_WEB_CLIENT_ID=""
@@ -32,8 +65,8 @@ ARG TOMTOM_API_KEY=""
 
 WORKDIR /app
 
-# Las dependencias se resuelven antes de copiar el código: si solo cambia el
-# código, Docker reutiliza esta capa y la compilación es mucho más rápida.
+# Las dependencias se resuelven antes de copiar el codigo: si solo cambia el
+# codigo, Docker reutiliza esta capa y la compilacion es mucho mas rapida.
 COPY ika_travel_mobile/pubspec.yaml ika_travel_mobile/pubspec.lock ./
 RUN flutter pub get
 
