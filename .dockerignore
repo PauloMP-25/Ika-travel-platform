@@ -1,0 +1,36 @@
+# Contexto de construccion de la RAIZ del repositorio.
+#
+# Lo usa ika_travel_mobile/Dockerfile.web, que se construye desde aqui.
+# Docker solo lee el .dockerignore de la raiz del contexto, asi que el de
+# ika_travel_mobile/ no se aplica en ese caso.
+#
+# El backend no se ve afectado: su compose usa `context: .` dentro de
+# ika-backend, no esta raiz.
+
+.git
+.github
+.idea
+.vscode
+
+# Artefactos de compilacion de Flutter. .dart_tool es especialmente
+# importante: guarda rutas absolutas de Windows que rompen la compilacion
+# dentro del contenedor Linux.
+ika_travel_mobile/build
+ika_travel_mobile/.dart_tool
+ika_travel_mobile/.flutter-plugins*
+ika_travel_mobile/.packages
+
+# Plataformas que la version web no necesita.
+ika_travel_mobile/android
+ika_travel_mobile/ios
+ika_travel_mobile/windows
+ika_travel_mobile/linux
+ika_travel_mobile/macos
+ika_travel_mobile/test
+
+# Material que no entra en la imagen.
+evidencias
+imagenes_lugares_turisticos
+ika_mobile
+**/__pycache__
+**/*.iml

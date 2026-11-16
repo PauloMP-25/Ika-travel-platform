@@ -93,8 +93,12 @@ flutter run -d chrome --dart-define=API_URL=https://api.tu-dominio.pe
 
 1. En Dokploy: **Create Application** → tipo **Dockerfile**.
 2. Repositorio: `PauloMP-25/Ika-travel-platform`, rama `main`.
-3. **Build Path / Context**: `ika_travel_mobile`
-4. **Dockerfile Path**: `Dockerfile.web`
+3. **Docker Context Path**: `.` (la **raíz del repositorio**)
+4. **Dockerfile Path**: `ika_travel_mobile/Dockerfile.web`
+
+> Las rutas `COPY` del Dockerfile son relativas a la raíz del repositorio.
+> Si se pone `ika_travel_mobile` como contexto, el despliegue falla con
+> `failed to calculate checksum "/nginx.conf": not found`.
 
 ### 4.2 Build Arguments
 
