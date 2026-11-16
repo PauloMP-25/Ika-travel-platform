@@ -22,7 +22,8 @@ class PantallaSos extends StatefulWidget {
   State<PantallaSos> createState() => _PantallaSosState();
 }
 
-class _PantallaSosState extends State<PantallaSos> {
+class _PantallaSosState extends State<PantallaSos>
+    with WidgetsBindingObserver {
   final SosService _sosService = SosService();
   bool _detectorChoqueActivo = false; // R-19: Desactivado por defecto
 
@@ -103,6 +104,7 @@ class _PantallaSosState extends State<PantallaSos> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _motivoDetalleCtrl.dispose();
     super.dispose();
   }
@@ -250,11 +252,22 @@ class _PantallaSosState extends State<PantallaSos> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _sosService.sincronizarContactosOficiales().then((_) {
       if (mounted) setState(() {});
     });
     // Revisa si el envío automático de SMS ya está habilitado en este teléfono.
     _sosService.refrescarEstadoSms();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Al volver de los Ajustes del sistema hay que releer el permiso. Sin
+    // esto el aviso se quedaba en "desactivado" para siempre: la pantalla
+    // vive dentro de un IndexedStack y su initState no se repite.
+    if (state == AppLifecycleState.resumed) {
+      _sosService.refrescarEstadoSms();
+    }
   }
 
   /// Indicador del estado del envío automático de SMS. Si el permiso no está
@@ -264,73 +277,90 @@ class _PantallaSosState extends State<PantallaSos> {
     return ValueListenableBuilder<bool>(
       valueListenable: _sosService.smsAutomaticoDisponible,
       builder: (context, activo, _) {
-        final verde = const Color(0xFF2E7D32);
-        final ambar = const Color(0xFFB26A00);
-        final color = activo ? verde : ambar;
-        return Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: color.withValues(alpha: 0.35)),
-          ),
-          child: Row(
-            children: [
-              Icon(activo ? Icons.bolt : Icons.sms_failed_outlined,
-                  color: color, size: 22),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      activo
-                          ? 'Envío automático activado'
-                          : 'Envío automático desactivado',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: color,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      activo
-                          ? 'El SMS de auxilio se enviará solo, sin pasos extra.'
-                          : 'Sin el permiso de SMS, la alerta abrirá la app de mensajes para enviar a mano.',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColores.grisTexto,
-                      ),
-                    ),
-                  ],
-                ),
+        return ValueListenableBuilder<bool>(
+          valueListenable: _sosService.smsBloqueadoPorElSistema,
+          builder: (context, bloqueado, _) {
+            const verde = Color(0xFF2E7D32);
+            const ambar = Color(0xFFB26A00);
+            final color = activo ? verde : ambar;
+
+            final String titulo;
+            final String detalle;
+            if (activo) {
+              titulo = 'Envío automático activado';
+              detalle = 'El SMS de auxilio se enviará solo, sin pasos extra.';
+            } else if (bloqueado) {
+              // MIUI y similares deniegan el SMS a las apps de fuera de Play
+              // Store. Insistir no sirve: se explica y se deja de pedir.
+              titulo = 'Tu teléfono bloquea el envío automático';
+              detalle = 'No es un fallo de la app: algunos teléfonos no '
+                  'permiten este permiso fuera de Play Store. El SOS seguirá '
+                  'avisando por WhatsApp y abrirá Mensajes con el texto listo.';
+            } else {
+              titulo = 'Envío automático desactivado';
+              detalle = 'Sin el permiso de SMS, la alerta abrirá la app de '
+                  'mensajes para enviar a mano.';
+            }
+
+            return Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: color.withValues(alpha: 0.35)),
               ),
-              if (!activo) ...[
-                const SizedBox(width: 8),
-                TextButton(
-                  style: TextButton.styleFrom(
-                    foregroundColor: ambar,
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Row(
+                children: [
+                  Icon(
+                    activo
+                        ? Icons.bolt
+                        : bloqueado
+                            ? Icons.info_outline
+                            : Icons.sms_failed_outlined,
+                    color: color,
+                    size: 22,
                   ),
-                  onPressed: () async {
-                    final ok = await _sosService.asegurarPermisoSms();
-                    if (!mounted) return;
-                    if (!ok) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Permiso de SMS no concedido. Actívalo en Ajustes para el envío automático.',
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          titulo,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: color,
                           ),
                         ),
-                      );
-                    }
-                  },
-                  child: const Text('Activar'),
-                ),
-              ],
-            ],
-          ),
+                        const SizedBox(height: 2),
+                        Text(
+                          detalle,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            height: 1.3,
+                            color: AppColores.grisTexto,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // El botón solo aparece cuando pedirlo puede servir de algo.
+                  if (!activo && !bloqueado) ...[
+                    const SizedBox(width: 8),
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        foregroundColor: ambar,
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                      ),
+                      onPressed: () => _sosService.asegurarPermisoSms(),
+                      child: const Text('Activar'),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          },
         );
       },
     );

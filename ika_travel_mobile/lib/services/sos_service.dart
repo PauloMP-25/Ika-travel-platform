@@ -149,11 +149,23 @@ class SosService {
 
   /// Revisa (sin pedir) si el permiso de SMS ya está concedido. Útil al abrir
   /// la pantalla SOS para mostrar el estado correcto.
+  /// true cuando el sistema bloquea el permiso y pedirlo ya no sirve de nada.
+  ///
+  /// Pasa en MIUI (Xiaomi, Redmi, POCO), que trata el SMS como permiso
+  /// restringido y lo deniega a las apps instaladas fuera de Play Store. En
+  /// ese caso no hay que seguir insistiendo al usuario: no existe ningun
+  /// camino que lo conceda.
+  final ValueNotifier<bool> smsBloqueadoPorElSistema = ValueNotifier<bool>(false);
+
   Future<void> refrescarEstadoSms() async {
     try {
-      smsAutomaticoDisponible.value = await Permission.sms.isGranted;
+      final estado = await Permission.sms.status;
+      smsAutomaticoDisponible.value = estado.isGranted;
+      smsBloqueadoPorElSistema.value =
+          estado.isPermanentlyDenied || estado.isRestricted;
     } catch (_) {
       smsAutomaticoDisponible.value = false;
+      smsBloqueadoPorElSistema.value = false;
     }
   }
 
@@ -168,6 +180,8 @@ class SosService {
       }
       final concedido = estado.isGranted;
       smsAutomaticoDisponible.value = concedido;
+      smsBloqueadoPorElSistema.value =
+          estado.isPermanentlyDenied || estado.isRestricted;
       return concedido;
     } catch (e) {
       debugPrint('[SosService] Error al solicitar permiso SMS: $e');
