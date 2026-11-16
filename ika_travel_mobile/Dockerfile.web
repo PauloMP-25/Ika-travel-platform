@@ -1,21 +1,28 @@
 # Imagen de la version web de Ika Travel: compila con Flutter y sirve el
 # resultado estatico con Nginx.
 #
-# La URL del backend se inyecta EN TIEMPO DE COMPILACION (Flutter la congela
-# dentro del JavaScript), asi que hay que pasarla como build-arg:
+# CONFIGURACION
+# Flutter congela la configuracion EN TIEMPO DE COMPILACION, asi que no sirve
+# ponerla como variable de entorno del contenedor: cuando Nginx arranca, el
+# JavaScript ya esta compilado. Hay dos formas de pasarla:
 #
-#   docker build -f ika_travel_mobile/Dockerfile.web \
-#     --build-arg API_URL=https://api.ika-travel.camiluxlym.com \
-#     -t ika-travel-web .
+#   1. Build arguments (si tu Dokploy los ofrece):
+#        docker build -f ika_travel_mobile/Dockerfile.web \
+#          --build-arg API_URL=https://api.ika-travel.camiluxlym.com \
+#          -t ika-travel-web .
 #
-# En Dokploy se configuran como "Build Arguments" en la aplicacion.
+#   2. Pestana "Environment" de Dokploy: Dokploy vuelca esas variables en un
+#      archivo .env en la raiz del contexto, y este Dockerfile lo lee antes
+#      de compilar. Es la via para las versiones de Dokploy que no muestran
+#      "Build Arguments".
+#
+# Si ambas estan presentes, manda el .env.
 #
 # IMPORTANTE - CONTEXTO DE CONSTRUCCION
 # Todas las rutas COPY son relativas a la RAIZ DEL REPOSITORIO, no a esta
 # carpeta: es el contexto que usa Dokploy. Con rutas relativas a
 # ika_travel_mobile el despliegue fallaba con
 #   failed to calculate checksum "/nginx.conf": not found
-# Por eso el docker build de arriba tambien se lanza desde la raiz.
 
 # ---------- Etapa 1: compilar ----------
 # Flutter se instala desde el archivo oficial de Google en vez de partir de
@@ -58,10 +65,9 @@ RUN git config --global --add safe.directory /opt/flutter \
     && flutter --version \
     && flutter precache --web
 
+# Valores por defecto, que el .env de Dokploy puede sobreescribir.
 ARG API_URL="https://api.ika-travel.camiluxlym.com"
 ARG GOOGLE_WEB_CLIENT_ID=""
-ARG GEMINI_API_KEY=""
-ARG TOMTOM_API_KEY=""
 
 WORKDIR /app
 
@@ -72,13 +78,39 @@ RUN flutter pub get
 
 COPY ika_travel_mobile/ .
 
-RUN flutter build web --release \
-    --dart-define=API_URL="$API_URL" \
-    --dart-define=GOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID" \
-    --dart-define=GEMINI_API_KEY="$GEMINI_API_KEY" \
-    --dart-define=TOMTOM_API_KEY="$TOMTOM_API_KEY"
+# El .env que escribe Dokploy con las variables de Environment. Se copia
+# junto a pubspec.yaml, que siempre existe, para que el COPY no falle en una
+# compilacion local donde no hay .env.
+COPY ika_travel_mobile/pubspec.yaml .env* /tmp/entorno/
+
+# AVISO DE SEGURIDAD
+# Lo que se pase con --dart-define queda escrito EN CLARO dentro del
+# JavaScript publicado: cualquiera lo lee con "ver codigo fuente". Por eso
+# aqui solo viajan identificadores publicos: la URL del backend y el client
+# ID de Google (que ademas ya figura en web/index.html, de donde lo lee el
+# plugin en web). Las claves de Gemini o TomTom NO se inyectan aunque esten
+# en el .env: en un sitio publico serian claves regaladas.
+RUN set -eu; \
+    if [ -f /tmp/entorno/.env ]; then \
+        echo "==> Variables tomadas del .env de Dokploy"; \
+        set -a; . /tmp/entorno/.env; set +a; \
+    else \
+        echo "==> Sin .env: se usan los valores por defecto del Dockerfile"; \
+    fi; \
+    echo "==> API_URL=${API_URL}"; \
+    if [ -n "${GOOGLE_WEB_CLIENT_ID}" ]; then \
+        echo "==> GOOGLE_WEB_CLIENT_ID: definido"; \
+    else \
+        echo "==> GOOGLE_WEB_CLIENT_ID: vacio (se usara el de api_config.dart)"; \
+    fi; \
+    flutter build web --release \
+        --dart-define=API_URL="${API_URL}" \
+        --dart-define=GOOGLE_WEB_CLIENT_ID="${GOOGLE_WEB_CLIENT_ID}"; \
+    rm -rf /tmp/entorno
 
 # ---------- Etapa 2: servir ----------
+# El .env se queda en la etapa de compilacion y NO llega a la imagen final:
+# aqui solo se copian los archivos ya compilados y la configuracion de Nginx.
 FROM nginx:1.27-alpine
 
 COPY --from=build /app/build/web /usr/share/nginx/html
