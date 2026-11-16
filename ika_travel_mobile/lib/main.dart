@@ -2,6 +2,9 @@ import 'config/navegacion_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
+
+import 'config/contenedor_web.dart';
 import 'config/escala_texto.dart';
 import 'config/tema.dart';
 import 'config/tema_manager.dart';
@@ -67,8 +70,12 @@ class IkaTravelApp extends StatelessWidget {
                     brightness: Brightness.dark,
                   ),
                 ),
-                // Pone tope a la letra grande del sistema (ver EscalaTexto).
-                builder: EscalaTexto.aplicar,
+                // Tope a la letra del sistema (EscalaTexto) y, solo en web,
+                // la app centrada en una columna de ancho de teléfono
+                // (ContenedorWeb). En Android no cambia nada.
+                builder: (context, child) => ContenedorWeb(
+                  child: EscalaTexto.aplicar(context, child),
+                ),
                 home: const _GateArranque(),
               );
             },
@@ -104,7 +111,10 @@ class _GateArranqueState extends State<_GateArranque> {
       builder: (context, usuario, _) {
         if (usuario == null) return const PantallaBienvenida();
 
-        if (!_permisosListos) {
+        // En web no hay permisos del sistema que pedir: el navegador los
+        // pide solo (ubicación, micrófono) la primera vez que se usan, y
+        // SMS o llamadas no existen. Mostrar la pantalla ahí solo estorba.
+        if (!kIsWeb && !_permisosListos) {
           return PantallaPermisos(
             onCompletado: () {
               if (mounted) setState(() => _permisosListos = true);

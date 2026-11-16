@@ -1,7 +1,8 @@
 import 'dart:convert';
-import 'dart:io';
+
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
+import 'excepciones_api.dart';
 import 'auth_service.dart';
 
 class ApiClient {
@@ -48,7 +49,7 @@ class ApiClient {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return jsonDecode(utf8.decode(response.bodyBytes));
     } else {
-      throw HttpException(
+      throw ErrorApi(
         'Error ${response.statusCode}: ${response.body}',
         uri: uri,
       );
@@ -76,7 +77,7 @@ class ApiClient {
       if (response.body.isEmpty) return {};
       return jsonDecode(utf8.decode(response.bodyBytes));
     } else {
-      throw HttpException(
+      throw ErrorApi(
         'Error ${response.statusCode}: ${response.body}',
         uri: uri,
       );

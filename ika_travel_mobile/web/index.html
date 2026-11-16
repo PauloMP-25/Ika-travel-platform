@@ -18,18 +18,26 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="Ika Travel: tu companero inteligente de viaje por el desierto y el mar de Ica.">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="ika_travel_mobile">
+  <meta name="apple-mobile-web-app-title" content="Ika Travel">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>ika_travel_mobile</title>
+  <title>Ika Travel</title>
+
+  <!-- Google Sign-In en web: el plugin lee el client ID de esta etiqueta,
+       no del --dart-define que usa Android. Es el mismo ID de tipo "Web"
+       que ya esta en api_config.dart; es un identificador publico, no un
+       secreto. El dominio donde se publique debe estar en "Origenes de
+       JavaScript autorizados" del cliente OAuth en Google Cloud Console. -->
+  <meta name="google-signin-client_id"
+        content="575307622274-shcaqq8vgqgqitc82rjp43m3ujt7dvg8.apps.googleusercontent.com">
   <link rel="manifest" href="manifest.json">
 </head>
 <body>

@@ -1,0 +1,49 @@
+# Imagen de la versión web de Ika Travel: compila con Flutter y sirve el
+# resultado estático con Nginx.
+#
+# La URL del backend se inyecta EN TIEMPO DE COMPILACIÓN (Flutter la congela
+# dentro del JavaScript), así que hay que pasarla como build-arg:
+#
+#   docker build -f Dockerfile.web \
+#     --build-arg API_URL=https://api.tu-dominio.pe \
+#     -t ika-travel-web .
+#
+# En Dokploy se configuran como "Build Arguments" en la aplicación.
+
+# ---------- Etapa 1: compilar ----------
+# Misma version que usa el equipo en local (flutter --version). Si el tag no
+# existiera en el registro, usar ghcr.io/cirruslabs/flutter:stable.
+FROM ghcr.io/cirruslabs/flutter:3.47.5 AS build
+
+ARG API_URL=""
+ARG GOOGLE_WEB_CLIENT_ID=""
+ARG GEMINI_API_KEY=""
+ARG TOMTOM_API_KEY=""
+
+WORKDIR /app
+
+# Las dependencias se resuelven antes de copiar el código: si solo cambia el
+# código, Docker reutiliza esta capa y la compilación es mucho más rápida.
+COPY pubspec.yaml pubspec.lock ./
+RUN flutter pub get
+
+COPY . .
+
+RUN flutter build web --release \
+    --dart-define=API_URL="$API_URL" \
+    --dart-define=GOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID" \
+    --dart-define=GEMINI_API_KEY="$GEMINI_API_KEY" \
+    --dart-define=TOMTOM_API_KEY="$TOMTOM_API_KEY"
+
+# ---------- Etapa 2: servir ----------
+FROM nginx:1.27-alpine
+
+COPY --from=build /app/build/web /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD wget -qO- http://127.0.0.1/ >/dev/null 2>&1 || exit 1
+
+CMD ["nginx", "-g", "daemon off;"]
